@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -14,7 +13,7 @@ class VehicleDetailScreen extends StatefulWidget {
 }
 
 class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
-  void showFullScreenImage(BuildContext context, File imageFile) {
+  void showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -26,7 +25,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
               onTap: NavigationService().popNavigation,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.file(imageFile, fit: BoxFit.cover),
+                child: Image.network(imageUrl, fit: BoxFit.cover),
               ),
             ),
           ),
@@ -62,55 +61,104 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
 
       child: Column(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 20),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 20),
 
-                _buildDetailCard(
-                  Icons.person,
-                  'Customer',
-                  vehicle['customer']?['Name'],
-                ),
-                SizedBox(height: 16),
+                  _buildDetailCard(
+                    Icons.person,
+                    'Customer',
+                    vehicle['customer']?['Name'],
+                  ),
+                  SizedBox(height: 16),
 
-                // Vehicle Type
-                _buildDetailCard(
-                  Icons.directions_car,
-                  'Type',
-                  vehicle['type']?['Name'],
-                ),
-                SizedBox(height: 16),
+                  // Vehicle Type
+                  _buildDetailCard(
+                    Icons.directions_car,
+                    'Type',
+                    vehicle['type']?['Name'],
+                  ),
+                  SizedBox(height: 16),
 
-                // Plate Number
-                _buildDetailCard(
-                  Icons.confirmation_number,
-                  'Plate Number',
-                  vehicle['plate_no'],
-                ),
-                SizedBox(height: 16),
+                  // Plate Number
+                  _buildDetailCard(
+                    Icons.confirmation_number,
+                    'Plate Number',
+                    vehicle['plate_no'],
+                  ),
+                  SizedBox(height: 16),
 
-                // Capacity
-                _buildDetailCard(
-                  Icons.storage,
-                  'Capacity',
-                  '${vehicle['capacity']} ${vehicle['vehicle_capacity_unit']?['Name']}',
-                ),
-                SizedBox(height: 16),
+                  // Capacity
+                  _buildDetailCard(
+                    Icons.storage,
+                    'Capacity',
+                    '${vehicle['capacity']} ${vehicle['vehicle_capacity_unit']?['Name']}',
+                  ),
+                  SizedBox(height: 16),
 
-                // Note
-                _buildDetailCard(Icons.note, 'Note', vehicle['description']),
-              ],
+                  // Note
+                  _buildDetailCard(Icons.note, 'Note', vehicle['description']),
+                  SizedBox(height: 20),
+                  if (vehicle['vehicle_images'].isNotEmpty &&
+                      vehicle['vehicle_images'] != null)
+                    Text(
+                      'Images',
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  SizedBox(height: 10),
+                  if (vehicle['vehicle_images'] != null &&
+                      vehicle['vehicle_images'].isNotEmpty)
+                    SizedBox(
+                      height: 150,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: vehicle['vehicle_images'].length,
+                        itemBuilder: (context, index) {
+                          final image = vehicle['vehicle_images'][index];
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                showFullScreenImage(context, image['Title']);
+                              },
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  image['Title'],
+                                  width: 150,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      width: 150,
+                                      color:
+                                          Colors
+                                              .grey[300], // Placeholder background
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey[600],
+                                      ), // Fallback icon
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-          // _buildEditButton(context),
         ],
       ),
     );
-    // },
-    // );
   }
 
   // Helper method to build a detail card

@@ -166,7 +166,7 @@ as List<VehicleData>?,
 /// @nodoc
 mixin _$VehicleData {
 
- int? get id; String? get plate_no; int? get vehicle_type_id; String? get capacity; int? get capacity_unit_id; String? get description; int? get customer_id; VehicleType? get type; VehicleCapacityUnit? get vehicle_capacity_unit; Customer? get customer;
+ int? get id; String? get plate_no; int? get vehicle_type_id; String? get capacity; int? get capacity_unit_id; String? get description; int? get customer_id; int? get user_id; String? get updated_at; VehicleType? get type; VehicleCapacityUnit? get vehicle_capacity_unit; Customer? get customer; User? get user; List<VehicleImage>? get vehicle_images;
 /// Create a copy of VehicleData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -179,16 +179,16 @@ $VehicleDataCopyWith<VehicleData> get copyWith => _$VehicleDataCopyWithImpl<Vehi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VehicleData&&(identical(other.id, id) || other.id == id)&&(identical(other.plate_no, plate_no) || other.plate_no == plate_no)&&(identical(other.vehicle_type_id, vehicle_type_id) || other.vehicle_type_id == vehicle_type_id)&&(identical(other.capacity, capacity) || other.capacity == capacity)&&(identical(other.capacity_unit_id, capacity_unit_id) || other.capacity_unit_id == capacity_unit_id)&&(identical(other.description, description) || other.description == description)&&(identical(other.customer_id, customer_id) || other.customer_id == customer_id)&&(identical(other.type, type) || other.type == type)&&(identical(other.vehicle_capacity_unit, vehicle_capacity_unit) || other.vehicle_capacity_unit == vehicle_capacity_unit)&&(identical(other.customer, customer) || other.customer == customer));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VehicleData&&(identical(other.id, id) || other.id == id)&&(identical(other.plate_no, plate_no) || other.plate_no == plate_no)&&(identical(other.vehicle_type_id, vehicle_type_id) || other.vehicle_type_id == vehicle_type_id)&&(identical(other.capacity, capacity) || other.capacity == capacity)&&(identical(other.capacity_unit_id, capacity_unit_id) || other.capacity_unit_id == capacity_unit_id)&&(identical(other.description, description) || other.description == description)&&(identical(other.customer_id, customer_id) || other.customer_id == customer_id)&&(identical(other.user_id, user_id) || other.user_id == user_id)&&(identical(other.updated_at, updated_at) || other.updated_at == updated_at)&&(identical(other.type, type) || other.type == type)&&(identical(other.vehicle_capacity_unit, vehicle_capacity_unit) || other.vehicle_capacity_unit == vehicle_capacity_unit)&&(identical(other.customer, customer) || other.customer == customer)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.vehicle_images, vehicle_images));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,plate_no,vehicle_type_id,capacity,capacity_unit_id,description,customer_id,type,vehicle_capacity_unit,customer);
+int get hashCode => Object.hash(runtimeType,id,plate_no,vehicle_type_id,capacity,capacity_unit_id,description,customer_id,user_id,updated_at,type,vehicle_capacity_unit,customer,user,const DeepCollectionEquality().hash(vehicle_images));
 
 @override
 String toString() {
-  return 'VehicleData(id: $id, plate_no: $plate_no, vehicle_type_id: $vehicle_type_id, capacity: $capacity, capacity_unit_id: $capacity_unit_id, description: $description, customer_id: $customer_id, type: $type, vehicle_capacity_unit: $vehicle_capacity_unit, customer: $customer)';
+  return 'VehicleData(id: $id, plate_no: $plate_no, vehicle_type_id: $vehicle_type_id, capacity: $capacity, capacity_unit_id: $capacity_unit_id, description: $description, customer_id: $customer_id, user_id: $user_id, updated_at: $updated_at, type: $type, vehicle_capacity_unit: $vehicle_capacity_unit, customer: $customer, user: $user, vehicle_images: $vehicle_images)';
 }
 
 
@@ -199,11 +199,11 @@ abstract mixin class $VehicleDataCopyWith<$Res>  {
   factory $VehicleDataCopyWith(VehicleData value, $Res Function(VehicleData) _then) = _$VehicleDataCopyWithImpl;
 @useResult
 $Res call({
- int? id, String? plate_no, int? vehicle_type_id, String? capacity, int? capacity_unit_id, String? description, int? customer_id, VehicleType? type, VehicleCapacityUnit? vehicle_capacity_unit, Customer? customer
+ int? id, String? plate_no, int? vehicle_type_id, String? capacity, int? capacity_unit_id, String? description, int? customer_id, int? user_id, String? updated_at, VehicleType? type, VehicleCapacityUnit? vehicle_capacity_unit, Customer? customer, User? user, List<VehicleImage>? vehicle_images
 });
 
 
-$VehicleTypeCopyWith<$Res>? get type;$VehicleCapacityUnitCopyWith<$Res>? get vehicle_capacity_unit;$CustomerCopyWith<$Res>? get customer;
+$VehicleTypeCopyWith<$Res>? get type;$VehicleCapacityUnitCopyWith<$Res>? get vehicle_capacity_unit;$CustomerCopyWith<$Res>? get customer;$UserCopyWith<$Res>? get user;
 
 }
 /// @nodoc
@@ -216,7 +216,7 @@ class _$VehicleDataCopyWithImpl<$Res>
 
 /// Create a copy of VehicleData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? plate_no = freezed,Object? vehicle_type_id = freezed,Object? capacity = freezed,Object? capacity_unit_id = freezed,Object? description = freezed,Object? customer_id = freezed,Object? type = freezed,Object? vehicle_capacity_unit = freezed,Object? customer = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? plate_no = freezed,Object? vehicle_type_id = freezed,Object? capacity = freezed,Object? capacity_unit_id = freezed,Object? description = freezed,Object? customer_id = freezed,Object? user_id = freezed,Object? updated_at = freezed,Object? type = freezed,Object? vehicle_capacity_unit = freezed,Object? customer = freezed,Object? user = freezed,Object? vehicle_images = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,plate_no: freezed == plate_no ? _self.plate_no : plate_no // ignore: cast_nullable_to_non_nullable
@@ -225,10 +225,14 @@ as int?,capacity: freezed == capacity ? _self.capacity : capacity // ignore: cas
 as String?,capacity_unit_id: freezed == capacity_unit_id ? _self.capacity_unit_id : capacity_unit_id // ignore: cast_nullable_to_non_nullable
 as int?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,customer_id: freezed == customer_id ? _self.customer_id : customer_id // ignore: cast_nullable_to_non_nullable
-as int?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as int?,user_id: freezed == user_id ? _self.user_id : user_id // ignore: cast_nullable_to_non_nullable
+as int?,updated_at: freezed == updated_at ? _self.updated_at : updated_at // ignore: cast_nullable_to_non_nullable
+as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as VehicleType?,vehicle_capacity_unit: freezed == vehicle_capacity_unit ? _self.vehicle_capacity_unit : vehicle_capacity_unit // ignore: cast_nullable_to_non_nullable
 as VehicleCapacityUnit?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
-as Customer?,
+as Customer?,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
+as User?,vehicle_images: freezed == vehicle_images ? _self.vehicle_images : vehicle_images // ignore: cast_nullable_to_non_nullable
+as List<VehicleImage>?,
   ));
 }
 /// Create a copy of VehicleData
@@ -267,6 +271,18 @@ $CustomerCopyWith<$Res>? get customer {
   return $CustomerCopyWith<$Res>(_self.customer!, (value) {
     return _then(_self.copyWith(customer: value));
   });
+}/// Create a copy of VehicleData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$UserCopyWith<$Res>? get user {
+    if (_self.user == null) {
+    return null;
+  }
+
+  return $UserCopyWith<$Res>(_self.user!, (value) {
+    return _then(_self.copyWith(user: value));
+  });
 }
 }
 
@@ -275,7 +291,7 @@ $CustomerCopyWith<$Res>? get customer {
 @JsonSerializable()
 
 class _VehicleData implements VehicleData {
-  const _VehicleData({this.id, this.plate_no, this.vehicle_type_id, this.capacity, this.capacity_unit_id, this.description, this.customer_id, this.type, this.vehicle_capacity_unit, this.customer});
+  const _VehicleData({this.id, this.plate_no, this.vehicle_type_id, this.capacity, this.capacity_unit_id, this.description, this.customer_id, this.user_id, this.updated_at, this.type, this.vehicle_capacity_unit, this.customer, this.user, final  List<VehicleImage>? vehicle_images}): _vehicle_images = vehicle_images;
   factory _VehicleData.fromJson(Map<String, dynamic> json) => _$VehicleDataFromJson(json);
 
 @override final  int? id;
@@ -285,9 +301,21 @@ class _VehicleData implements VehicleData {
 @override final  int? capacity_unit_id;
 @override final  String? description;
 @override final  int? customer_id;
+@override final  int? user_id;
+@override final  String? updated_at;
 @override final  VehicleType? type;
 @override final  VehicleCapacityUnit? vehicle_capacity_unit;
 @override final  Customer? customer;
+@override final  User? user;
+ final  List<VehicleImage>? _vehicle_images;
+@override List<VehicleImage>? get vehicle_images {
+  final value = _vehicle_images;
+  if (value == null) return null;
+  if (_vehicle_images is EqualUnmodifiableListView) return _vehicle_images;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of VehicleData
 /// with the given fields replaced by the non-null parameter values.
@@ -302,16 +330,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VehicleData&&(identical(other.id, id) || other.id == id)&&(identical(other.plate_no, plate_no) || other.plate_no == plate_no)&&(identical(other.vehicle_type_id, vehicle_type_id) || other.vehicle_type_id == vehicle_type_id)&&(identical(other.capacity, capacity) || other.capacity == capacity)&&(identical(other.capacity_unit_id, capacity_unit_id) || other.capacity_unit_id == capacity_unit_id)&&(identical(other.description, description) || other.description == description)&&(identical(other.customer_id, customer_id) || other.customer_id == customer_id)&&(identical(other.type, type) || other.type == type)&&(identical(other.vehicle_capacity_unit, vehicle_capacity_unit) || other.vehicle_capacity_unit == vehicle_capacity_unit)&&(identical(other.customer, customer) || other.customer == customer));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VehicleData&&(identical(other.id, id) || other.id == id)&&(identical(other.plate_no, plate_no) || other.plate_no == plate_no)&&(identical(other.vehicle_type_id, vehicle_type_id) || other.vehicle_type_id == vehicle_type_id)&&(identical(other.capacity, capacity) || other.capacity == capacity)&&(identical(other.capacity_unit_id, capacity_unit_id) || other.capacity_unit_id == capacity_unit_id)&&(identical(other.description, description) || other.description == description)&&(identical(other.customer_id, customer_id) || other.customer_id == customer_id)&&(identical(other.user_id, user_id) || other.user_id == user_id)&&(identical(other.updated_at, updated_at) || other.updated_at == updated_at)&&(identical(other.type, type) || other.type == type)&&(identical(other.vehicle_capacity_unit, vehicle_capacity_unit) || other.vehicle_capacity_unit == vehicle_capacity_unit)&&(identical(other.customer, customer) || other.customer == customer)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other._vehicle_images, _vehicle_images));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,plate_no,vehicle_type_id,capacity,capacity_unit_id,description,customer_id,type,vehicle_capacity_unit,customer);
+int get hashCode => Object.hash(runtimeType,id,plate_no,vehicle_type_id,capacity,capacity_unit_id,description,customer_id,user_id,updated_at,type,vehicle_capacity_unit,customer,user,const DeepCollectionEquality().hash(_vehicle_images));
 
 @override
 String toString() {
-  return 'VehicleData(id: $id, plate_no: $plate_no, vehicle_type_id: $vehicle_type_id, capacity: $capacity, capacity_unit_id: $capacity_unit_id, description: $description, customer_id: $customer_id, type: $type, vehicle_capacity_unit: $vehicle_capacity_unit, customer: $customer)';
+  return 'VehicleData(id: $id, plate_no: $plate_no, vehicle_type_id: $vehicle_type_id, capacity: $capacity, capacity_unit_id: $capacity_unit_id, description: $description, customer_id: $customer_id, user_id: $user_id, updated_at: $updated_at, type: $type, vehicle_capacity_unit: $vehicle_capacity_unit, customer: $customer, user: $user, vehicle_images: $vehicle_images)';
 }
 
 
@@ -322,11 +350,11 @@ abstract mixin class _$VehicleDataCopyWith<$Res> implements $VehicleDataCopyWith
   factory _$VehicleDataCopyWith(_VehicleData value, $Res Function(_VehicleData) _then) = __$VehicleDataCopyWithImpl;
 @override @useResult
 $Res call({
- int? id, String? plate_no, int? vehicle_type_id, String? capacity, int? capacity_unit_id, String? description, int? customer_id, VehicleType? type, VehicleCapacityUnit? vehicle_capacity_unit, Customer? customer
+ int? id, String? plate_no, int? vehicle_type_id, String? capacity, int? capacity_unit_id, String? description, int? customer_id, int? user_id, String? updated_at, VehicleType? type, VehicleCapacityUnit? vehicle_capacity_unit, Customer? customer, User? user, List<VehicleImage>? vehicle_images
 });
 
 
-@override $VehicleTypeCopyWith<$Res>? get type;@override $VehicleCapacityUnitCopyWith<$Res>? get vehicle_capacity_unit;@override $CustomerCopyWith<$Res>? get customer;
+@override $VehicleTypeCopyWith<$Res>? get type;@override $VehicleCapacityUnitCopyWith<$Res>? get vehicle_capacity_unit;@override $CustomerCopyWith<$Res>? get customer;@override $UserCopyWith<$Res>? get user;
 
 }
 /// @nodoc
@@ -339,7 +367,7 @@ class __$VehicleDataCopyWithImpl<$Res>
 
 /// Create a copy of VehicleData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? plate_no = freezed,Object? vehicle_type_id = freezed,Object? capacity = freezed,Object? capacity_unit_id = freezed,Object? description = freezed,Object? customer_id = freezed,Object? type = freezed,Object? vehicle_capacity_unit = freezed,Object? customer = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? plate_no = freezed,Object? vehicle_type_id = freezed,Object? capacity = freezed,Object? capacity_unit_id = freezed,Object? description = freezed,Object? customer_id = freezed,Object? user_id = freezed,Object? updated_at = freezed,Object? type = freezed,Object? vehicle_capacity_unit = freezed,Object? customer = freezed,Object? user = freezed,Object? vehicle_images = freezed,}) {
   return _then(_VehicleData(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,plate_no: freezed == plate_no ? _self.plate_no : plate_no // ignore: cast_nullable_to_non_nullable
@@ -348,10 +376,14 @@ as int?,capacity: freezed == capacity ? _self.capacity : capacity // ignore: cas
 as String?,capacity_unit_id: freezed == capacity_unit_id ? _self.capacity_unit_id : capacity_unit_id // ignore: cast_nullable_to_non_nullable
 as int?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,customer_id: freezed == customer_id ? _self.customer_id : customer_id // ignore: cast_nullable_to_non_nullable
-as int?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as int?,user_id: freezed == user_id ? _self.user_id : user_id // ignore: cast_nullable_to_non_nullable
+as int?,updated_at: freezed == updated_at ? _self.updated_at : updated_at // ignore: cast_nullable_to_non_nullable
+as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as VehicleType?,vehicle_capacity_unit: freezed == vehicle_capacity_unit ? _self.vehicle_capacity_unit : vehicle_capacity_unit // ignore: cast_nullable_to_non_nullable
 as VehicleCapacityUnit?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
-as Customer?,
+as Customer?,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
+as User?,vehicle_images: freezed == vehicle_images ? _self._vehicle_images : vehicle_images // ignore: cast_nullable_to_non_nullable
+as List<VehicleImage>?,
   ));
 }
 
@@ -390,6 +422,18 @@ $CustomerCopyWith<$Res>? get customer {
 
   return $CustomerCopyWith<$Res>(_self.customer!, (value) {
     return _then(_self.copyWith(customer: value));
+  });
+}/// Create a copy of VehicleData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$UserCopyWith<$Res>? get user {
+    if (_self.user == null) {
+    return null;
+  }
+
+  return $UserCopyWith<$Res>(_self.user!, (value) {
+    return _then(_self.copyWith(user: value));
   });
 }
 }
@@ -796,6 +840,281 @@ class __$VehicleCapacityUnitCopyWithImpl<$Res>
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,Name: freezed == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
 as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$User {
+
+ int? get id; String? get name;
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$identity);
+
+  /// Serializes this User to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name);
+
+@override
+String toString() {
+  return 'User(id: $id, name: $name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $UserCopyWith<$Res>  {
+  factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
+@useResult
+$Res call({
+ int? id, String? name
+});
+
+
+
+
+}
+/// @nodoc
+class _$UserCopyWithImpl<$Res>
+    implements $UserCopyWith<$Res> {
+  _$UserCopyWithImpl(this._self, this._then);
+
+  final User _self;
+  final $Res Function(User) _then;
+
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = freezed,}) {
+  return _then(_self.copyWith(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// @nodoc
+@JsonSerializable()
+
+class _User implements User {
+  const _User({this.id, this.name});
+  factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+
+@override final  int? id;
+@override final  String? name;
+
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UserCopyWith<_User> get copyWith => __$UserCopyWithImpl<_User>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$UserToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name);
+
+@override
+String toString() {
+  return 'User(id: $id, name: $name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
+  factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
+@override @useResult
+$Res call({
+ int? id, String? name
+});
+
+
+
+
+}
+/// @nodoc
+class __$UserCopyWithImpl<$Res>
+    implements _$UserCopyWith<$Res> {
+  __$UserCopyWithImpl(this._self, this._then);
+
+  final _User _self;
+  final $Res Function(_User) _then;
+
+/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = freezed,}) {
+  return _then(_User(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$VehicleImage {
+
+ int? get id; String? get Title; int? get RelationId;
+/// Create a copy of VehicleImage
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$VehicleImageCopyWith<VehicleImage> get copyWith => _$VehicleImageCopyWithImpl<VehicleImage>(this as VehicleImage, _$identity);
+
+  /// Serializes this VehicleImage to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VehicleImage&&(identical(other.id, id) || other.id == id)&&(identical(other.Title, Title) || other.Title == Title)&&(identical(other.RelationId, RelationId) || other.RelationId == RelationId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Title,RelationId);
+
+@override
+String toString() {
+  return 'VehicleImage(id: $id, Title: $Title, RelationId: $RelationId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $VehicleImageCopyWith<$Res>  {
+  factory $VehicleImageCopyWith(VehicleImage value, $Res Function(VehicleImage) _then) = _$VehicleImageCopyWithImpl;
+@useResult
+$Res call({
+ int? id, String? Title, int? RelationId
+});
+
+
+
+
+}
+/// @nodoc
+class _$VehicleImageCopyWithImpl<$Res>
+    implements $VehicleImageCopyWith<$Res> {
+  _$VehicleImageCopyWithImpl(this._self, this._then);
+
+  final VehicleImage _self;
+  final $Res Function(VehicleImage) _then;
+
+/// Create a copy of VehicleImage
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? Title = freezed,Object? RelationId = freezed,}) {
+  return _then(_self.copyWith(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,Title: freezed == Title ? _self.Title : Title // ignore: cast_nullable_to_non_nullable
+as String?,RelationId: freezed == RelationId ? _self.RelationId : RelationId // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+}
+
+
+/// @nodoc
+@JsonSerializable()
+
+class _VehicleImage implements VehicleImage {
+  const _VehicleImage({this.id, this.Title, this.RelationId});
+  factory _VehicleImage.fromJson(Map<String, dynamic> json) => _$VehicleImageFromJson(json);
+
+@override final  int? id;
+@override final  String? Title;
+@override final  int? RelationId;
+
+/// Create a copy of VehicleImage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$VehicleImageCopyWith<_VehicleImage> get copyWith => __$VehicleImageCopyWithImpl<_VehicleImage>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$VehicleImageToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VehicleImage&&(identical(other.id, id) || other.id == id)&&(identical(other.Title, Title) || other.Title == Title)&&(identical(other.RelationId, RelationId) || other.RelationId == RelationId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Title,RelationId);
+
+@override
+String toString() {
+  return 'VehicleImage(id: $id, Title: $Title, RelationId: $RelationId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$VehicleImageCopyWith<$Res> implements $VehicleImageCopyWith<$Res> {
+  factory _$VehicleImageCopyWith(_VehicleImage value, $Res Function(_VehicleImage) _then) = __$VehicleImageCopyWithImpl;
+@override @useResult
+$Res call({
+ int? id, String? Title, int? RelationId
+});
+
+
+
+
+}
+/// @nodoc
+class __$VehicleImageCopyWithImpl<$Res>
+    implements _$VehicleImageCopyWith<$Res> {
+  __$VehicleImageCopyWithImpl(this._self, this._then);
+
+  final _VehicleImage _self;
+  final $Res Function(_VehicleImage) _then;
+
+/// Create a copy of VehicleImage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? Title = freezed,Object? RelationId = freezed,}) {
+  return _then(_VehicleImage(
+id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int?,Title: freezed == Title ? _self.Title : Title // ignore: cast_nullable_to_non_nullable
+as String?,RelationId: freezed == RelationId ? _self.RelationId : RelationId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

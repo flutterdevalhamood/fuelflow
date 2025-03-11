@@ -26,9 +26,13 @@ abstract class VehicleData with _$VehicleData {
     int? capacity_unit_id,
     String? description,
     int? customer_id,
+    int? user_id,
+    String? updated_at,
     VehicleType? type,
     VehicleCapacityUnit? vehicle_capacity_unit,
     Customer? customer,
+    User? user,
+    List<VehicleImage>? vehicle_images,
   }) = _VehicleData;
 
   factory VehicleData.fromJson(Map<String, dynamic> json) =>
@@ -58,4 +62,20 @@ abstract class VehicleCapacityUnit with _$VehicleCapacityUnit {
 
   factory VehicleCapacityUnit.fromJson(Map<String, dynamic> json) =>
       _$VehicleCapacityUnitFromJson(json);
+}
+
+@freezed
+abstract class User with _$User {
+  const factory User({int? id, String? name}) = _User;
+
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+
+@freezed
+abstract class VehicleImage with _$VehicleImage {
+  const factory VehicleImage({int? id, String? Title, int? RelationId}) =
+      _VehicleImage;
+
+  factory VehicleImage.fromJson(Map<String, dynamic> json) =>
+      _$VehicleImageFromJson(json);
 }

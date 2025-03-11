@@ -95,4 +95,10 @@ abstract class RestClient {
     @Part(name: 'document[]') List<MultipartFile>? files,
     @Part(name: 'id') String? id,
   });
+
+  @POST('/VehiclePictureDeleteByID')
+  Future<dynamic> deleteImagesById({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+  });
 }

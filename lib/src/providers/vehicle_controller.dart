@@ -130,6 +130,20 @@ class VehicleController with ChangeNotifier {
     }
   }
 
+  Future<void> deleteImagesById(int? id) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.deleteImagesById(token: 'Bearer $token', id: id);
+      await getVehicleData();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
+
   Future<void> editVehicleData(
     int? id,
     String? plateNumber,
