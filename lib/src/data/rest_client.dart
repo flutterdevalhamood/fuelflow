@@ -21,8 +21,12 @@ abstract class RestClient {
     @Field("password") String? password,
   });
 
-  @GET('/Vehicle/paginate/1/10')
-  Future<dynamic> getVehicleData(@Header("Authorization") String? token);
+  @GET('/Vehicle/paginate/{page}/{limit}')
+  Future<dynamic> getVehicleData(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
 
   @GET('/getVehicleBaseList')
   Future<dynamic> getVehicleDropDownData(

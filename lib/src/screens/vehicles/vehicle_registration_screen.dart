@@ -119,34 +119,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     }
   }
 
-  // Future<File> _saveImageToAppDirectory(File imageFile) async {
-  //   final appDir = await getApplicationDocumentsDirectory();
-  //   final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-  //   final savedImage = await imageFile.copy('${appDir.path}/$fileName');
-  //   return savedImage;
-  // }
-  //
-  // Future<void> _pickImageFromGallery() async {
-  //   final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-  //   if (image != null) {
-  //     final File savedImage = await _saveImageToAppDirectory(File(image.path));
-  //     if (mounted) {
-  //       Provider.of<VehicleProvider>(
-  //         context,
-  //         listen: false,
-  //       ).addImage(savedImage);
-  //     }
-  //   }
-  // }
-  //
-  // Future<void> _captureImageFromCamera() async {
-  //   final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-  //   if (image != null) {
-  //     final File savedImage = await _saveImageToAppDirectory(File(image.path));
-  //     Provider.of<VehicleProvider>(context, listen: false).addImage(savedImage);
-  //   }
-  // }
-
   void showFullScreenImage(
     BuildContext context,
     List<XFile> imageFiles,
@@ -243,6 +215,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         final vehicleTypeData = vehicleController.vehicleTypeData;
         final unitData = vehicleController.unitData;
         final customerData = vehicleController.customerData;
+        print('CustomerDataaa $customerData');
+        print('unitData $unitData');
 
         return Scaffold(
           appBar: AppBar(
@@ -261,16 +235,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                         child: Column(
                           children: [
                             if (!_isRegistrationComplete) ...[
-                              DropdownButtonFormField<String>(
+                              DropdownButtonFormField<int>(
                                 decoration: InputDecoration(
                                   labelText: 'Customer',
                                   border: OutlineInputBorder(),
                                 ),
-                                value: _selectedCustomer,
+                                value: _selectedCustomerId,
                                 items:
                                     (customerData ?? []).map((item) {
-                                      return DropdownMenuItem<String>(
-                                        value: item['Name'],
+                                      return DropdownMenuItem<int>(
+                                        value: item['id'],
                                         child: Text(item['Name']),
                                         onTap: () {
                                           setState(() {
@@ -279,10 +253,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                         },
                                       );
                                     }).toList(),
-                                onChanged: (newValue) {
+                                onChanged: (int? newValue) {
                                   setState(() {
-                                    _selectedCustomer = newValue;
-                                    _customerController.text = newValue ?? '';
+                                    _selectedCustomerId = newValue;
+                                    // _customerController.text = newValue ?? '';
                                   });
                                 },
                               ),
@@ -338,16 +312,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                   SizedBox(width: 10),
                                   Expanded(
                                     flex: 1,
-                                    child: DropdownButtonFormField<String>(
+                                    child: DropdownButtonFormField<int>(
                                       decoration: InputDecoration(
                                         labelText: 'Unit',
                                         border: OutlineInputBorder(),
                                       ),
-                                      value: _selectedCapacityUnit,
+                                      value: _selectedCapacityUnitId,
                                       items:
                                           (unitData ?? []).map((item) {
-                                            return DropdownMenuItem<String>(
-                                              value: item['Name'],
+                                            return DropdownMenuItem<int>(
+                                              value: item['id'],
                                               child: Text(item['Name']),
                                               onTap: () {
                                                 setState(() {
@@ -357,11 +331,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                               },
                                             );
                                           }).toList(),
-                                      onChanged: (newValue) {
+                                      onChanged: (int? newValue) {
                                         setState(() {
-                                          _selectedCapacityUnit = newValue;
-                                          _capacityUnitController.text =
-                                              newValue ?? '';
+                                          _selectedCapacityUnitId = newValue;
+                                          // _capacityUnitController.text =
+                                          //     newValue ?? '';
                                         });
                                       },
                                     ),

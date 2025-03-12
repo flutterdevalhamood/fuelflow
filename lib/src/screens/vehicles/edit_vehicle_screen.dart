@@ -230,16 +230,16 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
                         child: Column(
                           children: [
                             if (!_isAddImagesClicked) ...[
-                              DropdownButtonFormField<String>(
+                              DropdownButtonFormField<int>(
                                 decoration: InputDecoration(
                                   labelText: 'Customer',
                                   border: OutlineInputBorder(),
                                 ),
-                                value: _selectedCustomer,
+                                value: _selectedCustomerId,
                                 items:
                                     (customerData ?? []).map((item) {
-                                      return DropdownMenuItem<String>(
-                                        value: item['Name'],
+                                      return DropdownMenuItem<int>(
+                                        value: item['id'],
                                         child: Text(item['Name']),
                                         onTap: () {
                                           setState(() {
@@ -250,9 +250,9 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
                                     }).toList(),
                                 onChanged: (newValue) {
                                   setState(() {
-                                    _selectedCustomer = newValue;
-                                    _customerNameController.text =
-                                        newValue ?? '';
+                                    _selectedCustomerId = newValue;
+                                    // _customerNameController.text =
+                                    //     newValue ?? '';
                                   });
                                 },
                               ),
@@ -315,16 +315,16 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
                                   SizedBox(width: 10),
                                   Expanded(
                                     flex: 1,
-                                    child: DropdownButtonFormField<String>(
+                                    child: DropdownButtonFormField<int>(
                                       decoration: InputDecoration(
                                         labelText: 'Unit',
                                         border: OutlineInputBorder(),
                                       ),
-                                      value: _selectedCapacityUnit,
+                                      value: _selectedCapacityUnitId,
                                       items:
                                           (unitData ?? []).map((item) {
-                                            return DropdownMenuItem<String>(
-                                              value: item['Name'],
+                                            return DropdownMenuItem<int>(
+                                              value: item['id'],
                                               child: Text(item['Name']),
                                               onTap: () {
                                                 setState(() {
@@ -336,9 +336,9 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
                                           }).toList(),
                                       onChanged: (newValue) {
                                         setState(() {
-                                          _selectedCapacityUnit = newValue;
-                                          _capacityUnitController.text =
-                                              newValue ?? '';
+                                          _selectedCapacityUnitId = newValue;
+                                          // _capacityUnitController.text =
+                                          //     newValue ?? '';
                                         });
                                       },
                                     ),

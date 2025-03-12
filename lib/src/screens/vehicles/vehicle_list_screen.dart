@@ -24,12 +24,14 @@ class _HomeScreenState extends State<VehicleListScreen> {
   String _searchQuery = '';
   bool confirmLogout = false;
   late VehicleController _vehicleController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // Load customers when the screen is initialized
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupScrollcontroller();
       _vehicleController = Provider.of<VehicleController>(
         context,
         listen: false,
@@ -38,9 +40,24 @@ class _HomeScreenState extends State<VehicleListScreen> {
     });
   }
 
+  void _setupScrollcontroller() {
+    _scrollController.addListener(() {
+      if (_scrollController.offset >=
+              _scrollController.position.maxScrollExtent &&
+          !_scrollController.position.outOfRange) {
+        if (!_vehicleController.isLoading && _vehicleController.hasMore) {
+          _vehicleController.loadMore();
+          showInfoSnack('Loading...');
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
+    // _scrollController.removeListener(_scrollListener);
     _searchController.dispose();
+
     _debounceTimer?.cancel();
     super.dispose();
   }
@@ -130,6 +147,16 @@ class _HomeScreenState extends State<VehicleListScreen> {
     // );
   }
 
+  // void _scrollListener() {
+  //   if (_scrollController.offset >=
+  //           _scrollController.position.maxScrollExtent &&
+  //       !_scrollController.position.outOfRange) {
+  //     if (!_vehicleController.isLoading && _vehicleController.hasMore) {
+  //       _vehicleController.loadMore();
+  //     }
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     final watch = context.watch<VehicleController>();
@@ -151,17 +178,9 @@ class _HomeScreenState extends State<VehicleListScreen> {
     return Consumer<VehicleController>(
       builder: (context, VehicleController, child) {
         return Scaffold(
-          appBar: AppBar(
-            title: Text('Vehicle List'),
-            // leading: IconButton(
-            //   onPressed: () {
-            //     Navigator.pop(context);
-            //   },
-            //   icon: Icon(Icons.arrow_back),
-            // ),
-          ),
+          appBar: AppBar(title: Text('Vehicle List')),
           body:
-              watch.isLoading
+              watch.isLoading && !watch.hasMore
                   ? Center(child: CircularProgressIndicator())
                   : watch.vehicleData != null
                   ? Container(
@@ -188,7 +207,6 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                             ),
-
                             onChanged: _onSearchChanged,
                           ),
                         ),
@@ -205,8 +223,14 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                     ),
                                   )
                                   : ListView.builder(
+                                    controller: _scrollController,
                                     itemCount: vehicles.length,
                                     itemBuilder: (context, index) {
+                                      if (index == vehicles.length) {
+                                        return Center(
+                                          child: CircularProgressIndicator(),
+                                        );
+                                      }
                                       final vehicle = vehicles[index];
                                       return Dismissible(
                                         key: Key(
@@ -301,12 +325,6 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                                             arguments:
                                                                 vehicles[index],
                                                           );
-                                                      // if (result != null) {
-                                                      //   vehicleProvider
-                                                      //       .addOrUpdateVehicle(
-                                                      //         result,
-                                                      //       );
-                                                      // }
                                                     },
                                                   ),
                                                   IconButton(
@@ -335,6 +353,215 @@ class _HomeScreenState extends State<VehicleListScreen> {
                     ),
                   )
                   : SizedBox.shrink(),
+
+          // @override
+          // Widget build(BuildContext context) {
+          //   final watch = context.watch<VehicleController>();
+          //   final vehicles =
+          //       watch.vehicleData != null
+          //           ? (watch.vehicleData ?? [])
+          //               .where(
+          //                 (vehicle) =>
+          //                     vehicle['plate_no'].toLowerCase().contains(
+          //                       _searchQuery.toLowerCase(),
+          //                     ) ||
+          //                     (vehicle['type']?['Name']?.toLowerCase() ?? '').contains(
+          //                       _searchQuery.toLowerCase(),
+          //                     ),
+          //               )
+          //               .toList()
+          //           : [];
+          //   print('vehiclesss $vehicles');
+          //   return Consumer<VehicleController>(
+          //     builder: (context, VehicleController, child) {
+          //       return Scaffold(
+          //         appBar: AppBar(
+          //           title: Text('Vehicle List'),
+          //           // leading: IconButton(
+          //           //   onPressed: () {
+          //           //     Navigator.pop(context);
+          //           //   },
+          //           //   icon: Icon(Icons.arrow_back),
+          //           // ),
+          //         ),
+          //         body:
+          //             watch.isLoading && !watch.hasMore
+          //                 ? Center(child: CircularProgressIndicator())
+          //                 : watch.vehicleData != null
+          //                 ? Container(
+          //                   decoration: BoxDecoration(
+          //                     gradient: LinearGradient(
+          //                       begin: Alignment.topCenter,
+          //                       end: Alignment.bottomCenter,
+          //                       colors: [Colors.blue.shade50, Colors.white],
+          //                     ),
+          //                   ),
+          //                   child: Column(
+          //                     children: [
+          //                       Padding(
+          //                         padding: const EdgeInsets.all(16.0),
+          //                         child: TextField(
+          //                           controller: _searchController,
+          //                           decoration: InputDecoration(
+          //                             hintText: 'Search by type or vehicle number',
+          //                             hintStyle: TextStyle(
+          //                               color: Appcolors.textLightGrayColor(context),
+          //                             ),
+          //                             prefixIcon: Icon(Icons.search),
+          //                             border: OutlineInputBorder(
+          //                               borderRadius: BorderRadius.circular(10.0),
+          //                             ),
+          //                           ),
+          //
+          //                           onChanged: _onSearchChanged,
+          //                         ),
+          //                       ),
+          //                       Expanded(
+          //                         child:
+          //                             vehicles.isEmpty
+          //                                 ? Center(
+          //                                   child: Text(
+          //                                     _searchQuery.isEmpty
+          //                                         ? 'No vehicles registered yet.'
+          //                                         : 'No results found.',
+          //                                     style:
+          //                                         Theme.of(context).textTheme.bodyLarge,
+          //                                   ),
+          //                                 )
+          //                                 : ListView.builder(
+          //                                   controller: _scrollController,
+          //                                   itemCount:
+          //                                       vehicles.length +
+          //                                       (watch.hasMore ? 1 : 0),
+          //                                   itemBuilder: (context, index) {
+          //                                     final vehicle = vehicles[index];
+          //                                     return Dismissible(
+          //                                       key: Key(
+          //                                         vehicle['plate_no'] ??
+          //                                             index.toString(),
+          //                                       ),
+          //                                       direction: DismissDirection.endToStart,
+          //                                       background: Container(
+          //                                         color: Colors.red,
+          //                                         padding: EdgeInsets.symmetric(
+          //                                           horizontal: 20,
+          //                                         ),
+          //                                         alignment: Alignment.centerRight,
+          //                                         child: Icon(
+          //                                           Icons.delete,
+          //                                           color: Colors.white,
+          //                                         ),
+          //                                       ),
+          //                                       onDismissed: (direction) {
+          //                                         final vehicleId =
+          //                                             _vehicleController
+          //                                                 .vehicleData?[index]['id'];
+          //                                         final reason =
+          //                                             _reasonController.text.trim();
+          //                                         watch.deleteVehicle(
+          //                                           vehicleId,
+          //                                           reason,
+          //                                         );
+          //                                       },
+          //                                       child: Padding(
+          //                                         padding: const EdgeInsets.symmetric(
+          //                                           horizontal: 16,
+          //                                           vertical: 4,
+          //                                         ),
+          //                                         child: Card(
+          //                                           elevation: 4,
+          //                                           shape: RoundedRectangleBorder(
+          //                                             borderRadius:
+          //                                                 BorderRadius.circular(10),
+          //                                           ),
+          //                                           child: ListTile(
+          //                                             contentPadding: EdgeInsets.all(
+          //                                               16,
+          //                                             ),
+          //                                             leading: Icon(
+          //                                               Icons.directions_car,
+          //                                               size: 30,
+          //                                               color: Colors.blue,
+          //                                             ),
+          //                                             title: Text(
+          //                                               vehicle['plate_no'] ??
+          //                                                   'Unknown',
+          //                                               style: TextStyle(
+          //                                                 fontSize: 18,
+          //                                                 fontWeight: FontWeight.bold,
+          //                                               ),
+          //                                             ),
+          //                                             subtitle: Text(
+          //                                               vehicle['type']?['Name'] ??
+          //                                                   'No Type',
+          //                                               style: TextStyle(
+          //                                                 fontSize: 16,
+          //                                                 color: Colors.grey,
+          //                                               ),
+          //                                             ),
+          //                                             trailing: Row(
+          //                                               mainAxisSize: MainAxisSize.min,
+          //                                               children: [
+          //                                                 IconButton(
+          //                                                   onPressed: () async {
+          //                                                     await NavigationService()
+          //                                                         .pushNavigation(
+          //                                                           Screenroutes
+          //                                                               .vehicleRefill,
+          //                                                           arguments: vehicle,
+          //                                                         );
+          //                                                   },
+          //                                                   icon: Icon(
+          //                                                     Icons.local_gas_station,
+          //                                                   ),
+          //                                                 ),
+          //                                                 IconButton(
+          //                                                   icon: Icon(
+          //                                                     Icons.edit,
+          //                                                     color: Colors.blue,
+          //                                                   ),
+          //                                                   onPressed: () async {
+          //                                                     await NavigationService()
+          //                                                         .pushNavigation(
+          //                                                           Screenroutes
+          //                                                               .editDetail,
+          //                                                           arguments:
+          //                                                               vehicles[index],
+          //                                                         );
+          //                                                     // if (result != null) {
+          //                                                     //   vehicleProvider
+          //                                                     //       .addOrUpdateVehicle(
+          //                                                     //         result,
+          //                                                     //       );
+          //                                                     // }
+          //                                                   },
+          //                                                 ),
+          //                                                 IconButton(
+          //                                                   icon: Icon(
+          //                                                     Icons.delete,
+          //                                                     color: Colors.red,
+          //                                                   ),
+          //                                                   onPressed: () async {
+          //                                                     _deleteVehicle(index);
+          //                                                   },
+          //                                                 ),
+          //                                               ],
+          //                                             ),
+          //                                             onTap:
+          //                                                 () => _vehicleDetails(
+          //                                                   vehicles[index],
+          //                                                 ),
+          //                                           ),
+          //                                         ),
+          //                                       ),
+          //                                     );
+          //                                   },
+          //                                 ),
+          //                       ),
+          //                     ],
+          //                   ),
+          //                 )
+          //                 : SizedBox.shrink(),
           floatingActionButton: FloatingActionButton(
             onPressed: () {
               Navigator.push(

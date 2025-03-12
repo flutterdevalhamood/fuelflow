@@ -70,7 +70,7 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> getVehicleData(String? token) async {
+  Future<dynamic> getVehicleData(int page, int limit, String? token) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
@@ -81,7 +81,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/Vehicle/paginate/1/10',
+            '/Vehicle/paginate/${page}/${limit}',
             queryParameters: queryParameters,
             data: _data,
           )

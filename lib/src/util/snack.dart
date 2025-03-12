@@ -21,3 +21,13 @@ showSuccessSnack(String message) {
     ),
   );
 }
+
+showInfoSnack(String message) {
+  scaffoldMessengerKey.currentState?.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.blue,
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}

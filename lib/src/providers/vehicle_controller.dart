@@ -11,28 +11,46 @@ class VehicleController with ChangeNotifier {
   List<Map<String, dynamic>>? customerData;
   bool isLoading = false;
   final token = AuthRepo.token;
+  int currentPage = 1;
+  final int totalPages = 10;
+  bool hasMore = true;
 
-  getVehicleData() async {
+  Future<void> getVehicleData({bool loadMore = false}) async {
     isLoading = true;
     notifyListeners();
+    if (!loadMore) {
+      currentPage = 1;
+      hasMore = true;
+    }
     try {
       if (token == null) {
         throw Exception("No token found");
       }
-      final vehicle = await restApi.getVehicleData('Bearer $token');
+      final vehicle = await restApi.getVehicleData(
+        currentPage,
+        totalPages,
+        'Bearer $token',
+      );
       print('API Response: ${vehicle}');
 
       if (vehicle is Map<String, dynamic>) {
         if (vehicle['IsSuccess'] == true) {
           // Extract the data from the response
           final data = vehicle['Data'] as List<dynamic>?;
-
           if (data != null) {
             // Convert the data to a List of Maps
-            vehicleData = data.map((v) => v as Map<String, dynamic>).toList();
+            final newVehicles =
+                data.map((v) => v as Map<String, dynamic>).toList();
             print('vehicleData: $vehicleData');
+            if (loadMore) {
+              vehicleData ??= [];
+              vehicleData!.addAll(newVehicles); // Append to existing list
+            } else {
+              vehicleData = newVehicles; // Replace list on initial load
+            }
+            hasMore = data.length == totalPages;
           } else {
-            print('No data found in the response');
+            hasMore = false;
           }
         } else {
           print('API call failed: ${vehicle['Message']}');
@@ -50,6 +68,12 @@ class VehicleController with ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  void loadMore() {
+    if (hasMore && !isLoading) {}
+    currentPage++;
+    getVehicleData(loadMore: true);
   }
 
   Future<void> getVehicleDropDown() async {
