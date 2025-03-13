@@ -22,6 +22,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       'icon': Icons.directions_car,
       'route': Screenroutes.vehicleList,
     },
+    {'title': 'Drivers', 'icon': Icons.badge, 'route': Screenroutes.driverList},
     {'title': 'Tank Fuel Level', 'icon': Icons.gas_meter, 'route': ''},
     {
       'title': 'Fuel Refill',

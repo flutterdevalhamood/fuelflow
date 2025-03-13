@@ -2,29 +2,29 @@ import 'dart:async'; // For Timer
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/snack.dart';
 
-import '../../providers/customer_controller.dart';
 import '../../util/app_navigation.dart';
 import '../../util/app_routes.dart';
-import 'customer_registration_screen.dart';
+import 'driver_registration_screen.dart';
 
-class CustomerListScreen extends StatefulWidget {
-  const CustomerListScreen({super.key});
+class DriverListScreen extends StatefulWidget {
+  const DriverListScreen({super.key});
 
   @override
-  _CustomerListScreenState createState() => _CustomerListScreenState();
+  _DriverListScreenState createState() => _DriverListScreenState();
 }
 
-class _CustomerListScreenState extends State<CustomerListScreen> {
+class _DriverListScreenState extends State<DriverListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
-  late CustomerController _customerController;
-  final ScrollController _scrollController = ScrollController();
+  late DriverController _driverController;
   Timer? _debounceTimer;
   String _searchQuery = '';
   bool isDeleteSuccess = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -32,24 +32,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     // Load customers when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupScrollController();
-      _customerController = Provider.of<CustomerController>(
-        context,
-        listen: false,
-      );
-      _customerController.getCustomerData();
-    });
-  }
-
-  void _setupScrollController() {
-    _scrollController.addListener(() {
-      if (_scrollController.offset >=
-              _scrollController.position.maxScrollExtent &&
-          !_scrollController.position.outOfRange) {
-        if (!_customerController.isLoading && _customerController.hasMore) {
-          _customerController.loadMore();
-          showInfoSnack('Loading...');
-        }
-      }
+      _driverController = Provider.of<DriverController>(context, listen: false);
+      _driverController.getDriverData();
     });
   }
 
@@ -61,18 +45,31 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     super.dispose();
   }
 
-  void _deleteCustomer(int index) {
-    final customerId = _customerController.customerData?[index]['id'];
-    print('customerid $customerId');
+  void _setupScrollController() {
+    _scrollController.addListener(() {
+      if (_scrollController.offset >=
+              _scrollController.position.maxScrollExtent &&
+          !_scrollController.position.outOfRange) {
+        if (!_driverController.isLoading && _driverController.hasMore) {
+          _driverController.loadMore();
+          showInfoSnack('Loading...');
+        }
+      }
+    });
+  }
+
+  void _deleteDriver(int index) {
+    final driverId = _driverController.driverData?[index]['id'];
+    print('driverid $driverId');
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Delete Vehicle"),
+          title: Text("Delete Driver"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Are you sure you want to delete this vehicle?"),
+              Text("Are you sure you want to delete this driver?"),
 
               SizedBox(height: 16),
               TextField(
@@ -95,11 +92,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               onPressed: () async {
                 String reason = _reasonController.text.trim();
                 if (reason.isNotEmpty) {
-                  if (customerId != null) {
-                    await _customerController.deleteCustomer(
-                      customerId,
-                      reason,
-                    );
+                  if (driverId != null) {
+                    await _driverController.deleteDriver(driverId, reason);
                   }
                   Navigator.pop(context);
                   showSuccessSnack("Customer Deleted successfully");
@@ -129,46 +123,42 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     // NavigationService().pushNavigation(Screenroutes.customerEdit);
   }
 
-  void _navigateTocustomerDetails(Map<String, dynamic> customer) async {
+  void _navigateTodriverDetails(Map<String, dynamic> driver) async {
     final result = await NavigationService().pushNavigation(
-      Screenroutes.customerDetail,
-      arguments: customer,
+      Screenroutes.driverDetail,
+      arguments: driver,
     );
     if (result == true) {
-      final customerController = Provider.of<CustomerController>(
+      final driverController = Provider.of<DriverController>(
         context,
         listen: false,
       );
-      customerController.getCustomerData();
+      driverController.getDriverData();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final customerController = Provider.of<CustomerController>(context);
-    final watch = context.watch<CustomerController>();
-    final customers =
-        watch.customerData != null
-            ? (watch.customerData ?? [])
+    final driverController = Provider.of<DriverController>(context);
+    final watch = context.watch<DriverController>();
+    final drivers =
+        watch.driverData != null
+            ? (watch.driverData ?? [])
                 .where(
-                  (customer) =>
-                      (customer['Name'] ?? '').toLowerCase().contains(
-                        _searchQuery.toLowerCase(),
-                      ) ||
-                      (customer['representative'] ?? '').toLowerCase().contains(
-                        _searchQuery.toLowerCase(),
-                      ),
+                  (driver) => (driver['Name'] ?? '').toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ),
                 )
                 .toList()
             : [];
-    return Consumer<CustomerController>(
+    return Consumer<DriverController>(
       builder: (context, customerController, child) {
         return Scaffold(
-          appBar: AppBar(title: Text('Customer List')),
+          appBar: AppBar(title: Text('Drivers List')),
           body:
               watch.isLoading && !watch.hasMore
                   ? Center(child: CircularProgressIndicator())
-                  : watch.customerData != null
+                  : watch.driverData != null
                   ? Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -185,8 +175,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           child: TextField(
                             controller: _searchController,
                             decoration: InputDecoration(
-                              hintText:
-                                  'Search by company or representative...',
+                              hintText: 'Search by name...',
                               hintStyle: TextStyle(
                                 color: Appcolors.textLightGrayColor(context),
                               ),
@@ -202,11 +191,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         // Customer List
                         Expanded(
                           child:
-                              customers.isEmpty
+                              drivers.isEmpty
                                   ? Center(
                                     child: Text(
                                       _searchQuery.isEmpty
-                                          ? 'No customers registered yet.'
+                                          ? 'No drivers registered yet.'
                                           : 'No results found.',
                                       style:
                                           Theme.of(context).textTheme.bodyLarge,
@@ -215,53 +204,37 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                   : ListView.builder(
                                     controller: _scrollController,
                                     // padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    itemCount: customers.length,
+                                    itemCount: drivers.length,
                                     itemBuilder: (context, index) {
-                                      final customer = customers[index];
+                                      final driver = drivers[index];
                                       return GestureDetector(
                                         onTap: () {
-                                          _navigateTocustomerDetails(
-                                            customers[index],
+                                          _navigateTodriverDetails(
+                                            drivers[index],
                                           );
                                         },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          child: Card(
-                                            elevation: 4.0,
-                                            margin: EdgeInsets.only(
-                                              bottom: 16.0,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10.0),
-                                            ),
-                                            child: ListTile(
-                                              contentPadding: EdgeInsets.all(
-                                                16.0,
-                                              ),
+                                        child: Column(
+                                          children: [
+                                            ListTile(
+                                              // contentPadding: EdgeInsets.all(
+                                              //   8.0,
+                                              // ),
                                               leading: Icon(
                                                 Icons.person,
                                                 size: 30,
                                               ),
-                                              title: Text(
-                                                customer['Name'] ?? '',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge!.copyWith(
-                                                  fontWeight: FontWeight.bold,
+                                              title: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 2,
                                                 ),
-                                              ),
-                                              subtitle: Text(
-                                                'Representative: ${(customer['representative'] ?? '')}',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyMedium!.copyWith(
-                                                  color:
-                                                      Appcolors.textLightGrayColor(
-                                                        context,
+                                                child: Text(
+                                                  driver['Name'] ?? '',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge!
+                                                      .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                 ),
                                               ),
@@ -273,8 +246,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                       NavigationService()
                                                           .pushNavigation(
                                                             Screenroutes
-                                                                .customerEdit,
-                                                            arguments: customer,
+                                                                .driverEdit,
+                                                            arguments: driver,
                                                           );
                                                     },
 
@@ -286,7 +259,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                   SizedBox(width: 8),
                                                   IconButton(
                                                     onPressed: () async {
-                                                      _deleteCustomer(index);
+                                                      _deleteDriver(index);
                                                     },
                                                     icon: Icon(
                                                       Icons.delete,
@@ -296,7 +269,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                 ],
                                               ),
                                             ),
-                                          ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 20,
+                                                  ),
+                                              child: Divider(
+                                                color: Colors.grey,
+                                                thickness: .5,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       );
                                     },
@@ -311,7 +294,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CustomerRegistrationScreen(),
+                  builder: (context) => DriverRegistrationScreen(),
                 ),
               );
             },

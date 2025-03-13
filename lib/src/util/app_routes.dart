@@ -4,6 +4,10 @@ import 'package:sample/src/blocs/login_bloc.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
+import 'package:sample/src/screens/drivers/driver_detail_screen.dart';
+import 'package:sample/src/screens/drivers/driver_edit_screen.dart';
+import 'package:sample/src/screens/drivers/driver_list_screen.dart';
+import 'package:sample/src/screens/drivers/driver_registration_screen.dart';
 import 'package:sample/src/screens/forgot_password_screen.dart';
 
 import '../constants/string_constants.dart';
@@ -32,6 +36,10 @@ class Screenroutes {
   static const String customerDetail = "CustomerDetail";
   static const String customerEdit = "CustomerEdit";
   static const String vehicleRefill = "vehicleRefill";
+  static const String driverList = "driverList";
+  static const String driverRegistration = "driverRegistration";
+  static const String driverDetail = "driverDetail";
+  static const String driverEdit = "driverEdit";
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
 
@@ -140,6 +148,39 @@ class Screenroutes {
           settings: const RouteSettings(name: Screenroutes.vehicleRefill),
           builder: (BuildContext context) {
             return FuelRefillingScreen(vehicle: vehicle ?? {});
+          },
+        );
+      case Screenroutes.driverList:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.driverList),
+          builder: (BuildContext context) {
+            return DriverListScreen();
+          },
+        );
+
+      case Screenroutes.driverRegistration:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.driverRegistration),
+          builder: (BuildContext context) {
+            return DriverRegistrationScreen();
+          },
+        );
+
+      case Screenroutes.driverDetail:
+        final driver = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.driverDetail),
+          builder: (BuildContext context) {
+            return DriverDetailScreen(driver: driver ?? {});
+          },
+        );
+
+      case Screenroutes.driverEdit:
+        final driver = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.driverEdit),
+          builder: (BuildContext context) {
+            return DriverEditScreen(data: driver ?? {});
           },
         );
     }

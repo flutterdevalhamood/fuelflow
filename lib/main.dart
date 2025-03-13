@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/BaseScreen.dart';
 import 'package:sample/src/providers/customer_controller.dart';
+import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/providers/vehicle_provider.dart';
@@ -21,6 +22,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => VehicleProvider()),
         ChangeNotifierProvider(create: (context) => VehicleController()),
         ChangeNotifierProvider(create: (context) => CustomerController()),
+        ChangeNotifierProvider(create: (context) => DriverController()),
       ],
       child: const BaseScreen(),
     ),

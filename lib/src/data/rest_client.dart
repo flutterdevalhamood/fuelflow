@@ -63,8 +63,12 @@ abstract class RestClient {
     @Field("deleteDescription") String? deleteDescription,
   });
 
-  @GET('/Customer/paginate/1/10')
-  Future<dynamic> getCustomerList(@Header("Authorization") String? token);
+  @GET('/Customer/paginate/{page}/{limit}')
+  Future<dynamic> getCustomerList(
+    @Header("Authorization") String? token,
+    @Path("page") int? page,
+    @Path("limit") int? limit,
+  );
 
   @POST('/Customer')
   Future<dynamic> registerCustomer({
@@ -104,5 +108,34 @@ abstract class RestClient {
   Future<dynamic> deleteImagesById({
     @Header("Authorization") String? token,
     @Field("id") int? id,
+  });
+
+  @GET('/Driver/paginate/{page}/{limit}')
+  Future<dynamic> getDriverData(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/Driver')
+  Future<dynamic> registerDriver({
+    @Header("Authorization") String? token,
+    @Field("Name") String? name,
+    @Field("Mobile") String? mobile,
+  });
+
+  @POST('/DriverUpdate')
+  Future<dynamic> updateDriver({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("Name") String? name,
+    @Field("Mobile") String? mobile,
+  });
+
+  @POST('/DriverDelete')
+  Future<dynamic> deleteDriver({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("deleteDescription") String? deleteDescription,
   });
 }

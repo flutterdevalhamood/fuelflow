@@ -19,7 +19,7 @@ class VehicleListScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<VehicleListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _reasonController = TextEditingController();
   Timer? _debounceTimer;
   String _searchQuery = '';
   bool confirmLogout = false;
@@ -31,7 +31,7 @@ class _HomeScreenState extends State<VehicleListScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupScrollcontroller();
+      _setupScrollController();
       _vehicleController = Provider.of<VehicleController>(
         context,
         listen: false,
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<VehicleListScreen> {
     });
   }
 
-  void _setupScrollcontroller() {
+  void _setupScrollController() {
     _scrollController.addListener(() {
       if (_scrollController.offset >=
               _scrollController.position.maxScrollExtent &&
@@ -55,9 +55,7 @@ class _HomeScreenState extends State<VehicleListScreen> {
 
   @override
   void dispose() {
-    // _scrollController.removeListener(_scrollListener);
     _searchController.dispose();
-
     _debounceTimer?.cancel();
     super.dispose();
   }
