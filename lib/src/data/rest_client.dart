@@ -12,9 +12,6 @@ var restApi = RestClient(dio, baseUrl: apiEndPoint);
 abstract class RestClient {
   factory RestClient(Dio dio, {String baseUrl}) = _RestClient;
 
-  @GET('/metadata')
-  Future<dynamic> getMetaData();
-
   @POST('/Login')
   Future<UserModel> login({
     @Field("email") String? email,
@@ -122,6 +119,7 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Field("Name") String? name,
     @Field("Mobile") String? mobile,
+    @Field("customer_id") int? customerId,
   });
 
   @POST('/DriverUpdate')
@@ -134,6 +132,82 @@ abstract class RestClient {
 
   @POST('/DriverDelete')
   Future<dynamic> deleteDriver({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("deleteDescription") String? deleteDescription,
+  });
+
+  @GET('/Product/paginate/{page}/{limit}')
+  Future<dynamic> getProductData(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/Product')
+  Future<dynamic> registerProduct({
+    @Header("Authorization") String? token,
+    @Field("Name") String? name,
+  });
+
+  @POST('/ProductUpdate')
+  Future<dynamic> updateProduct({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("Name") String? name,
+  });
+
+  @POST('/ProductDelete')
+  Future<dynamic> deleteProduct({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("deleteDescription") String? deleteDescription,
+  });
+
+  @GET('/getDriverBaseList')
+  Future<dynamic> getCustomerDropDown(@Header("Authorization") String? token);
+
+  @GET('/getRefilBaseList')
+  Future<dynamic> getRefillDropDown(@Header("Authorization") String? token);
+
+  @POST('getDriverVehicleOfCustomer')
+  Future<dynamic> getDriverVehicleOfCustomer({
+    @Field("Authorization") String? token,
+    @Field("customer_id") int? customerId,
+  });
+
+  @GET('Refil/paginate/1/10')
+  Future<dynamic> getRefilData(
+    // @Path("page") int page,
+    // @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/Refil')
+  Future<dynamic> postRefilData({
+    @Header("Authorization") String? token,
+    @Field("qty") String? quantity,
+    @Field("customer_id") int? customerId,
+    @Field("unit_id") String? unitId,
+    @Field("product_id") String? productId,
+    @Field("driver_id") String? driverId,
+    @Field("vehicle_id") String? vehicleId,
+  });
+
+  @POST('RefilUpdate')
+  Future<dynamic> refillUpdate({
+    @Header("Authorization") String? token,
+    @Field("plate_no") String? plateNumber,
+    @Field("vehicle_type_id") int? vehicleType,
+    @Field("id") int? id,
+    @Field("description") String? description,
+    @Field("capacity") String? capacity,
+    @Field("capacity_unit_id") String? capacityUnit,
+    @Field("customer_id") String? customer,
+  });
+
+  @POST('RefilDelete')
+  Future<dynamic> refillDelete({
     @Header("Authorization") String? token,
     @Field("id") int? id,
     @Field("deleteDescription") String? deleteDescription,

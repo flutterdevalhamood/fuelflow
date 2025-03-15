@@ -25,6 +25,7 @@ class _DriverListScreenState extends State<DriverListScreen> {
   String _searchQuery = '';
   bool isDeleteSuccess = false;
   final ScrollController _scrollController = ScrollController();
+  bool _isInitialLoad = true;
 
   @override
   void initState() {
@@ -33,7 +34,11 @@ class _DriverListScreenState extends State<DriverListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupScrollController();
       _driverController = Provider.of<DriverController>(context, listen: false);
-      _driverController.getDriverData();
+      _driverController.getDriverData().then((_) {
+        setState(() {
+          _isInitialLoad = false; // Set to false after initial load
+        });
+      });
     });
   }
 
@@ -152,11 +157,11 @@ class _DriverListScreenState extends State<DriverListScreen> {
                 .toList()
             : [];
     return Consumer<DriverController>(
-      builder: (context, customerController, child) {
+      builder: (context, driverController, child) {
         return Scaffold(
           appBar: AppBar(title: Text('Drivers List')),
           body:
-              watch.isLoading && !watch.hasMore
+              watch.isLoading && _isInitialLoad
                   ? Center(child: CircularProgressIndicator())
                   : watch.driverData != null
                   ? Container(

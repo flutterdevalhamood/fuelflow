@@ -9,10 +9,15 @@ import 'package:sample/src/screens/drivers/driver_edit_screen.dart';
 import 'package:sample/src/screens/drivers/driver_list_screen.dart';
 import 'package:sample/src/screens/drivers/driver_registration_screen.dart';
 import 'package:sample/src/screens/forgot_password_screen.dart';
+import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
+import 'package:sample/src/screens/products/product_edit_screen.dart';
+import 'package:sample/src/screens/products/product_list_screen.dart';
+import 'package:sample/src/screens/products/product_registration_screen.dart';
 
 import '../constants/string_constants.dart';
 import '../screens/customers/customer_edit_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/fuelRefill/fuel_refill__list_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/vehicles/edit_vehicle_screen.dart';
 import '../screens/vehicles/vehicle_detail_screen.dart';
@@ -40,6 +45,14 @@ class Screenroutes {
   static const String driverRegistration = "driverRegistration";
   static const String driverDetail = "driverDetail";
   static const String driverEdit = "driverEdit";
+  //product
+  static const String productList = "productList";
+  static const String productRegistration = "productRegistration";
+  static const String productEdit = "productEdit";
+
+  //fuelRefill
+  static const String fuelRefillListScreen = "fuelRefillListScreen";
+  static const String fuelRefillDataScreen = "fuelRefillDataScreen";
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
 
@@ -181,6 +194,53 @@ class Screenroutes {
           settings: const RouteSettings(name: Screenroutes.driverEdit),
           builder: (BuildContext context) {
             return DriverEditScreen(data: driver ?? {});
+          },
+        );
+
+      case Screenroutes.productList:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.productList),
+          builder: (BuildContext context) {
+            return ProductListScreen();
+          },
+        );
+
+      case Screenroutes.productRegistration:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.productRegistration),
+          builder: (BuildContext context) {
+            return ProductRegistrationScreen();
+          },
+        );
+
+      case Screenroutes.productEdit:
+        final product = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.productEdit),
+          builder: (BuildContext context) {
+            return ProductEditScreen(data: product ?? {});
+          },
+        );
+
+      case Screenroutes.fuelRefillListScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.fuelRefillListScreen,
+          ),
+          builder: (BuildContext context) {
+            return FuelRefillListScreen();
+          },
+        );
+
+      case Screenroutes.fuelRefillDataScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.fuelRefillDataScreen,
+          ),
+          builder: (BuildContext context) {
+            return FuelRefillDataScreen();
           },
         );
     }

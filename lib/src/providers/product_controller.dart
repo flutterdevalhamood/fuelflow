@@ -4,15 +4,16 @@ import 'package:flutter/cupertino.dart';
 import '../data/rest_client.dart';
 import '../repo/auth_repo.dart';
 
-class DriverController with ChangeNotifier {
-  List<Map<String, dynamic>>? driverData;
+class ProductController with ChangeNotifier {
+  List<Map<String, dynamic>>? customerData;
+  List<Map<String, dynamic>>? productData;
   bool isLoading = false;
   final token = AuthRepo.token;
   bool hasMore = false;
   int currentPage = 1;
   final int totalPages = 10;
 
-  Future<void> getDriverData({bool loadMore = false}) async {
+  Future<void> getProductData({bool loadMore = false}) async {
     isLoading = true;
     notifyListeners();
     if (!loadMore) {
@@ -23,28 +24,29 @@ class DriverController with ChangeNotifier {
       if (token == null) {
         throw Exception("No Token Found");
       }
-      final driver = await restApi.getDriverData(
+      final product = await restApi.getProductData(
         currentPage,
         totalPages,
         'Bearer $token',
       );
-      if (driver['IsSuccess'] == true) {
-        final data = driver['Data'] as List<dynamic>;
+      if (product['IsSuccess'] == true) {
+        final data = product['Data'] as List<dynamic>;
         if (data != null) {
-          final newDriver = data.map((v) => v as Map<String, dynamic>).toList();
-          print('customerData $driverData');
+          final newProduct =
+              data.map((v) => v as Map<String, dynamic>).toList();
+          print('productData $productData');
           if (loadMore) {
-            driverData ??= [];
-            driverData!.addAll(newDriver);
+            productData ??= [];
+            productData!.addAll(newProduct);
           } else {
-            driverData = newDriver;
+            productData = newProduct;
           }
           hasMore = data.length == totalPages;
         } else {
           hasMore = false;
         }
       } else {
-        print('Api call failed ${driver['Message']}');
+        print('Api call failed ${product['Message']}');
       }
     } catch (e) {
       if (e is DioException) {
@@ -59,25 +61,37 @@ class DriverController with ChangeNotifier {
   void loadMore() {
     if (hasMore && !isLoading) {}
     currentPage++;
-    getDriverData(loadMore: true);
+    getProductData(loadMore: true);
   }
 
-  Future<bool> registerDriver(
-    String? name,
-    String? mobile,
-    int? customerId,
-  ) async {
+  Future<void> getCustomerDropDown() async {
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final dropDownData = await restApi.getCustomerDropDown('Bearer $token');
+      if (dropDownData['IsSuccess'] == true) {
+        customerData = List<Map<String, dynamic>>.from(
+          dropDownData['Data']['customer'],
+        );
+        notifyListeners();
+      } else {
+        print('API call failed: ${dropDownData['Message']}');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+      }
+    }
+  }
+
+  Future<bool> registerProduct(String? name) async {
     try {
       if (token == null) {
         throw Exception("No Token Found");
       }
-      await restApi.registerDriver(
-        token: 'Bearer $token',
-        name: name,
-        mobile: mobile,
-        customerId: customerId,
-      );
-      await getDriverData();
+      await restApi.registerProduct(token: 'Bearer $token', name: name);
+      await getProductData();
       return true;
     } catch (e) {
       if (e is DioException) {
@@ -87,18 +101,13 @@ class DriverController with ChangeNotifier {
     }
   }
 
-  Future<bool> updateDriver(int? id, String? name, String? mobile) async {
+  Future<bool> updateProduct(int? id, String? name) async {
     if (token == null) {
       throw Exception("No Token Found");
     }
     try {
-      await restApi.updateDriver(
-        token: 'Bearer $token',
-        id: id,
-        name: name,
-        mobile: mobile,
-      );
-      await getDriverData();
+      await restApi.updateProduct(token: 'Bearer $token', id: id, name: name);
+      await getProductData();
       return true;
     } catch (e) {
       if (e is DioException) {
@@ -108,17 +117,17 @@ class DriverController with ChangeNotifier {
     }
   }
 
-  Future<void> deleteDriver(int? id, String? description) async {
+  Future<void> deleteProduct(int? id, String? description) async {
     try {
       if (token == null) {
         throw Exception("No Token Found");
       }
-      await restApi.deleteDriver(
+      await restApi.deleteProduct(
         token: 'Bearer $token',
         id: id,
         deleteDescription: description,
       );
-      await getDriverData();
+      await getProductData();
     } catch (e) {
       if (e is DioException) {
         print("Dio Exception $e");

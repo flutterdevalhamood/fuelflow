@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/driver_controller.dart';
+import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/util/snack.dart';
 
 class DriverRegistrationScreen extends StatefulWidget {
@@ -15,9 +16,19 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
+  late VehicleController _productController;
+  int? _selectedCustomerId;
 
   @override
   void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _productController = Provider.of<VehicleController>(
+        context,
+        listen: false,
+      );
+      _productController.getVehicleDropDown();
+    });
+
     super.initState();
     _mobileController.text = '+971';
   }
@@ -32,94 +43,140 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final driverController = Provider.of<DriverController>(context);
-    return Scaffold(
-      appBar: AppBar(title: Text('Driver Registration')),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.blue.shade50, Colors.white],
-          ),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                SizedBox(height: 20),
-                Text(
-                  'Register a New Driver',
-                  style:
-                      Theme.of(
-                        context,
-                      ).textTheme.displayMedium, // Use displayMedium
-                ),
-                SizedBox(height: 20),
-                _buildTextField(
-                  controller: _nameController,
-                  label: 'Driver Name',
-                  icon: Icons.business,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter the driver name';
-                    }
-                    return null;
-                  },
-                ),
-                _buildMobileTextField(
-                  controller: _mobileController,
-                  label: 'Mobile',
-                  icon: Icons.phone_android,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter mobile number';
-                    }
-                    if (!value.startsWith('+971')) {
-                      return 'Mobile number must start with +971';
-                    }
-                    if (!RegExp(r'^\+971[0-9]{9}$').hasMatch(value)) {
-                      return 'Enter a valid UAE mobile number (e.g., +971501234567)';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      bool isSuccess = await driverController.registerDriver(
-                        _nameController.text.trim(),
-                        _mobileController.text,
-                      );
-                      if (isSuccess) {
-                        showSuccessSnack("Driver registered successfully!");
-                        Navigator.pop(context, true);
-                      } else {
-                        showErrorSnack("Error registering driver");
-                      }
-
-                      // Navigate back
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+    return Consumer<VehicleController>(
+      builder: (context, vehicleController, child) {
+        final customerData = vehicleController.customerData;
+        return Scaffold(
+          appBar: AppBar(title: Text('Driver Registration')),
+          body:
+              customerData == null
+                  ? Center(child: CircularProgressIndicator())
+                  : Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.blue.shade50, Colors.white],
+                      ),
                     ),
-                    backgroundColor: Colors.blue.shade900,
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(16.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            SizedBox(height: 20),
+                            Text(
+                              'Register a New Driver',
+                              style:
+                                  Theme.of(context)
+                                      .textTheme
+                                      .displayMedium, // Use displayMedium
+                            ),
+                            SizedBox(height: 20),
+                            DropdownButtonFormField<int>(
+                              decoration: InputDecoration(
+                                labelText: 'Customer',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: _selectedCustomerId,
+                              items:
+                                  (customerData ?? []).map((item) {
+                                    return DropdownMenuItem<int>(
+                                      value: item['id'],
+                                      child: Text(item['Name']),
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedCustomerId = item['id'];
+                                        });
+                                      },
+                                    );
+                                  }).toList(),
+                              onChanged: (int? newValue) {
+                                setState(() {
+                                  _selectedCustomerId = newValue;
+                                  // _customerController.text = newValue ?? '';
+                                });
+                              },
+                            ),
+                            SizedBox(height: 20),
+                            _buildTextField(
+                              controller: _nameController,
+                              label: 'Driver Name',
+                              icon: Icons.business,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter the driver name';
+                                }
+                                return null;
+                              },
+                            ),
+                            _buildMobileTextField(
+                              controller: _mobileController,
+                              label: 'Mobile',
+                              icon: Icons.phone_android,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter mobile number';
+                                }
+                                if (!value.startsWith('+971')) {
+                                  return 'Mobile number must start with +971';
+                                }
+                                if (!RegExp(
+                                  r'^\+971[0-9]{9}$',
+                                ).hasMatch(value)) {
+                                  return 'Enter a valid UAE mobile number (e.g., +971501234567)';
+                                }
+                                return null;
+                              },
+                            ),
+                            SizedBox(height: 20),
+                            ElevatedButton(
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  bool isSuccess = await driverController
+                                      .registerDriver(
+                                        _nameController.text.trim(),
+                                        _mobileController.text,
+                                        _selectedCustomerId,
+                                      );
+                                  if (isSuccess) {
+                                    showSuccessSnack(
+                                      "Driver registered successfully!",
+                                    );
+                                    Navigator.pop(context, true);
+                                  } else {
+                                    showErrorSnack("Error registering driver");
+                                  }
+
+                                  // Navigate back
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 40,
+                                  vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                backgroundColor: Colors.blue.shade900,
+                              ),
+                              child: Text(
+                                'Submit',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    'Submit',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 

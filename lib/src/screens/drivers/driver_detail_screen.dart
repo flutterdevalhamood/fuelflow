@@ -79,8 +79,9 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
                                 ..setEntry(3, 2, 0.001) // Perspective
                                 ..rotateY(_rotationAnimation.value),
                           child: _buildDetailCard(
+                            driver['customer']['Name'] ?? '',
                             driver['Name'] ?? '',
-                            driver['mobile'] ?? '',
+                            driver['Mobile'] ?? '',
                           ),
                         );
                       },
@@ -95,7 +96,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
     );
   }
 
-  Widget _buildDetailCard(String name, String mobile) {
+  Widget _buildDetailCard(String customer, String name, String mobile) {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
@@ -104,40 +105,45 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Container(
-            width: 300,
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.blue.shade200, Colors.blue.shade400],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.account_circle,
-                  size: 80,
-                  color: Appcolors.textWhiteColor(context),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              width: 350,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.blue.shade200, Colors.blue.shade400],
                 ),
-                SizedBox(height: 24),
-                Text(
-                  "Driver ID",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.account_circle,
+                    size: 80,
                     color: Appcolors.textWhiteColor(context),
                   ),
-                ),
-                SizedBox(height: 20),
-                _buildDetailRow(' Name', name),
-                SizedBox(height: 10),
-                _buildDetailRow('Mobile ', mobile),
-                SizedBox(height: 20),
-              ],
+                  SizedBox(height: 20),
+                  Text(
+                    "Driver ID",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Appcolors.textWhiteColor(context),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  _buildDetailRow('Customer', customer),
+                  SizedBox(height: 20),
+                  _buildDetailRow('Driver Name', name),
+                  SizedBox(height: 20),
+                  _buildDetailRow('Mobile ', mobile),
+                  SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),

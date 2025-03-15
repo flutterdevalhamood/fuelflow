@@ -25,6 +25,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Timer? _debounceTimer;
   String _searchQuery = '';
   bool isDeleteSuccess = false;
+  bool _isInitialLoad = true;
 
   @override
   void initState() {
@@ -36,7 +37,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         context,
         listen: false,
       );
-      _customerController.getCustomerData();
+      _customerController.getCustomerData().then((_) {
+        setState(() {
+          _isInitialLoad = false;
+        });
+      });
     });
   }
 
@@ -166,7 +171,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         return Scaffold(
           appBar: AppBar(title: Text('Customer List')),
           body:
-              watch.isLoading && !watch.hasMore
+              watch.isLoading && _isInitialLoad
                   ? Center(child: CircularProgressIndicator())
                   : watch.customerData != null
                   ? Container(
