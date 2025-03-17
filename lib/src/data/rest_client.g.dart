@@ -649,14 +649,15 @@ class _RestClient implements RestClient {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
-    final _headers = <String, dynamic>{};
-    final _data = {'Authorization': token, 'customer_id': customerId};
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'customer_id': customerId};
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'getDriverVehicleOfCustomer',
+            '/getDriverVehicleOfCustomer',
             queryParameters: queryParameters,
             data: _data,
           )

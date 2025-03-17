@@ -4,6 +4,7 @@ import 'package:sample/src/BaseScreen.dart';
 import 'package:sample/src/providers/Product_controller.dart';
 import 'package:sample/src/providers/customer_controller.dart';
 import 'package:sample/src/providers/driver_controller.dart';
+import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/providers/vehicle_provider.dart';
@@ -25,6 +26,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => CustomerController()),
         ChangeNotifierProvider(create: (context) => DriverController()),
         ChangeNotifierProvider(create: (context) => ProductController()),
+        ChangeNotifierProvider(create: (context) => FuelRefillController()),
       ],
       child: const BaseScreen(),
     ),

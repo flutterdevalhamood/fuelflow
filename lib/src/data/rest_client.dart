@@ -170,9 +170,9 @@ abstract class RestClient {
   @GET('/getRefilBaseList')
   Future<dynamic> getRefillDropDown(@Header("Authorization") String? token);
 
-  @POST('getDriverVehicleOfCustomer')
+  @POST('/getDriverVehicleOfCustomer')
   Future<dynamic> getDriverVehicleOfCustomer({
-    @Field("Authorization") String? token,
+    @Header("Authorization") String? token,
     @Field("customer_id") int? customerId,
   });
 

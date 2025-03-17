@@ -215,8 +215,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         final vehicleTypeData = vehicleController.vehicleTypeData;
         final unitData = vehicleController.unitData;
         final customerData = vehicleController.customerData;
-        print('CustomerDataaa $customerData');
-        print('unitData $unitData');
 
         return Scaffold(
           appBar: AppBar(

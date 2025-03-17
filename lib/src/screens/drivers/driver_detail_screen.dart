@@ -79,7 +79,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
                                 ..setEntry(3, 2, 0.001) // Perspective
                                 ..rotateY(_rotationAnimation.value),
                           child: _buildDetailCard(
-                            driver['customer']['Name'] ?? '',
+                            driver['customer']?['Name'] ?? '',
                             driver['Name'] ?? '',
                             driver['Mobile'] ?? '',
                           ),
@@ -151,12 +151,12 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String? label, String? value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          label,
+          label ?? '',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -164,7 +164,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
           ),
         ),
         Text(
-          value,
+          value ?? '',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
