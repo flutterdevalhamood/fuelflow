@@ -36,7 +36,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   int? _selectedTypeId;
   int? _selectedCapacityUnitId;
   int? _selectedCustomerId;
-  late List<String> _predefinedImages;
   late VehicleController _vehicleController;
   List<XFile>? _imageFiles;
   bool _isRegistrationComplete = false; // Track registration completion

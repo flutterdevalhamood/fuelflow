@@ -1,8 +1,15 @@
+import 'dart:io';
+import 'dart:ui';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
+import 'package:sample/src/util/snack.dart';
 
 import '../../util/app_colors.dart';
+import '../../util/app_navigation.dart';
 import '../../util/app_sizes.dart';
 
 class FuelRefillDataScreen extends StatefulWidget {
@@ -21,17 +28,14 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   final TextEditingController _driverController = TextEditingController();
   final TextEditingController _vehicleController = TextEditingController();
   late FuelRefillController _fuelRefillController;
-
-  String? _selectedUnit;
-  String? _selectedCustomer;
-  String? _selectedProduct;
-  String? _selectedDriver;
-  String? _selectedVehicle;
+  final _formkey = GlobalKey<FormState>();
   int? _selectedUnitId;
   int? _selectedCustomerId;
   int? _selectedProductId;
   int? _selectedDriverId;
   int? _selectedVehicleId;
+  List<XFile>? _imageFiles;
+  bool _isRegistrationComplete = false;
 
   @override
   void initState() {
@@ -55,96 +59,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
     _vehicleController.dispose();
     super.dispose();
   }
-
-  // void _showCustomerFilterBottomSheet() {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     builder: (context) {
-  //       return Consumer<FuelRefillController>(
-  //         builder: (context, fuelRefillController, child) {
-  //           final customerData = fuelRefillController.customerData;
-  //           return Container(
-  //             padding: const EdgeInsets.all(16.0),
-  //             child: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               children: [
-  //                 Text(
-  //                   'Select Customer',
-  //                   style: Theme.of(context).textTheme.bodyLarge,
-  //                 ),
-  //                 SizedBox(height: 20),
-  //                 if (customerData != null)
-  //                   Container(
-  //                     height: 60,
-  //                     width: double.infinity,
-  //                     child: ListView.builder(
-  //                       shrinkWrap: true,
-  //                       physics: NeverScrollableScrollPhysics(),
-  //                       scrollDirection: Axis.horizontal,
-  //                       itemCount: customerData.length,
-  //                       itemBuilder: (context, index) {
-  //                         final customer = customerData[index];
-  //                         return GestureDetector(
-  //                           onTap: () async {
-  //                             setState(() {
-  //                               _selectedCustomerId = customer['id'];
-  //                               _customerController.text = customer['Name'];
-  //                             });
-  //                             await _fuelRefillController
-  //                                 .getDriverVehicleDropdown(
-  //                                   _selectedCustomerId,
-  //                                 );
-  //                             Navigator.pop(context); // Close the bottom sheet
-  //                           },
-  //                           child: Container(
-  //                             margin: EdgeInsets.only(
-  //                               right: 10,
-  //                             ), // Spacing between items
-  //                             padding: EdgeInsets.symmetric(
-  //                               horizontal: 16,
-  //                               vertical: 8,
-  //                             ),
-  //                             decoration: BoxDecoration(
-  //                               color:
-  //                                   _selectedCustomerId == customer['id']
-  //                                       ? Colors.blue.withOpacity(0.2)
-  //                                       : Colors.grey.withOpacity(0.1),
-  //                               borderRadius: BorderRadius.circular(10),
-  //                               border: Border.all(
-  //                                 color:
-  //                                     _selectedCustomerId == customer['id']
-  //                                         ? Colors.blue
-  //                                         : Colors.transparent,
-  //                                 width: 2,
-  //                               ),
-  //                             ),
-  //                             child: Center(
-  //                               child: Text(
-  //                                 customer['Name'],
-  //                                 style: TextStyle(
-  //                                   fontSize: 16,
-  //                                   fontWeight:
-  //                                       _selectedCustomerId == customer['id']
-  //                                           ? FontWeight.bold
-  //                                           : FontWeight.normal,
-  //                                 ),
-  //                               ),
-  //                             ),
-  //                           ),
-  //                         );
-  //                       },
-  //                     ),
-  //                   ),
-  //                 SizedBox(height: 20),
-  //               ],
-  //             ),
-  //           );
-  //         },
-  //       );
-  //     },
-  //   );
-  // }
 
   void _showCustomerFilterBottomSheet() {
     showModalBottomSheet(
@@ -235,6 +149,146 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
     );
   }
 
+  Future<void> _postRefillData() async {
+    if (_formKey.currentState!.validate()) {
+      bool isSuccess = await _fuelRefillController.postRefillData(
+        qty: _quantityController.text.trim(),
+        customerId: _selectedCustomerId,
+        unitId: _selectedUnitId,
+        productId: _selectedProductId,
+        driverId: _selectedDriverId,
+        vehicleId: _selectedVehicleId,
+      );
+      if (isSuccess) {
+        showSuccessSnack("Refill entry Successfull! Add images now...");
+        setState(() {
+          _isRegistrationComplete = true;
+        });
+      } else {
+        showErrorSnack("Error uploading Refill data");
+      }
+    }
+  }
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImages() async {
+    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+    if (pickedFiles != null) {
+      setState(() {
+        _imageFiles = [...?_imageFiles, ...pickedFiles];
+      });
+    }
+  }
+
+  Future<void> _takePicture() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.camera,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _imageFiles = [...?_imageFiles, pickedFile];
+      });
+    }
+  }
+
+  Future<void> _uploadImages() async {
+    // final _refillId = _vehicleController.vehicleData?[0]['id'];
+    // print('aaaaa $_vehicleId');
+    if (_imageFiles == null || _imageFiles!.isEmpty) {
+      print('No images selected');
+      return;
+    }
+
+    List<MultipartFile> multipartFiles = [];
+    for (var file in _imageFiles!) {
+      multipartFiles.add(await MultipartFile.fromFile(file.path));
+    }
+
+    // if (_vehicleId != null) {
+    //   bool isSuccess = await _vehicleController.uploadVehiclePictures(
+    //     multipartFiles,
+    //     // _vehicleId.toString(),
+    //   );
+    //   if (isSuccess) {
+    //     showSuccessSnack('Image uploaded successfully');
+    //     NavigationService().pushAndRemoveUntilNavigation(
+    //       Screenroutes.vehicleList,
+    //       removeUntilPageName: Screenroutes.vehicleList,
+    //     );
+    //   } else {
+    //     showErrorSnack('Error uploading image');
+    //   }
+    // } else {
+    //   print('Vehicle ID is null');
+    // }
+  }
+
+  void showFullScreenImage(
+    BuildContext context,
+    List<XFile> imageFiles,
+    int initialIndex,
+  ) {
+    int currentIndex = initialIndex;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: NavigationService().popNavigation,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          imageFiles[currentIndex] as File,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 16,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              currentIndex =
+                                  (currentIndex + 1) % imageFiles.length;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<FuelRefillController>(
@@ -256,133 +310,284 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                     children: [
                       SingleChildScrollView(
                         padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            TextField(
-                              controller: _quantityController,
-                              decoration: InputDecoration(
-                                labelText: 'Quantity',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Unit',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedUnitId,
-                              items:
-                                  (unitData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['Name']),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedUnitId = item['id'];
-                                        });
-                                      },
-                                    );
-                                  }).toList(),
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  _selectedUnitId = newValue;
-                                  // _customerController.text = newValue ?? '';
-                                });
-                              },
-                            ),
-                            SizedBox(height: 20),
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Product',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedProductId,
-                              items:
-                                  (productData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['Name']),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedProductId = item['id'];
-                                        });
-                                      },
-                                    );
-                                  }).toList(),
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  _selectedProductId = newValue;
-                                  // _customerController.text = newValue ?? '';
-                                });
-                              },
-                            ),
-                            SizedBox(height: 20),
-                            InkWell(
-                              onTap: _showCustomerFilterBottomSheet,
-                              child: IgnorePointer(
-                                child: TextFormField(
-                                  controller: _customerController,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              if (!_isRegistrationComplete) ...[
+                                TextFormField(
+                                  controller: _quantityController,
                                   decoration: InputDecoration(
-                                    labelText: 'Customer',
+                                    labelText: 'Quantity',
                                     border: OutlineInputBorder(),
-                                    suffixIcon: Icon(Icons.filter_list),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter quantity';
+                                    }
+                                    if (double.tryParse(value) == null) {
+                                      return 'Please enter a valid number';
+                                    }
+                                  },
+                                ),
+                                SizedBox(height: 20),
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Unit',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _selectedUnitId,
+                                  items:
+                                      (unitData ?? []).map((item) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(item['Name']),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedUnitId = item['id'];
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                  onChanged: (int? newValue) {
+                                    setState(() {
+                                      _selectedUnitId = newValue;
+                                      // _customerController.text = newValue ?? '';
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a unit';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 20),
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Product',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _selectedProductId,
+                                  items:
+                                      (productData ?? []).map((item) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(item['Name']),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedProductId = item['id'];
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                  onChanged: (int? newValue) {
+                                    setState(() {
+                                      _selectedProductId = newValue;
+                                      // _customerController.text = newValue ?? '';
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a product';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 20),
+                                InkWell(
+                                  onTap: _showCustomerFilterBottomSheet,
+                                  child: IgnorePointer(
+                                    child: TextFormField(
+                                      controller: _customerController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Customer',
+                                        border: OutlineInputBorder(),
+                                        suffixIcon: Icon(Icons.filter_list),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                            SizedBox(height: 20),
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Driver',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedDriverId,
-                              items:
-                                  (driverData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['Name'] ?? ''),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedDriverId = item['id'];
-                                        });
+                                SizedBox(height: 20),
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Driver',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _selectedDriverId,
+                                  items:
+                                      (driverData ?? []).map((item) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(item['Name'] ?? ''),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedDriverId = item['id'];
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                  onChanged: (int? newValue) {
+                                    setState(() {
+                                      _selectedDriverId = newValue;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a driver';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 20),
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Vehicle',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _selectedVehicleId,
+                                  items:
+                                      (vehicleData ?? []).map((item) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(item['plate_no'] ?? ''),
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedVehicleId = item['id'];
+                                            });
+                                          },
+                                        );
+                                      }).toList(),
+                                  onChanged: (int? newValue) {
+                                    setState(() {
+                                      _selectedVehicleId = newValue;
+                                    });
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a vehicle';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 100),
+                              ],
+                              if (_isRegistrationComplete) ...[
+                                Text(
+                                  'Pictures',
+                                  style: Theme.of(context).textTheme.bodyLarge!
+                                      .copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 10),
+
+                                _imageFiles != null && _imageFiles!.isNotEmpty
+                                    ? GridView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 3,
+                                            crossAxisSpacing: 8,
+                                            mainAxisSpacing: 8,
+                                          ),
+                                      itemCount: _imageFiles!.length,
+                                      itemBuilder: (context, index) {
+                                        return Stack(
+                                          alignment: Alignment.topRight,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                showFullScreenImage(
+                                                  context,
+                                                  _imageFiles!,
+                                                  index,
+                                                );
+                                              },
+                                              child: Image.file(
+                                                File(_imageFiles![index].path),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  _imageFiles!.removeAt(index);
+                                                });
+                                              },
+                                              child: Container(
+                                                margin: EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.5),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
                                       },
-                                    );
-                                  }).toList(),
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  _selectedDriverId = newValue;
-                                });
-                              },
-                            ),
-                            SizedBox(height: 20),
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Vehicle',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedVehicleId,
-                              items:
-                                  (vehicleData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['plate_no'] ?? ''),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedVehicleId = item['id'];
-                                        });
+                                    )
+                                    : Text('No images selected.'),
+                                SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        _pickImages();
                                       },
-                                    );
-                                  }).toList(),
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  _selectedVehicleId = newValue;
-                                });
-                              },
-                            ),
-                            SizedBox(height: 100),
-                          ],
+                                      icon: Icon(
+                                        Icons.photo_library,
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                      ),
+                                      label: Text(
+                                        'Gallery',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium!.copyWith(
+                                          color: Appcolors.textWhiteColor(
+                                            context,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        _takePicture();
+                                      },
+                                      icon: Icon(
+                                        Icons.camera_alt,
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                      ),
+                                      label: Center(
+                                        child: Text(
+                                          'Camera',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium!.copyWith(
+                                            color: Appcolors.textWhiteColor(
+                                              context,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 80),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                       Positioned(
@@ -394,9 +599,9 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                           padding: EdgeInsets.all(16.0),
                           child: ElevatedButton(
                             onPressed: () async {
-                              // !_isRegistrationComplete
-                              //     ? _registerVehicle()
-                              //     : _uploadImages();
+                              !_isRegistrationComplete
+                                  ? _postRefillData()
+                                  : _uploadImages();
                             },
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.symmetric(
@@ -409,10 +614,9 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                               minimumSize: Size(double.infinity, 50),
                             ),
                             child: Text(
-                              'Save',
-                              // !_isRegistrationComplete
-                              //     ? 'Save'
-                              //     : 'Upload images',
+                              !_isRegistrationComplete
+                                  ? 'Save'
+                                  : 'Upload images',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyLarge!.copyWith(

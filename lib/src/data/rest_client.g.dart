@@ -669,7 +669,7 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> getRefilData(String? token) async {
+  Future<dynamic> getRefilData(int page, int limit, String? token) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
@@ -680,7 +680,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'Refil/paginate/1/10',
+            '/Refil/paginate/${page}/${limit}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -696,10 +696,11 @@ class _RestClient implements RestClient {
     String? token,
     String? quantity,
     int? customerId,
-    String? unitId,
-    String? productId,
-    String? driverId,
-    String? vehicleId,
+    int? unitId,
+    int? productId,
+    int? driverId,
+    int? vehicleId,
+    int? refillingUnitId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -713,6 +714,7 @@ class _RestClient implements RestClient {
       'product_id': productId,
       'driver_id': driverId,
       'vehicle_id': vehicleId,
+      'refiling_unit_id': refillingUnitId,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
@@ -789,6 +791,44 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             'RefilDelete',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> uploadRefillImages({
+    String? token,
+    List<MultipartFile>? files,
+    String? id,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (files != null) {
+      _data.files.addAll(files.map((i) => MapEntry('document[]', i)));
+    }
+    if (id != null) {
+      _data.fields.add(MapEntry('id', id));
+    }
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/RefilPictureUpload',
             queryParameters: queryParameters,
             data: _data,
           )

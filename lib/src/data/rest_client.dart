@@ -176,10 +176,10 @@ abstract class RestClient {
     @Field("customer_id") int? customerId,
   });
 
-  @GET('Refil/paginate/1/10')
+  @GET('/Refil/paginate/{page}/{limit}')
   Future<dynamic> getRefilData(
-    // @Path("page") int page,
-    // @Path("limit") int limit,
+    @Path("page") int page,
+    @Path("limit") int limit,
     @Header("Authorization") String? token,
   );
 
@@ -188,10 +188,11 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Field("qty") String? quantity,
     @Field("customer_id") int? customerId,
-    @Field("unit_id") String? unitId,
-    @Field("product_id") String? productId,
-    @Field("driver_id") String? driverId,
-    @Field("vehicle_id") String? vehicleId,
+    @Field("unit_id") int? unitId,
+    @Field("product_id") int? productId,
+    @Field("driver_id") int? driverId,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("refiling_unit_id") int? refillingUnitId,
   });
 
   @POST('RefilUpdate')
@@ -211,5 +212,13 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Field("id") int? id,
     @Field("deleteDescription") String? deleteDescription,
+  });
+
+  @POST('/RefilPictureUpload')
+  @MultiPart()
+  Future<dynamic> uploadRefillImages({
+    @Header("Authorization") String? token,
+    @Part(name: 'document[]') List<MultipartFile>? files,
+    @Part(name: 'id') String? id,
   });
 }
