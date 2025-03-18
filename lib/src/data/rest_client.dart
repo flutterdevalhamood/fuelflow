@@ -73,6 +73,7 @@ abstract class RestClient {
     @Field("Name") String? name,
     @Field("representative") String? representative,
     @Field("mobile") String? mobile,
+    @Field("secondary_mobile") String? secondaryMobile,
     @Field("email") String? email,
   });
 
@@ -195,7 +196,7 @@ abstract class RestClient {
     @Field("refiling_unit_id") int? refillingUnitId,
   });
 
-  @POST('RefilUpdate')
+  @POST('/RefilUpdate')
   Future<dynamic> refillUpdate({
     @Header("Authorization") String? token,
     @Field("plate_no") String? plateNumber,
@@ -207,7 +208,7 @@ abstract class RestClient {
     @Field("customer_id") String? customer,
   });
 
-  @POST('RefilDelete')
+  @POST('/RefilDelete')
   Future<dynamic> refillDelete({
     @Header("Authorization") String? token,
     @Field("id") int? id,

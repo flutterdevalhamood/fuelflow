@@ -231,6 +231,7 @@ class _RestClient implements RestClient {
     String? name,
     String? representative,
     String? mobile,
+    String? secondaryMobile,
     String? email,
   }) async {
     final _extra = <String, dynamic>{};
@@ -242,6 +243,7 @@ class _RestClient implements RestClient {
       'Name': name,
       'representative': representative,
       'mobile': mobile,
+      'secondary_mobile': secondaryMobile,
       'email': email,
     };
     _data.removeWhere((k, v) => v == null);
@@ -762,7 +764,7 @@ class _RestClient implements RestClient {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'RefilUpdate',
+            '/RefilUpdate',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -790,7 +792,7 @@ class _RestClient implements RestClient {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'RefilDelete',
+            '/RefilDelete',
             queryParameters: queryParameters,
             data: _data,
           )

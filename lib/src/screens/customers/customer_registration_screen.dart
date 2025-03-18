@@ -18,12 +18,15 @@ class _CustomerRegistrationScreenState
   final TextEditingController _representativeController =
       TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
+  final TextEditingController _secondaryMobileController =
+      TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _mobileController.text = '+971';
+    _secondaryMobileController.text = '+971';
   }
 
   @override
@@ -31,6 +34,7 @@ class _CustomerRegistrationScreenState
     _nameController.dispose();
     _representativeController.dispose();
     _mobileController.dispose();
+    _secondaryMobileController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -102,6 +106,23 @@ class _CustomerRegistrationScreenState
                     return null;
                   },
                 ),
+                _buildMobileTextField(
+                  controller: _secondaryMobileController,
+                  label: 'Secondary Mobile',
+                  icon: Icons.phone_android,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter secondary mobile number';
+                    }
+                    if (!value.startsWith('+971')) {
+                      return 'Mobile number must start with +971';
+                    }
+                    if (!RegExp(r'^\+971[0-9]{9}$').hasMatch(value)) {
+                      return 'Enter a valid UAE mobile number (e.g., +971501234567)';
+                    }
+                    return null;
+                  },
+                ),
                 _buildTextField(
                   controller: _emailController,
                   label: 'Email',
@@ -128,6 +149,7 @@ class _CustomerRegistrationScreenState
                             _nameController.text.trim(),
                             _representativeController.text.trim(),
                             _mobileController.text,
+                            _secondaryMobileController.text,
                             _emailController.text,
                           );
                       if (isSuccess) {

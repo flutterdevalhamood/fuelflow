@@ -68,6 +68,7 @@ class CustomerController with ChangeNotifier {
     String? name,
     String? representative,
     String? mobile,
+    String? secondaryMobile,
     String? email,
   ) async {
     try {
@@ -79,6 +80,7 @@ class CustomerController with ChangeNotifier {
         name: name,
         representative: representative,
         mobile: mobile,
+        secondaryMobile: secondaryMobile,
         email: email,
       );
       await getCustomerData();

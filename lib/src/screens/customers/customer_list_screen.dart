@@ -27,6 +27,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   bool isDeleteSuccess = false;
   bool _isInitialLoad = true;
 
+  // Track which card is expanded
+  int? _expandedIndex;
+
   @override
   void initState() {
     super.initState();
@@ -78,7 +81,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text("Are you sure you want to delete this vehicle?"),
-
               SizedBox(height: 16),
               TextField(
                 controller: _reasonController,
@@ -95,7 +97,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               onPressed: () => Navigator.pop(context), // Cancel
               child: Text("Cancel"),
             ),
-
             TextButton(
               onPressed: () async {
                 String reason = _reasonController.text.trim();
@@ -128,10 +129,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         _searchQuery = query;
       });
     });
-  }
-
-  void _navigateToCustomerEdit(BuildContext context, int index) {
-    // NavigationService().pushNavigation(Screenroutes.customerEdit);
   }
 
   void _navigateTocustomerDetails(Map<String, dynamic> customer) async {
@@ -200,7 +197,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 borderRadius: BorderRadius.circular(10.0),
                               ),
                             ),
-
                             onChanged: _onSearchChanged,
                           ),
                         ),
@@ -219,90 +215,227 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                   )
                                   : ListView.builder(
                                     controller: _scrollController,
-                                    // padding: EdgeInsets.symmetric(horizontal: 16.0),
                                     itemCount: customers.length,
                                     itemBuilder: (context, index) {
                                       final customer = customers[index];
-                                      return GestureDetector(
-                                        onTap: () {
-                                          _navigateTocustomerDetails(
-                                            customers[index],
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          child: Card(
-                                            elevation: 4.0,
-                                            margin: EdgeInsets.only(
-                                              bottom: 16.0,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10.0),
-                                            ),
-                                            child: ListTile(
-                                              contentPadding: EdgeInsets.all(
-                                                16.0,
-                                              ),
-                                              leading: Icon(
-                                                Icons.person,
-                                                size: 30,
-                                              ),
-                                              title: Text(
-                                                customer['Name'] ?? '',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge!.copyWith(
-                                                  fontWeight: FontWeight.bold,
+                                      final isExpanded =
+                                          _expandedIndex == index;
+                                      return Column(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              _navigateTocustomerDetails(
+                                                customers[index],
+                                              );
+                                            },
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 4,
+                                                  ),
+                                              child: Card(
+                                                elevation: 4.0,
+                                                margin: EdgeInsets.only(
+                                                  bottom: isExpanded ? 0 : 16.0,
                                                 ),
-                                              ),
-                                              subtitle: Text(
-                                                'Representative: ${(customer['representative'] ?? '')}',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyMedium!.copyWith(
-                                                  color:
-                                                      Appcolors.textLightGrayColor(
-                                                        context,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.vertical(
+                                                        top: Radius.circular(
+                                                          10.0,
+                                                        ),
+                                                        bottom: Radius.circular(
+                                                          isExpanded ? 0 : 10.0,
+                                                        ),
                                                       ),
                                                 ),
-                                              ),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    onPressed: () {
-                                                      NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .customerEdit,
-                                                            arguments: customer,
-                                                          );
-                                                    },
-
-                                                    icon: Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
+                                                child: Column(
+                                                  children: [
+                                                    ListTile(
+                                                      contentPadding:
+                                                          EdgeInsets.all(16.0),
+                                                      leading: Icon(
+                                                        Icons.person,
+                                                        size: 30,
+                                                      ),
+                                                      title: Text(
+                                                        customer['Name'] ?? '',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyLarge!
+                                                            .copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                      ),
+                                                      subtitle: Text(
+                                                        'Representative: ${(customer['representative'] ?? '')}',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyMedium!
+                                                            .copyWith(
+                                                              color:
+                                                                  Appcolors.textLightGrayColor(
+                                                                    context,
+                                                                  ),
+                                                            ),
+                                                      ),
+                                                      trailing: Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              NavigationService()
+                                                                  .pushNavigation(
+                                                                    Screenroutes
+                                                                        .customerEdit,
+                                                                    arguments:
+                                                                        customer,
+                                                                  );
+                                                            },
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                          ),
+                                                          SizedBox(width: 8),
+                                                          IconButton(
+                                                            onPressed: () async {
+                                                              _deleteCustomer(
+                                                                index,
+                                                              );
+                                                            },
+                                                            icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                if (isExpanded) {
+                                                                  _expandedIndex =
+                                                                      null; // Collapse
+                                                                } else {
+                                                                  _expandedIndex =
+                                                                      index; // Expand
+                                                                }
+                                                              });
+                                                            },
+                                                            icon: Icon(
+                                                              isExpanded
+                                                                  ? Icons
+                                                                      .arrow_drop_up
+                                                                  : Icons
+                                                                      .arrow_drop_down,
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                                     ),
-                                                  ),
-                                                  SizedBox(width: 8),
-                                                  IconButton(
-                                                    onPressed: () async {
-                                                      _deleteCustomer(index);
-                                                    },
-                                                    icon: Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                  ),
-                                                ],
+                                                    if (isExpanded)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              left: 16.0,
+                                                              right: 16.0,
+                                                              bottom: 16.0,
+                                                            ),
+                                                        child: Column(
+                                                          children: [
+                                                            Divider(
+                                                              thickness: 1,
+                                                              color:
+                                                                  Colors
+                                                                      .grey[300],
+                                                            ),
+                                                            SizedBox(height: 8),
+                                                            Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceEvenly,
+                                                              children: [
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    // Handle My Vehicles action
+                                                                    print(
+                                                                      'My Vehicles selected',
+                                                                    );
+                                                                  },
+                                                                  child: Text(
+                                                                    'My Vehicles',
+                                                                    style: TextStyle(
+                                                                      color:
+                                                                          Colors
+                                                                              .blue,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    // Handle My Drivers action
+                                                                    print(
+                                                                      'My Drivers selected',
+                                                                    );
+                                                                  },
+                                                                  child: Text(
+                                                                    'My Drivers',
+                                                                    style: TextStyle(
+                                                                      color:
+                                                                          Colors
+                                                                              .blue,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          // Attached curved border for expanded section
+                                          if (isExpanded)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                  ),
+                                              child: Card(
+                                                elevation: 4.0,
+                                                margin: EdgeInsets.only(
+                                                  bottom: 16.0,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.vertical(
+                                                        bottom: Radius.circular(
+                                                          10.0,
+                                                        ),
+                                                      ),
+                                                ),
+                                                child: Container(
+                                                  height:
+                                                      0, // No height, just for border
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       );
                                     },
                                   ),

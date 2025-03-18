@@ -53,6 +53,7 @@ dependencies:
   freezed: ^3.0.3
   retrofit_generator: ^9.1.9
   logger: ^2.5.0
+  dropdown_search: ^6.0.2
 
 
 dev_dependencies:

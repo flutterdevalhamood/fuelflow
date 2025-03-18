@@ -11,6 +11,7 @@ class FuelRefillController with ChangeNotifier {
   List<Map<String, dynamic>>? driverData;
   List<Map<String, dynamic>>? vehicleTypeData;
   List<Map<String, dynamic>>? vehicleData;
+  int? refillId;
   List<Map<String, dynamic>>? refillData;
   bool isLoading = false;
   final token = AuthRepo.token;
@@ -173,7 +174,7 @@ class FuelRefillController with ChangeNotifier {
     int? refillingUnitId,
   }) async {
     try {
-      await restApi.postRefilData(
+      final postRefillData = await restApi.postRefilData(
         token: 'Bearer $token',
         quantity: qty,
         customerId: customerId,
@@ -183,7 +184,16 @@ class FuelRefillController with ChangeNotifier {
         vehicleId: vehicleId,
         refillingUnitId: refillingUnitId,
       );
-      return true;
+
+      if (postRefillData['IsSuccess'] == true) {
+        refillId = postRefillData['Data'];
+        notifyListeners();
+        print('refillidd $refillId');
+        return true;
+      } else {
+        print('API call failed: ${postRefillData['Message']}');
+        return false;
+      }
     } catch (e) {
       if (e is DioException) {
         print("Dio Exception $e");
@@ -233,5 +243,23 @@ class FuelRefillController with ChangeNotifier {
       notifyListeners();
     }
     return false;
+  }
+
+  Future<void> deleteRefillData(int? id, String? descriptionText) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.refillDelete(
+        token: 'Bearer $token',
+        id: id,
+        deleteDescription: descriptionText,
+      );
+      await getRefilldata();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
   }
 }

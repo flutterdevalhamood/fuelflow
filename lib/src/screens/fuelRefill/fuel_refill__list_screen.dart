@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
+import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/snack.dart';
 
 import '../../util/app_colors.dart';
@@ -72,6 +74,76 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
     });
   }
 
+  void _deleteRefillData(int index) {
+    final refillId = _fuelRefillController.refillData?[index]['id'];
+
+    print('refillId $refillId');
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Refill Data"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min, // To make the dialog compact
+            children: [
+              Text("Are you sure you want to delete this refill data?"),
+              SizedBox(height: 16), // Add some spacing
+              TextField(
+                controller: _reasonController,
+                decoration: InputDecoration(
+                  labelText: 'Reason for deletion',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3, // Allow multiple lines for the reason
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Cancel
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                String reason = _reasonController.text.trim();
+                print('reasonfordelete $reason');
+                if (reason.isNotEmpty) {
+                  if (refillId != null) {
+                    await _fuelRefillController.deleteRefillData(
+                      refillId,
+                      _reasonController.text.trim(),
+                    );
+                  }
+                  print("Deleting RefillData with reason: $reason");
+                  Navigator.pop(context);
+                  showSuccessSnack('RefillData Deleted Successfully');
+                } else {
+                  // Show an error or prompt the user to enter a reason
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Please enter a reason for deletion"),
+                    ),
+                  );
+                }
+              },
+              child: Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _refillDetails(Map<String, dynamic> refillData) {
+    final result = NavigationService().pushNavigation(
+      Screenroutes.fuelRefillDetailScreen,
+      arguments: refillData,
+    );
+    if (result == true) {
+      _fuelRefillController.getRefilldata();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final watch = context.watch<FuelRefillController>();
@@ -79,8 +151,8 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
         watch.refillData != null
             ? (watch.refillData ?? [])
                 .where(
-                  (refills) => refills['vehicle']?['plate_no']
-                      .toLowerCase()
+                  (refills) => (refills['vehicle']?['plate_no'] ?? '')
+                      ?.toLowerCase()
                       .contains(_searchQuery.toLowerCase()),
                 )
                 .toList()
@@ -167,10 +239,10 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
                                                   .refillData?[index]['id'];
                                           final reason =
                                               _reasonController.text.trim();
-                                          // watch.deleteVehicle(
-                                          //   refillVehicleId,
-                                          //   reason,
-                                          // );
+                                          watch.deleteRefillData(
+                                            refillVehicleId,
+                                            reason,
+                                          );
                                         },
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
@@ -188,7 +260,7 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
                                                 16,
                                               ),
                                               leading: Icon(
-                                                Icons.directions_car,
+                                                Icons.local_gas_station,
                                                 size: 30,
                                                 color: Colors.blue,
                                               ),
@@ -232,15 +304,15 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
                                                       color: Colors.red,
                                                     ),
                                                     onPressed: () async {
-                                                      // _deleteVehicle(index);
+                                                      _deleteRefillData(index);
                                                     },
                                                   ),
                                                 ],
                                               ),
-                                              // onTap:
-                                              //     () => _vehicleDetails(
-                                              //       vehicles[index],
-                                              //     ),
+                                              onTap:
+                                                  () => _refillDetails(
+                                                    refillVehicle,
+                                                  ),
                                             ),
                                           ),
                                         ),

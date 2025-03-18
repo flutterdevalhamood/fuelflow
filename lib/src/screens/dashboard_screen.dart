@@ -34,6 +34,11 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       'icon': Icons.local_gas_station,
       'route': Screenroutes.fuelRefillListScreen,
     },
+    {
+      'title': 'Refilling Unit',
+      'icon': Icons.gas_meter_outlined,
+      'route': Screenroutes.fuelRefillListScreen,
+    },
   ];
 
   _getBody(BuildContext context) {
