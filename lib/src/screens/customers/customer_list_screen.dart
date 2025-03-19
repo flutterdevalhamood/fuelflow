@@ -145,6 +145,34 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     }
   }
 
+  void _navigateToMyVehicles(Map<String, dynamic> customer) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.myVehicles,
+      arguments: customer,
+    );
+    if (result == true) {
+      final customerController = Provider.of<CustomerController>(
+        context,
+        listen: false,
+      );
+      customerController.getCustomerData();
+    }
+  }
+
+  void _navigateToMyDrivers(Map<String, dynamic> customer) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.myDrivers,
+      arguments: customer,
+    );
+    if (result == true) {
+      final customerController = Provider.of<CustomerController>(
+        context,
+        listen: false,
+      );
+      customerController.getCustomerData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final customerController = Provider.of<CustomerController>(context);
@@ -363,7 +391,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                               children: [
                                                                 GestureDetector(
                                                                   onTap: () {
-                                                                    // Handle My Vehicles action
+                                                                    _navigateToMyVehicles(
+                                                                      customers[index],
+                                                                    );
                                                                     print(
                                                                       'My Vehicles selected',
                                                                     );
@@ -382,11 +412,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                                 ),
                                                                 GestureDetector(
                                                                   onTap: () {
-                                                                    // Handle My Drivers action
-                                                                    print(
-                                                                      'My Drivers selected',
+                                                                    _navigateToMyDrivers(
+                                                                      customer,
                                                                     );
                                                                   },
+
                                                                   child: Text(
                                                                     'My Drivers',
                                                                     style: TextStyle(

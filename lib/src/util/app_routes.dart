@@ -4,6 +4,8 @@ import 'package:sample/src/blocs/login_bloc.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
+import 'package:sample/src/screens/customers/my_drivers_screen.dart';
+import 'package:sample/src/screens/customers/my_vehicles_screen.dart';
 import 'package:sample/src/screens/drivers/driver_detail_screen.dart';
 import 'package:sample/src/screens/drivers/driver_edit_screen.dart';
 import 'package:sample/src/screens/drivers/driver_list_screen.dart';
@@ -41,6 +43,8 @@ class Screenroutes {
   static const String customerRegistration = "CustomerRegistration";
   static const String customerDetail = "CustomerDetail";
   static const String customerEdit = "CustomerEdit";
+  static const String myVehicles = "MyVehicles";
+  static const String myDrivers = "MyDrivers";
   static const String vehicleRefill = "vehicleRefill";
   static const String driverList = "driverList";
   static const String driverRegistration = "driverRegistration";
@@ -154,6 +158,24 @@ class Screenroutes {
           settings: const RouteSettings(name: Screenroutes.customerEdit),
           builder: (BuildContext context) {
             return CustomerEditScreen(data: customer ?? {});
+          },
+        );
+
+      case Screenroutes.myVehicles:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.myVehicles),
+          builder: (BuildContext context) {
+            return MyVehiclesScreen(data: data ?? {});
+          },
+        );
+
+      case Screenroutes.myDrivers:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.myDrivers),
+          builder: (BuildContext context) {
+            return MyDriversScreen(data: data ?? {});
           },
         );
 

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sample/src/providers/vehicle_controller.dart';
+import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final Map<String, dynamic> customer;
@@ -10,9 +14,61 @@ class CustomerDetailScreen extends StatefulWidget {
 }
 
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
+  late VehicleController _vehicleController;
+  String _searchQuery = '';
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _vehicleController = Provider.of<VehicleController>(
+        context,
+        listen: false,
+      );
+      _vehicleController.getVehicleData();
+    });
+  }
+
+  void _vehicleDetails(String plateNo) async {
+    final vehicle = _vehicleController.vehicleData?.firstWhere(
+      (vehicle) => vehicle['plate_no'] == plateNo,
+      orElse: () => {},
+    );
+    if (vehicle != null) {
+      final result = await NavigationService().pushNavigation(
+        Screenroutes.vehicleDetail,
+        arguments: vehicle,
+      );
+
+      if (result == true) {
+        _vehicleController.getVehicleData();
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vehicle with plate number $plateNo not found')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final watch = context.watch<VehicleController>();
+    final vehicles =
+        watch.vehicleData != null
+            ? (watch.vehicleData ?? [])
+                .where(
+                  (vehicle) =>
+                      vehicle['plate_no'].toLowerCase().contains(
+                        _searchQuery.toLowerCase(),
+                      ) ||
+                      (vehicle['type']?['Name']?.toLowerCase() ?? '').contains(
+                        _searchQuery.toLowerCase(),
+                      ),
+                )
+                .toList()
+            : [];
     final customer = widget.customer;
+    final myVehicleData = widget.customer['my_vehicles'];
     return Scaffold(
       appBar: AppBar(title: Text('Customer Details')),
       body: Container(
@@ -47,46 +103,148 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               ),
               SizedBox(height: 16),
               _buildDetailCard(Icons.email, 'Email', customer['email'] ?? ''),
+              SizedBox(height: 24),
+              if (myVehicleData != null && myVehicleData.isNotEmpty)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Vehicles',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    Container(
+                      height: 25,
+                      width: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade900,
+                        // Replace with the actual color variable or use Colors.red
+                        borderRadius: BorderRadius.circular(23.0),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${myVehicleData.length}',
+                          style: TextStyle(
+                            color: Colors.white,
+                          ), // Replace 'colorwhite' with Colors.white
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: 8),
+              myVehicleData != null
+                  ? GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, // Number of columns in the grid
+                      crossAxisSpacing: 4, // Spacing between columns
+                      mainAxisSpacing: 4, // Spacing between rows
+                      childAspectRatio:
+                          2, // Adjust the aspect ratio of the grid items
+                    ),
+                    shrinkWrap:
+                        true, // Ensure the ListView takes only the required space
+                    physics:
+                        NeverScrollableScrollPhysics(), // Disable scrolling for the inner ListView
+                    itemCount: myVehicleData.length,
+                    itemBuilder: (context, index) {
+                      final customerVehicle = myVehicleData[index];
+
+                      return InkWell(
+                        onTap:
+                            () => _vehicleDetails(customerVehicle['plate_no']),
+                        child: Card(
+                          color: Colors.green.shade100,
+                          elevation: 4,
+                          margin: EdgeInsets.all(8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 23,
+                                  width: 80,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    // Replace with the actual color variable or use Colors.red
+                                    borderRadius: BorderRadius.circular(23.0),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "Plate No.",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ), // Replace 'colorwhite' with Colors.white
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Text(
+                                  customerVehicle['plate_no'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                  : Text(
+                    'No vehicles found.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildDetailCard(IconData icon, String label, String value) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(icon, size: 30, color: Colors.blue.shade900),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.bold,
-                    ),
+Widget _buildDetailCard(IconData icon, String label, String value) {
+  return Card(
+    elevation: 4,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    child: Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 30, color: Colors.blue.shade900),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    value,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  value,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

@@ -103,8 +103,8 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                   // Note
                   _buildDetailCard(Icons.note, 'Note', vehicle['description']),
                   SizedBox(height: 20),
-                  if (vehicle['vehicle_images'].isNotEmpty &&
-                      vehicle['vehicle_images'] != null)
+                  if (vehicle['vehicle_images'] != null &&
+                      vehicle['vehicle_images'].isNotEmpty)
                     Text(
                       'Images',
                       style: Theme.of(context).textTheme.bodyLarge!.copyWith(

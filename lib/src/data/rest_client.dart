@@ -222,4 +222,11 @@ abstract class RestClient {
     @Part(name: 'document[]') List<MultipartFile>? files,
     @Part(name: 'id') String? id,
   });
+
+  @GET('/RefilingUnit/paginate/{page}/{limit}')
+  Future<dynamic> getRefilingUnitData(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
 }
