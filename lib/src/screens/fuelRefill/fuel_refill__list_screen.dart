@@ -289,13 +289,13 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
                                                       color: Colors.blue,
                                                     ),
                                                     onPressed: () async {
-                                                      // await NavigationService()
-                                                      //     .pushNavigation(
-                                                      //       Screenroutes
-                                                      //           .editDetail,
-                                                      //       arguments:
-                                                      //           vehicles[index],
-                                                      //     );
+                                                      await NavigationService()
+                                                          .pushNavigation(
+                                                            Screenroutes
+                                                                .fuelRefillEditScreen,
+                                                            arguments:
+                                                                refillVehicleData[index],
+                                                          );
                                                     },
                                                   ),
                                                   IconButton(

@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:sample/src/util/app_colors.dart';
+import 'package:sample/src/util/app_navigation.dart';
 
 class FuelRefillDetailScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -41,6 +44,27 @@ class _FuelRefillDetailScreenState extends State<FuelRefillDetailScreen>
     super.dispose();
   }
 
+  void showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: GestureDetector(
+              onTap: NavigationService().popNavigation,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(imageUrl, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final refillData = widget.data;
@@ -72,19 +96,84 @@ class _FuelRefillDetailScreenState extends State<FuelRefillDetailScreen>
                     child: AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        return Transform(
-                          alignment: Alignment.center,
-                          transform:
-                              Matrix4.identity()
-                                ..setEntry(3, 2, 0.001) // Perspective
-                                ..rotateY(_rotationAnimation.value),
-                          child: _buildDetailCard(
-                            (refillData['qty'].toString()) ?? '',
-                            refillData['customer']?['name'] ?? '',
-                            refillData['vehicle']?['plate_no'] ?? '',
-                            refillData['product']?['Name'] ?? '',
-                            refillData['driver']?['Name'] ?? '',
-                          ),
+                        return Column(
+                          children: [
+                            Transform(
+                              alignment: Alignment.center,
+                              transform:
+                                  Matrix4.identity()
+                                    ..setEntry(3, 2, 0.001) // Perspective
+                                    ..rotateY(_rotationAnimation.value),
+                              child: _buildDetailCard(
+                                (refillData['qty'].toString()) ?? '',
+                                refillData['customer']?['name'] ?? '',
+                                refillData['vehicle']?['plate_no'] ?? '',
+                                refillData['product']?['Name'] ?? '',
+                                refillData['driver']?['Name'] ?? '',
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            if (refillData['refil_images'] != null &&
+                                refillData['refil_images'].isNotEmpty)
+                              Text(
+                                'Images',
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            SizedBox(height: 10),
+                            if (refillData['refil_images'] != null &&
+                                refillData['refil_images'].isNotEmpty)
+                              SizedBox(
+                                height: 150,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: refillData['refil_images'].length,
+                                  itemBuilder: (context, index) {
+                                    final image =
+                                        refillData['refil_images'][index];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 8.0,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showFullScreenImage(
+                                            context,
+                                            image['Title'],
+                                          );
+                                        },
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: Image.network(
+                                            image['Title'],
+                                            width: 150,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) {
+                                              return Container(
+                                                width: 150,
+                                                color:
+                                                    Colors
+                                                        .grey[300], // Placeholder background
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey[600],
+                                                ), // Fallback icon
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
                         );
                       },
                     ),
