@@ -229,4 +229,47 @@ abstract class RestClient {
     @Path("limit") int limit,
     @Header("Authorization") String? token,
   );
+
+  @POST('/RefilingUnit')
+  Future<dynamic> postRefillingUnit({
+    @Header("Authorization") String? token,
+    @Field("type") int? type,
+    @Field("serial_no") String? serialNumber,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("driver_id") int? driverId,
+    @Field("capacity") String? capacity,
+    @Field("capacity_unit_id") int? capacityUnitId,
+    @Field("default_product_id") int? defaultProductId,
+  });
+
+  @POST('/RefilingUnitPictureUpload')
+  @MultiPart()
+  Future<dynamic> uploadrefillingUnitPictures({
+    @Header("Authorization") String? token,
+    @Part(name: 'document[]') List<MultipartFile>? files,
+    @Part(name: 'id') String? id,
+  });
+
+  @POST('/RefillingUnitUpdate')
+  Future<dynamic> refilling({
+    @Header("Authorization") String? token,
+    @Field("plate_no") String? plateNumber,
+    @Field("vehicle_type_id") int? vehicleType,
+    @Field("id") int? id,
+    @Field("description") String? description,
+    @Field("capacity") String? capacity,
+    @Field("capacity_unit_id") String? capacityUnit,
+    @Field("customer_id") String? customer,
+  });
+
+  @GET('/getRefilingUnitBaseList')
+  Future<dynamic> refillingUnitBaseList({
+    @Header("Authorization") String? token,
+  });
+
+  @POST('/getDefaultsOfRefilingUnit')
+  Future<dynamic> getDefaultsOfRefilingUnit({
+    @Header("Authorization") String? token,
+    @Field("refiling_unit_id") int? refillingUnitId,
+  });
 }

@@ -9,8 +9,13 @@ class FuelRefillController with ChangeNotifier {
   List<Map<String, dynamic>>? productData;
   List<Map<String, dynamic>>? customerData;
   List<Map<String, dynamic>>? driverData;
+  List<Map<String, dynamic>>? refillUnitsData;
   List<Map<String, dynamic>>? vehicleTypeData;
   List<Map<String, dynamic>>? vehicleData;
+  String? defaultProductName;
+  String? defaultUnitName;
+  int? defaultProductId;
+  int? defaultCapacityUnitId;
   int? refillId;
   List<Map<String, dynamic>>? refillData;
   bool isLoading = false;
@@ -18,6 +23,17 @@ class FuelRefillController with ChangeNotifier {
   int currentPage = 1;
   final int totalPages = 10;
   bool hasMore = true;
+
+  TextEditingController? _unitController;
+  TextEditingController? _productController;
+
+  void setUnitController(TextEditingController unitController) {
+    _unitController = unitController;
+  }
+
+  void setProductController(TextEditingController productController) {
+    _productController = productController;
+  }
 
   Future<void> getRefilldata({bool loadMore = false}) async {
     isLoading = true;
@@ -98,6 +114,7 @@ class FuelRefillController with ChangeNotifier {
         customerData = List<Map<String, dynamic>>.from(
           dropDownData['Data']['customer'],
         );
+
         notifyListeners();
       } else {
         print('API call failed: ${dropDownData['Message']}');
@@ -124,6 +141,9 @@ class FuelRefillController with ChangeNotifier {
         );
         customerData = List<Map<String, dynamic>>.from(
           dropDownData['Data']['customer'],
+        );
+        refillUnitsData = List<Map<String, dynamic>>.from(
+          dropDownData['Data']['refil_units'],
         );
         notifyListeners();
       } else {
@@ -259,6 +279,42 @@ class FuelRefillController with ChangeNotifier {
     } catch (e) {
       if (e is DioException) {
         print('Dio Exception $e');
+      }
+    }
+  }
+
+  Future<void> getUnitProductDropdown(int? refillId) async {
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final unitProductDropDownData = await restApi.getDefaultsOfRefilingUnit(
+        token: 'Bearer $token',
+        refillingUnitId: refillId,
+      );
+      if (unitProductDropDownData['IsSuccess'] == true) {
+        defaultProductName =
+            unitProductDropDownData['Data']?['defaults']?['default_product']?['Name'];
+        defaultUnitName =
+            unitProductDropDownData['Data']?['defaults']?['capacity_unit']?['Name'];
+        defaultProductId =
+            unitProductDropDownData['Data']?['defaults']?['default_product']?['id'];
+        defaultCapacityUnitId =
+            unitProductDropDownData['Data']?['defaults']?['capacity_unit']?['id'];
+        if (_unitController != null) {
+          _unitController?.text = defaultUnitName ?? '';
+        }
+        if (_productController != null) {
+          _productController?.text = defaultProductName ?? '';
+        }
+        print('unitcontrollertext ${_unitController?.text}');
+        notifyListeners();
+      } else {
+        print('API call failed: ${unitProductDropDownData['Message']}');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
       }
     }
   }

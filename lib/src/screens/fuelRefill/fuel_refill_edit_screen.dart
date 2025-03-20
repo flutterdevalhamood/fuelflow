@@ -24,6 +24,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
   late TextEditingController _productNameController;
   late TextEditingController _driverNameController;
   late TextEditingController _qtyController;
+  late TextEditingController _capacityUnitController;
 
   // Dropdown values
   String? _selectedCapacityUnit;
@@ -32,6 +33,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
   int? _selectedCustomerId;
   int? _selectedCapacityUnitId;
   int? _selectedProductId;
+  int? _selectedDriverId;
   bool _isAddImagesClicked = false;
   List<XFile>? _imageFiles;
 
@@ -68,14 +70,18 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     _driverNameController = TextEditingController(
       text: widget.data['driver']?['Name'],
     );
+    _capacityUnitController = TextEditingController(
+      text: widget.data['vehicle_capacity_unit']?['Name'] ?? '',
+    );
 
-    _selectedCapacityUnit = widget.data['vehicle_capacity_unit']?['Name'];
+    _selectedCapacityUnit = widget.data['unit']?['Name'];
     _selectedCustomer = widget.data['customer']?['Name'];
     _selectedProduct = widget.data['product']?['Name'];
 
-    _selectedCapacityUnitId = widget.data['vehicle_capacity_unit']?['id'];
+    _selectedCapacityUnitId = widget.data['unit']?['id'];
     _selectedCustomerId = widget.data['customer']?['id'];
     _selectedProductId = widget.data['product']?['id'];
+    _selectedDriverId = widget.data['driver']?['id'];
 
     print('_selectedCapacityUnit $_selectedCapacityUnit');
     // _loadImages();
@@ -202,10 +208,10 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     print('fuelRefillDataa $fuelRefillData');
     return Consumer<FuelRefillController>(
       builder: (context, fuelRefillController, child) {
-        final vehicleTypeData = fuelRefillController.vehicleTypeData;
         final unitData = fuelRefillController.unitData;
         final customerDropdownData = fuelRefillController.customerData;
         final productData = fuelRefillController.productData;
+        final driverData = fuelRefillController.driverData;
 
         return Scaffold(
           appBar: AppBar(title: Text('Edit Fuel Refill Details')),
@@ -337,6 +343,33 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                         },
                       ),
 
+                      SizedBox(height: 20),
+                      DropdownButtonFormField<int>(
+                        decoration: InputDecoration(
+                          labelText: 'Driver',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: _selectedDriverId,
+                        items:
+                            (driverData ?? []).map((item) {
+                              return DropdownMenuItem<int>(
+                                value: item['id'],
+                                child: Text(item['Name'].toString()),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedDriverId = item['id'];
+                                  });
+                                },
+                              );
+                            }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedDriverId = newValue;
+                            // _customerNameController.text =
+                            //     newValue ?? '';
+                          });
+                        },
+                      ),
                       SizedBox(height: 20),
                       if (fuelRefillData['refil_images'] != null &&
                           fuelRefillData['refil_images'].isNotEmpty)

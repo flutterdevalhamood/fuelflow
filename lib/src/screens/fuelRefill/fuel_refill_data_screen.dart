@@ -30,13 +30,14 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _driverController = TextEditingController();
   final TextEditingController _vehicleController = TextEditingController();
-  final TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _refillUnitController = TextEditingController();
   late FuelRefillController _fuelRefillController;
   int? _selectedUnitId;
   int? _selectedCustomerId;
   int? _selectedProductId;
   int? _selectedDriverId;
   int? _selectedVehicleId;
+  int? _selectedRefillId;
   List<XFile>? _imageFiles;
   bool _isRegistrationComplete = false;
 
@@ -47,6 +48,8 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
         context,
         listen: false,
       );
+      _fuelRefillController.setUnitController(_unitController);
+      _fuelRefillController.setProductController(_productController);
       _fuelRefillController.getFuelRefillDropdown();
     });
     super.initState();
@@ -300,14 +303,21 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
         final customerData = fuelRefillController.customerData;
         final driverData = fuelRefillController.driverData;
         final vehicleData = fuelRefillController.vehicleData;
-        print('CustomerDataaasss $customerData');
-        print('unitDatasss $unitData');
-        print('productDatasss $productData');
+        final refillData = fuelRefillController.refillUnitsData;
+        final defaultProductName = fuelRefillController.defaultProductName;
+        final defaultUnitName = fuelRefillController.defaultUnitName;
+        final defaultProductId = fuelRefillController.defaultProductId;
+        final defaultUnitId = fuelRefillController.defaultCapacityUnitId;
+        print('defaultProductName $defaultProductName');
+        print('defaultUnitName $defaultUnitName');
 
         return Scaffold(
           appBar: AppBar(title: Text('Fuel Entry'), centerTitle: true),
           body:
-              unitData == null || productData == null || customerData == null
+              unitData == null ||
+                      productData == null ||
+                      customerData == null ||
+                      refillData == null
                   ? Center(child: CircularProgressIndicator())
                   : Stack(
                     children: [
@@ -318,6 +328,65 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                           child: Column(
                             children: [
                               if (!_isRegistrationComplete) ...[
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search Serial Number...',
+                                      ),
+                                    ),
+                                  ),
+                                  items:
+                                      (filter, infiniteScrollProps) =>
+                                          refillData,
+                                  itemAsString:
+                                      (item) => item['serial_no'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
+                                  },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedRefillId = newValue['id'];
+                                        _refillUnitController.text =
+                                            newValue['serial_no'];
+                                      });
+                                      await _fuelRefillController
+                                          .getUnitProductDropdown(
+                                            _selectedRefillId,
+                                          );
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedRefillId != null
+                                          ? refillData.firstWhere(
+                                            (refill) =>
+                                                refill['id'] ==
+                                                _selectedRefillId,
+                                          )
+                                          : null,
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a Refill ID';
+                                    }
+                                    return null;
+                                  },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Refill Serial Number',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
                                 DropdownSearch<Map<String, dynamic>>(
                                   popupProps: PopupProps.menu(
                                     showSearchBox: true,
@@ -438,10 +507,23 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 ),
                                 SizedBox(height: 20),
                                 TextFormField(
+                                  readOnly: true,
                                   controller: _unitController,
                                   decoration: InputDecoration(
                                     labelText: 'Unit',
                                     border: OutlineInputBorder(),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey[200],
                                   ),
                                 ),
                                 // DropdownButtonFormField<int>(
@@ -476,37 +558,57 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 //   },
                                 // ),
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
+                                TextFormField(
+                                  readOnly: true,
+                                  controller: _productController,
                                   decoration: InputDecoration(
                                     labelText: 'Product',
                                     border: OutlineInputBorder(),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey[200],
                                   ),
-                                  value: _selectedProductId,
-                                  items:
-                                      (productData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['Name']),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedProductId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedProductId = newValue;
-                                      // _customerController.text = newValue ?? '';
-                                    });
-                                  },
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a product';
-                                    }
-                                    return null;
-                                  },
                                 ),
+                                // DropdownButtonFormField<int>(
+                                //   decoration: InputDecoration(
+                                //     labelText: 'Product',
+                                //     border: OutlineInputBorder(),
+                                //   ),
+                                //   value: _selectedProductId,
+                                //   items:
+                                //       (productData ?? []).map((item) {
+                                //         return DropdownMenuItem<int>(
+                                //           value: item['id'],
+                                //           child: Text(item['Name']),
+                                //           onTap: () {
+                                //             setState(() {
+                                //               _selectedProductId = item['id'];
+                                //             });
+                                //           },
+                                //         );
+                                //       }).toList(),
+                                //   onChanged: (int? newValue) {
+                                //     setState(() {
+                                //       _selectedProductId = newValue;
+                                //       // _customerController.text = newValue ?? '';
+                                //     });
+                                //   },
+                                //   validator: (value) {
+                                //     if (value == null) {
+                                //       return 'Please select a product';
+                                //     }
+                                //     return null;
+                                //   },
+                                // ),
                                 SizedBox(height: 20),
                                 DropdownButtonFormField<int>(
                                   decoration: InputDecoration(
@@ -530,12 +632,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     setState(() {
                                       _selectedDriverId = newValue;
                                     });
-                                  },
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a driver';
-                                    }
-                                    return null;
                                   },
                                 ),
                                 SizedBox(height: 100),

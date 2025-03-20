@@ -17,6 +17,8 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
 import 'package:sample/src/screens/products/product_list_screen.dart';
 import 'package:sample/src/screens/products/product_registration_screen.dart';
+import 'package:sample/src/screens/refillingUnit/refilling_unit_list_screen.dart';
+import 'package:sample/src/screens/refillingUnit/refilling_unit_registration_screen.dart';
 
 import '../constants/string_constants.dart';
 import '../screens/customers/customer_edit_screen.dart';
@@ -61,6 +63,11 @@ class Screenroutes {
   static const String fuelRefillDataScreen = "fuelRefillDataScreen";
   static const String fuelRefillDetailScreen = 'fuelRefillDetailScreen';
   static const String fuelRefillEditScreen = "fuelRefillEditScreen";
+
+  //refillingUnit
+  static const String refillingUnitListScreen = "refillingUnitListScreen";
+  static const String refillingUnitRegistrationScreen =
+      "refillingUnitRegistrationScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -290,6 +297,27 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return EditFuelRefillScreen(data: data ?? {});
+          },
+        );
+
+      case Screenroutes.refillingUnitListScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.refillingUnitListScreen,
+          ),
+          builder: (BuildContext context) {
+            return RefillingUnitListScreen();
+          },
+        );
+
+      case Screenroutes.refillingUnitRegistrationScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.refillingUnitRegistrationScreen,
+          ),
+          builder: (BuildContext context) {
+            return RefillingUnitRegistrationScreen();
           },
         );
     }
