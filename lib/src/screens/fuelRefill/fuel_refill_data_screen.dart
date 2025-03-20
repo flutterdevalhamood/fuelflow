@@ -158,11 +158,12 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   Future<void> _postRefillData() async {
     if (_formKey.currentState!.validate()) {
       bool isSuccess = await _fuelRefillController.postRefillData(
+        refillingUnitId: _selectedRefillId,
         qty: _quantityController.text.trim(),
         customerId: _selectedCustomerId,
-        unitId: _selectedUnitId,
-        productId: _selectedProductId,
-        driverId: _selectedDriverId,
+        unitId: _fuelRefillController.defaultCapacityUnitId,
+        productId: _fuelRefillController.defaultProductId,
+        driverId: _selectedDriverId ?? 0,
         vehicleId: _selectedVehicleId,
       );
       if (isSuccess) {

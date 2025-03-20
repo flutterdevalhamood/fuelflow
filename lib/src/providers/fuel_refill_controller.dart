@@ -308,6 +308,7 @@ class FuelRefillController with ChangeNotifier {
           _productController?.text = defaultProductName ?? '';
         }
         print('unitcontrollertext ${_unitController?.text}');
+
         notifyListeners();
       } else {
         print('API call failed: ${unitProductDropDownData['Message']}');
