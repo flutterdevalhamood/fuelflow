@@ -459,36 +459,90 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 //   ),
                                 // ),
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
-                                  decoration: InputDecoration(
-                                    labelText: 'Vehicle',
-                                    border: OutlineInputBorder(),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search vehicle Number...',
+                                      ),
+                                    ),
                                   ),
-                                  value: _selectedVehicleId,
                                   items:
-                                      (vehicleData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['plate_no'] ?? ''),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedVehicleId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedVehicleId = newValue;
-                                    });
+                                      (filter, infiniteScrollProps) async =>
+                                          vehicleData ?? [],
+                                  itemAsString:
+                                      (item) => item['plate_no'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
                                   },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedVehicleId = newValue['id'];
+                                        _vehicleController.text =
+                                            newValue['plate_no'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedVehicleId != null
+                                          ? vehicleData?.firstWhere(
+                                            (vehicle) =>
+                                                vehicle['id'] ==
+                                                _selectedVehicleId,
+                                          )
+                                          : null,
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select a vehicle';
+                                      return 'Please select a Vehicle ID';
                                     }
                                     return null;
                                   },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Vehicle Number',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
                                 ),
+                                // DropdownButtonFormField<int>(
+                                //   decoration: InputDecoration(
+                                //     labelText: 'Vehicle',
+                                //     border: OutlineInputBorder(),
+                                //   ),
+                                //   value: _selectedVehicleId,
+                                //   items:
+                                //       (vehicleData ?? []).map((item) {
+                                //         return DropdownMenuItem<int>(
+                                //           value: item['id'],
+                                //           child: Text(item['plate_no'] ?? ''),
+                                //           onTap: () {
+                                //             setState(() {
+                                //               _selectedVehicleId = item['id'];
+                                //             });
+                                //           },
+                                //         );
+                                //       }).toList(),
+                                //   onChanged: (int? newValue) {
+                                //     setState(() {
+                                //       _selectedVehicleId = newValue;
+                                //     });
+                                //   },
+                                //   validator: (value) {
+                                //     if (value == null) {
+                                //       return 'Please select a vehicle';
+                                //     }
+                                //     return null;
+                                //   },
+                                // ),
                                 SizedBox(height: 20),
 
                                 TextFormField(

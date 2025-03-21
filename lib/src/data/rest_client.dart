@@ -250,16 +250,16 @@ abstract class RestClient {
     @Part(name: 'id') String? id,
   });
 
-  @POST('/RefillingUnitUpdate')
-  Future<dynamic> refilling({
+  @POST('/RefilingUnitUpdate')
+  Future<dynamic> refillingUnitUpdate({
     @Header("Authorization") String? token,
-    @Field("plate_no") String? plateNumber,
-    @Field("vehicle_type_id") int? vehicleType,
-    @Field("id") int? id,
-    @Field("description") String? description,
+    @Field("type") int? type,
+    @Field("serial_no") String? serialNumber,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("driver_id") int? driverId,
     @Field("capacity") String? capacity,
-    @Field("capacity_unit_id") String? capacityUnit,
-    @Field("customer_id") String? customer,
+    @Field("capacity_unit_id") int? capacityUnitId,
+    @Field("default_product_id") int? defaultProductId,
   });
 
   @GET('/getRefilingUnitBaseList')
@@ -271,5 +271,12 @@ abstract class RestClient {
   Future<dynamic> getDefaultsOfRefilingUnit({
     @Header("Authorization") String? token,
     @Field("refiling_unit_id") int? refillingUnitId,
+  });
+
+  @POST('/RefilingUnitDelete')
+  Future<dynamic> deleteRefillingUnit({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("deleteDescription") String? deleteDescription,
   });
 }

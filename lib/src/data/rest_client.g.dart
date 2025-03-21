@@ -948,15 +948,15 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> refilling({
+  Future<dynamic> refillingUnitUpdate({
     String? token,
-    String? plateNumber,
-    int? vehicleType,
-    int? id,
-    String? description,
+    int? type,
+    String? serialNumber,
+    int? vehicleId,
+    int? driverId,
     String? capacity,
-    String? capacityUnit,
-    String? customer,
+    int? capacityUnitId,
+    int? defaultProductId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -964,20 +964,20 @@ class _RestClient implements RestClient {
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
     final _data = {
-      'plate_no': plateNumber,
-      'vehicle_type_id': vehicleType,
-      'id': id,
-      'description': description,
+      'type': type,
+      'serial_no': serialNumber,
+      'vehicle_id': vehicleId,
+      'driver_id': driverId,
       'capacity': capacity,
-      'capacity_unit_id': capacityUnit,
-      'customer_id': customer,
+      'capacity_unit_id': capacityUnitId,
+      'default_product_id': defaultProductId,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/RefillingUnitUpdate',
+            '/RefilingUnitUpdate',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -1028,6 +1028,34 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/getDefaultsOfRefilingUnit',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> deleteRefillingUnit({
+    String? token,
+    int? id,
+    String? deleteDescription,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'id': id, 'deleteDescription': deleteDescription};
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/RefilingUnitDelete',
             queryParameters: queryParameters,
             data: _data,
           )

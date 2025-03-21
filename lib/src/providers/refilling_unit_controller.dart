@@ -196,17 +196,61 @@ class RefillingUnitController with ChangeNotifier {
     return false;
   }
 
-  // Future<void> deleteRefillUnitData(int? id, String? descriptionText) async {
+  Future<void> deleteRefillUnitData(int? id, String? descriptionText) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.deleteRefillingUnit(
+        token: 'Bearer $token',
+        id: id,
+        deleteDescription: descriptionText,
+      );
+      await getRefillUnitData();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
+
+  Future<void> editRefillUnitData(
+    int? type,
+    String? serialNumber,
+    int? vehicleId,
+    int? driverId,
+    String? capacity,
+    int? capacityUnitId,
+    int? defaultProductId,
+  ) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.refillingUnitUpdate(
+        token: 'Bearer $token',
+        type: type,
+        serialNumber: serialNumber,
+        vehicleId: vehicleId,
+        driverId: driverId,
+        capacity: capacity,
+        capacityUnitId: capacityUnitId,
+        defaultProductId: defaultProductId,
+      );
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
+
+  // Future<void> deleteRefillUnitImagesById(int? id) async {
   //   try {
   //     if (token == null) {
   //       throw Exception("No Token Found");
   //     }
-  //     await restApi.refillDelete(
-  //       token: 'Bearer $token',
-  //       id: id,
-  //       deleteDescription: descriptionText,
-  //     );
-  //     await getRefillUnitData();
+  //     await restApi.deleteImagesById(token: 'Bearer $token', id: id);
+  //     await getVehicleData();
   //   } catch (e) {
   //     if (e is DioException) {
   //       print('Dio Exception $e');

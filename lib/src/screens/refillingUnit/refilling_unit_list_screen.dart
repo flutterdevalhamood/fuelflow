@@ -76,65 +76,66 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
     });
   }
 
-  // void _deleteRefillData(int index) {
-  //   final refillId = _fuelRefillController.refillData?[index]['id'];
-  //
-  //   print('refillId $refillId');
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text("Delete Refill Data"),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min, // To make the dialog compact
-  //           children: [
-  //             Text("Are you sure you want to delete this refill data?"),
-  //             SizedBox(height: 16), // Add some spacing
-  //             TextField(
-  //               controller: _reasonController,
-  //               decoration: InputDecoration(
-  //                 labelText: 'Reason for deletion',
-  //                 border: OutlineInputBorder(),
-  //               ),
-  //               maxLines: 3, // Allow multiple lines for the reason
-  //             ),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.pop(context), // Cancel
-  //             child: Text("Cancel"),
-  //           ),
-  //           TextButton(
-  //             onPressed: () async {
-  //               String reason = _reasonController.text.trim();
-  //               print('reasonfordelete $reason');
-  //               if (reason.isNotEmpty) {
-  //                 if (refillId != null) {
-  //                   await _fuelRefillController.deleteRefillData(
-  //                     refillId,
-  //                     _reasonController.text.trim(),
-  //                   );
-  //                 }
-  //                 print("Deleting RefillData with reason: $reason");
-  //                 Navigator.pop(context);
-  //                 showSuccessSnack('RefillData Deleted Successfully');
-  //               } else {
-  //                 // Show an error or prompt the user to enter a reason
-  //                 ScaffoldMessenger.of(context).showSnackBar(
-  //                   SnackBar(
-  //                     content: Text("Please enter a reason for deletion"),
-  //                   ),
-  //                 );
-  //               }
-  //             },
-  //             child: Text("Delete", style: TextStyle(color: Colors.red)),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
+  void _deleteRefillUnitData(int index) {
+    final refillUnitId =
+        _fuelRefillingUnitController.refillUnitData?[index]['id'];
+
+    print('refillUnitId $refillUnitId');
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Refill Unit Data"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min, // To make the dialog compact
+            children: [
+              Text("Are you sure you want to delete this refill Unit?"),
+              SizedBox(height: 16), // Add some spacing
+              TextField(
+                controller: _reasonController,
+                decoration: InputDecoration(
+                  labelText: 'Reason for deletion',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3, // Allow multiple lines for the reason
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Cancel
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                String reason = _reasonController.text.trim();
+                print('reasonfordelete $reason');
+                if (reason.isNotEmpty) {
+                  if (refillUnitId != null) {
+                    await _fuelRefillingUnitController.deleteRefillUnitData(
+                      refillUnitId,
+                      _reasonController.text.trim(),
+                    );
+                  }
+                  print("Deleting RefillUnitData with reason: $reason");
+                  Navigator.pop(context);
+                  showSuccessSnack('RefillUnitData Deleted Successfully');
+                } else {
+                  // Show an error or prompt the user to enter a reason
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Please enter a reason for deletion"),
+                    ),
+                  );
+                }
+              },
+              child: Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _refillDetails(Map<String, dynamic> refillUnitData) {
     final result = NavigationService().pushNavigation(
@@ -234,15 +235,15 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                           ),
                                         ),
                                         onDismissed: (direction) {
-                                          final refillUnitSerialNumber =
+                                          final refillUnitId =
                                               _fuelRefillingUnitController
                                                   .refillUnitData?[index]['id'];
                                           final reason =
                                               _reasonController.text.trim();
-                                          // watch.deleteRefillData(
-                                          //   refillVehicleId,
-                                          //   reason,
-                                          // );
+                                          watch.deleteRefillUnitData(
+                                            refillUnitId,
+                                            reason,
+                                          );
                                         },
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
@@ -289,13 +290,13 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                       color: Colors.blue,
                                                     ),
                                                     onPressed: () async {
-                                                      // await NavigationService()
-                                                      //     .pushNavigation(
-                                                      //       Screenroutes
-                                                      //           .fuelRefillEditScreen,
-                                                      //       arguments:
-                                                      //           refillVehicleData[index],
-                                                      //     );
+                                                      await NavigationService()
+                                                          .pushNavigation(
+                                                            Screenroutes
+                                                                .refillingUnitUpdateScreen,
+                                                            arguments:
+                                                                refillUnitData[index],
+                                                          );
                                                     },
                                                   ),
                                                   IconButton(
@@ -304,7 +305,9 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                       color: Colors.red,
                                                     ),
                                                     onPressed: () async {
-                                                      // _deleteRefillData(index);
+                                                      _deleteRefillUnitData(
+                                                        index,
+                                                      );
                                                     },
                                                   ),
                                                 ],

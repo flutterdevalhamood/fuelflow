@@ -239,7 +239,7 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                   SizedBox(height: 20),
                   _buildDetailRow('Customer', customer),
                   SizedBox(height: 20),
-                  _buildDetailRow('Driver', vehicle),
+                  _buildDetailRow('Vehicle', vehicle),
                   SizedBox(height: 20),
                   _buildDetailRow('Product', product),
                   SizedBox(height: 20),
