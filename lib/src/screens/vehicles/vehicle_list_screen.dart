@@ -288,19 +288,19 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                               trailing: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  IconButton(
-                                                    onPressed: () async {
-                                                      await NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .vehicleRefill,
-                                                            arguments: vehicle,
-                                                          );
-                                                    },
-                                                    icon: Icon(
-                                                      Icons.local_gas_station,
-                                                    ),
-                                                  ),
+                                                  // IconButton(
+                                                  //   onPressed: () async {
+                                                  //     await NavigationService()
+                                                  //         .pushNavigation(
+                                                  //           Screenroutes
+                                                  //               .vehicleRefill,
+                                                  //           arguments: vehicle,
+                                                  //         );
+                                                  //   },
+                                                  //   icon: Icon(
+                                                  //     Icons.local_gas_station,
+                                                  //   ),
+                                                  // ),
                                                   IconButton(
                                                     icon: Icon(
                                                       Icons.edit,
