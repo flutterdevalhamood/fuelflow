@@ -3,6 +3,8 @@ import 'package:sample/main.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
+import '../repo/auth_repo.dart';
+
 class DrawerWidget extends StatefulWidget {
   const DrawerWidget({super.key});
 
@@ -51,7 +53,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-          // const SizedBox(height: 75),
+          const SizedBox(height: 75),
           Column(
             children: [
               // Container(
@@ -84,10 +86,10 @@ class _DrawerWidgetState extends State<DrawerWidget> {
               //     textAlign: TextAlign.center,
               //   ),
               // ),
-              // Text(
-              //   AuthRepo.user?.email ?? '',
-              //   style: const TextStyle(fontSize: 11),
-              // ),
+              Text(
+                'Hi ${AuthRepo.user ?? ''}',
+                style: const TextStyle(fontSize: 20),
+              ),
             ],
           ),
           const SizedBox(height: 50),
