@@ -23,7 +23,6 @@ class VehicleRegistrationScreen extends StatefulWidget {
 }
 
 class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
   final TextEditingController _plateNumberController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -209,7 +208,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final _vehicleController = Provider.of<VehicleController>(context);
     return Consumer<VehicleController>(
       builder: (context, vehicleController, child) {
         final vehicleTypeData = vehicleController.vehicleTypeData;
