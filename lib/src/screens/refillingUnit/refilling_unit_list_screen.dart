@@ -139,7 +139,7 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
 
   void _refillDetails(Map<String, dynamic> refillUnitData) {
     final result = NavigationService().pushNavigation(
-      Screenroutes.fuelRefillDetailScreen,
+      Screenroutes.refillingUnitDetailScreen,
       arguments: refillUnitData,
     );
     if (result == true) {

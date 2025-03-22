@@ -17,6 +17,7 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
 import 'package:sample/src/screens/products/product_list_screen.dart';
 import 'package:sample/src/screens/products/product_registration_screen.dart';
+import 'package:sample/src/screens/refillingUnit/refilling_unit_detail_screen.dart';
 import 'package:sample/src/screens/refillingUnit/refilling_unit_list_screen.dart';
 import 'package:sample/src/screens/refillingUnit/refilling_unit_registration_screen.dart';
 import 'package:sample/src/screens/refillingUnit/refilling_unit_update_screen.dart';
@@ -70,6 +71,7 @@ class Screenroutes {
   static const String refillingUnitRegistrationScreen =
       "refillingUnitRegistrationScreen";
   static const String refillingUnitUpdateScreen = "refillingUnitUpdateScreen";
+  static const String refillingUnitDetailScreen = "refillingUnitDetailScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -331,6 +333,17 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return RefillingUnitUpdateScreen(data: data ?? {});
+          },
+        );
+
+      case Screenroutes.refillingUnitDetailScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.refillingUnitDetailScreen,
+          ),
+          builder: (BuildContext context) {
+            return RefillingUnitDetailScreen(data: data ?? {});
           },
         );
     }

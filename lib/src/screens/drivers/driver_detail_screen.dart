@@ -163,12 +163,17 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
             color: Appcolors.textWhiteColor(context),
           ),
         ),
-        Text(
-          value ?? '',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Appcolors.textWhiteColor(context),
+        SizedBox(width: 60),
+        Flexible(
+          child: Text(
+            value ?? '',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Appcolors.textWhiteColor(context),
+              overflow: TextOverflow.ellipsis,
+            ),
+            maxLines: 2,
           ),
         ),
       ],

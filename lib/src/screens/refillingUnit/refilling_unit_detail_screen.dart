@@ -70,7 +70,7 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
   Widget build(BuildContext context) {
     final refillUnitData = widget.data;
     return Scaffold(
-      appBar: AppBar(title: Text('Fuel Refill Details')),
+      appBar: AppBar(title: Text('Fuel Refill Unit Details')),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -106,11 +106,11 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                                     ..setEntry(3, 2, 0.001) // Perspective
                                     ..rotateY(_rotationAnimation.value),
                               child: _buildDetailCard(
-                                (refillUnitData['serial_no'].toString()) ?? '',
-                                refillUnitData['customer']?['name'] ?? '',
+                                (refillUnitData['code'].toString()) ?? '',
+                                refillUnitData['serial_no'] ?? '',
                                 refillUnitData['vehicle']?['plate_no'] ?? '',
-                                refillUnitData['product']?['Name'] ?? '',
                                 refillUnitData['driver']?['Name'] ?? '',
+                                refillUnitData['capacity'] ?? '',
                               ),
                             ),
                             SizedBox(height: 20),
@@ -190,11 +190,11 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
   }
 
   Widget _buildDetailCard(
-    String qty,
-    String customer,
+    String code,
+    String serialNumber,
     String vehicle,
-    String product,
     String driver,
+    String? capacity,
   ) {
     return Stack(
       alignment: Alignment.topCenter,
@@ -235,15 +235,15 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                     ),
                   ),
                   SizedBox(height: 20),
-                  _buildDetailRow('Quantity', qty),
+                  _buildDetailRow('Code', code),
                   SizedBox(height: 20),
-                  _buildDetailRow('Customer', customer),
+                  _buildDetailRow('Serial Number ', serialNumber),
                   SizedBox(height: 20),
                   _buildDetailRow('Vehicle', vehicle),
                   SizedBox(height: 20),
-                  _buildDetailRow('Product', product),
-                  SizedBox(height: 20),
                   _buildDetailRow('Driver ', driver),
+                  SizedBox(height: 20),
+                  _buildDetailRow('Capacity ', capacity),
                   SizedBox(height: 20),
                 ],
               ),

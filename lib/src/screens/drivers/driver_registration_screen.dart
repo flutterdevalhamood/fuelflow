@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/driver_controller.dart';
@@ -74,30 +75,56 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                                       .displayMedium, // Use displayMedium
                             ),
                             SizedBox(height: 20),
-                            DropdownButtonFormField<int>(
-                              decoration: InputDecoration(
-                                labelText: 'Customer',
-                                border: OutlineInputBorder(),
+                            DropdownSearch<Map<String, dynamic>>(
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                fit: FlexFit.tight,
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search Customer Name...',
+                                  ),
+                                ),
                               ),
-                              value: _selectedCustomerId,
                               items:
-                                  (customerData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['Name']),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedCustomerId = item['id'];
-                                        });
-                                      },
-                                    );
-                                  }).toList(),
-                              onChanged: (int? newValue) {
-                                setState(() {
-                                  _selectedCustomerId = newValue;
-                                  // _customerController.text = newValue ?? '';
-                                });
+                                  (filter, infiniteScrollProps) => customerData,
+                              itemAsString: (item) => item['Name'] ?? '',
+                              compareFn: (
+                                Map<String, dynamic> item1,
+                                Map<String, dynamic> item2,
+                              ) {
+                                return item1['id'] ==
+                                    item2['id']; // Compare items by their ID
                               },
+                              onChanged: (
+                                Map<String, dynamic>? newValue,
+                              ) async {
+                                if (newValue != null) {
+                                  setState(() {
+                                    _selectedCustomerId = newValue['id'];
+                                    _nameController.text = newValue['Name'];
+                                  });
+                                }
+                              },
+                              selectedItem:
+                                  _selectedCustomerId != null
+                                      ? customerData.firstWhere(
+                                        (customer) =>
+                                            customer['id'] ==
+                                            _selectedCustomerId,
+                                      )
+                                      : null,
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select a Customer Name';
+                                }
+                                return null;
+                              },
+                              decoratorProps: DropDownDecoratorProps(
+                                decoration: InputDecoration(
+                                  labelText: 'Customer',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
                             ),
                             SizedBox(height: 20),
                             _buildTextField(

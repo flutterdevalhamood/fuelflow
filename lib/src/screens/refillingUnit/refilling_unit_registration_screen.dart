@@ -280,98 +280,168 @@ class _RefillingUnitRegistrationScreenState
                                   },
                                 ),
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
-                                  decoration: InputDecoration(
-                                    labelText: 'Vehicle',
-                                    border: OutlineInputBorder(),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search Vehicle...',
+                                      ),
+                                    ),
                                   ),
-                                  value: _selectedVehicleId,
                                   items:
-                                      (vehicleData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['plate_no'] ?? ''),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedVehicleId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedVehicleId = newValue;
-                                    });
+                                      (filter, infiniteScrollProps) =>
+                                          vehicleData,
+                                  itemAsString:
+                                      (item) => item['plate_no'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
                                   },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedVehicleId = newValue['id'];
+                                        _vehicleController.text =
+                                            newValue['plate_no'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedVehicleId != null
+                                          ? vehicleData.firstWhere(
+                                            (vehicle) =>
+                                                vehicle['id'] ==
+                                                _selectedVehicleId,
+                                          )
+                                          : null,
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select a vehicle';
+                                      return 'Please select a Vehicle';
                                     }
                                     return null;
                                   },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Vehicle',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
                                 ),
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
-                                  decoration: InputDecoration(
-                                    labelText: 'Driver',
-                                    border: OutlineInputBorder(),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search Driver...',
+                                      ),
+                                    ),
                                   ),
-                                  value: _selectedDriverId,
                                   items:
-                                      (driverData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['Name'] ?? ''),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedDriverId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedDriverId = newValue;
-                                    });
+                                      (filter, infiniteScrollProps) =>
+                                          driverData,
+                                  itemAsString: (item) => item['Name'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
                                   },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedDriverId = newValue['id'];
+                                        _driverController.text =
+                                            newValue['Name'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedDriverId != null
+                                          ? driverData.firstWhere(
+                                            (driver) =>
+                                                driver['id'] ==
+                                                _selectedDriverId,
+                                          )
+                                          : null,
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select a driver';
+                                      return 'Please select a Driver';
                                     }
                                     return null;
                                   },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Driver',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
                                 ),
 
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
-                                  decoration: InputDecoration(
-                                    labelText: 'Product',
-                                    border: OutlineInputBorder(),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search Product Name...',
+                                      ),
+                                    ),
                                   ),
-                                  value: _selectedProductId,
                                   items:
-                                      (productData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['Name'] ?? ''),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedProductId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedProductId = newValue;
-                                    });
+                                      (filter, infiniteScrollProps) async =>
+                                          productData ?? [],
+                                  itemAsString: (item) => item['Name'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
                                   },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedProductId = newValue['id'];
+                                        _productController.text =
+                                            newValue['Name'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedProductId != null
+                                          ? productData?.firstWhere(
+                                            (product) =>
+                                                product['id'] ==
+                                                _selectedProductId,
+                                          )
+                                          : null,
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select a product';
+                                      return 'Please select a Product ID';
                                     }
                                     return null;
                                   },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Product Name',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
                                 ),
                                 SizedBox(height: 20),
                                 Row(

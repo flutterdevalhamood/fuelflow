@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -226,33 +227,55 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                 child: Column(
                   children: [
                     if (!_isAddImagesClicked) ...[
-                      DropdownButtonFormField<int>(
-                        decoration: InputDecoration(
-                          labelText: 'Customer',
-                          border: OutlineInputBorder(),
+                      DropdownSearch<Map<String, dynamic>>(
+                        popupProps: PopupProps.menu(
+                          showSearchBox: true,
+                          fit: FlexFit.tight,
+                          searchFieldProps: TextFieldProps(
+                            decoration: InputDecoration(
+                              hintText: 'Search Customer Name...',
+                            ),
+                          ),
                         ),
-                        value: _selectedCustomerId,
                         items:
-                            (customerDropdownData ?? []).map((item) {
-                              return DropdownMenuItem<int>(
-                                value: item['id'],
-                                child: Text(item['name'].toString()),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedCustomerId = item['id'];
-                                  });
-                                },
-                              );
-                            }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _selectedCustomerId = newValue;
-                            // _customerNameController.text =
-                            //     newValue ?? '';
-                          });
+                            (filter, infiniteScrollProps) async =>
+                                customerDropdownData ?? [],
+                        itemAsString: (item) => item['Name'] ?? '',
+                        compareFn: (
+                          Map<String, dynamic> item1,
+                          Map<String, dynamic> item2,
+                        ) {
+                          return item1['id'] ==
+                              item2['id']; // Compare items by their ID
                         },
+                        onChanged: (Map<String, dynamic>? newValue) async {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedCustomerId = newValue['id'];
+                              _customerNameController.text = newValue['Name'];
+                            });
+                          }
+                        },
+                        selectedItem:
+                            _selectedCustomerId != null
+                                ? customerDropdownData?.firstWhere(
+                                  (customer) =>
+                                      customer['id'] == _selectedCustomerId,
+                                )
+                                : null,
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a Customer ID';
+                          }
+                          return null;
+                        },
+                        decoratorProps: DropDownDecoratorProps(
+                          decoration: InputDecoration(
+                            labelText: 'Customer',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
                       ),
-
                       SizedBox(height: 20),
                       TextField(
                         readOnly: true,

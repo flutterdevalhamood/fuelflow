@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:dio/dio.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -232,56 +233,110 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                         child: Column(
                           children: [
                             if (!_isRegistrationComplete) ...[
-                              DropdownButtonFormField<int>(
-                                decoration: InputDecoration(
-                                  labelText: 'Customer',
-                                  border: OutlineInputBorder(),
+                              DropdownSearch<Map<String, dynamic>>(
+                                popupProps: PopupProps.menu(
+                                  showSearchBox: true,
+                                  fit: FlexFit.tight,
+                                  searchFieldProps: TextFieldProps(
+                                    decoration: InputDecoration(
+                                      hintText: 'Search Customer Name...',
+                                    ),
+                                  ),
                                 ),
-                                value: _selectedCustomerId,
                                 items:
-                                    (customerData ?? []).map((item) {
-                                      return DropdownMenuItem<int>(
-                                        value: item['id'],
-                                        child: Text(item['Name']),
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedCustomerId = item['id'];
-                                          });
-                                        },
-                                      );
-                                    }).toList(),
-                                onChanged: (int? newValue) {
-                                  setState(() {
-                                    _selectedCustomerId = newValue;
-                                    // _customerController.text = newValue ?? '';
-                                  });
+                                    (filter, infiniteScrollProps) =>
+                                        customerData,
+                                itemAsString: (item) => item['Name'] ?? '',
+                                compareFn: (
+                                  Map<String, dynamic> item1,
+                                  Map<String, dynamic> item2,
+                                ) {
+                                  return item1['id'] ==
+                                      item2['id']; // Compare items by their ID
                                 },
+                                onChanged: (
+                                  Map<String, dynamic>? newValue,
+                                ) async {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      _selectedCustomerId = newValue['id'];
+                                      _customerController.text =
+                                          newValue['serial_no'];
+                                    });
+                                  }
+                                },
+                                selectedItem:
+                                    _selectedCustomerId != null
+                                        ? customerData.firstWhere(
+                                          (refill) =>
+                                              refill['id'] ==
+                                              _selectedCustomerId,
+                                        )
+                                        : null,
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Please select a Customer Name';
+                                  }
+                                  return null;
+                                },
+                                decoratorProps: DropDownDecoratorProps(
+                                  decoration: InputDecoration(
+                                    labelText: 'Customer',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
                               ),
                               SizedBox(height: 20),
-                              DropdownButtonFormField<String>(
-                                decoration: InputDecoration(
-                                  labelText: 'Type',
-                                  border: OutlineInputBorder(),
+                              DropdownSearch<Map<String, dynamic>>(
+                                popupProps: PopupProps.menu(
+                                  showSearchBox: true,
+                                  fit: FlexFit.tight,
+                                  searchFieldProps: TextFieldProps(
+                                    decoration: InputDecoration(
+                                      hintText: 'Search Vehicle Type...',
+                                    ),
+                                  ),
                                 ),
-                                value: _selectedType,
                                 items:
-                                    (vehicleTypeData ?? []).map((item) {
-                                      return DropdownMenuItem<String>(
-                                        value: item['Name'],
-                                        child: Text(item['Name']),
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedTypeId = item['id'];
-                                          });
-                                        },
-                                      );
-                                    }).toList(),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    _selectedType = newValue;
-                                    _typeController.text = newValue ?? '';
-                                  });
+                                    (filter, infiniteScrollProps) =>
+                                        vehicleTypeData,
+                                itemAsString: (item) => item['Name'] ?? '',
+                                compareFn: (
+                                  Map<String, dynamic> item1,
+                                  Map<String, dynamic> item2,
+                                ) {
+                                  return item1['id'] ==
+                                      item2['id']; // Compare items by their ID
                                 },
+                                onChanged: (
+                                  Map<String, dynamic>? newValue,
+                                ) async {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      _selectedType = newValue['id'];
+                                      _typeController.text = newValue['Name'];
+                                    });
+                                  }
+                                },
+                                selectedItem:
+                                    _selectedTypeId != null
+                                        ? vehicleTypeData.firstWhere(
+                                          (vehicle) =>
+                                              vehicle['id'] == _selectedTypeId,
+                                        )
+                                        : null,
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Please select a Customer Name';
+                                  }
+                                  return null;
+                                },
+                                decoratorProps: DropDownDecoratorProps(
+                                  decoration: InputDecoration(
+                                    labelText: 'Type',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
                               ),
                               SizedBox(height: 20),
 

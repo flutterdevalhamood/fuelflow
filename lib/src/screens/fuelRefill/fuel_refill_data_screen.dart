@@ -66,95 +66,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
     super.dispose();
   }
 
-  void _showCustomerFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Consumer<FuelRefillController>(
-          builder: (context, fuelRefillController, child) {
-            final customerData = fuelRefillController.customerData;
-            return Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Select Customer',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  SizedBox(height: 20),
-                  if (customerData != null)
-                    SizedBox(
-                      height: 30, // Fixed height for the horizontal list
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: customerData.length,
-                        itemBuilder: (context, index) {
-                          final customer = customerData[index];
-                          return GestureDetector(
-                            onTap: () async {
-                              setState(() {
-                                _selectedCustomerId = customer['id'];
-                                _customerController.text = customer['Name'];
-                              });
-                              await _fuelRefillController
-                                  .getDriverVehicleDropdown(
-                                    _selectedCustomerId,
-                                  );
-                              Navigator.pop(context); // Close the bottom sheet
-                            },
-                            child: Container(
-                              margin: EdgeInsets.only(
-                                right: 10,
-                              ), // Spacing between items
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    _selectedCustomerId == customer['id']
-                                        ? Colors.blue.withOpacity(0.2)
-                                        : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color:
-                                      _selectedCustomerId == customer['id']
-                                          ? Colors.blue
-                                          : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              child: IntrinsicWidth(
-                                child: Center(
-                                  child: Text(
-                                    customer['Name'],
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight:
-                                          _selectedCustomerId == customer['id']
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  SizedBox(height: 20),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   Future<void> _postRefillData() async {
     if (_formKey.currentState!.validate()) {
       bool isSuccess = await _fuelRefillController.postRefillData(
@@ -513,36 +424,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     ),
                                   ),
                                 ),
-                                // DropdownButtonFormField<int>(
-                                //   decoration: InputDecoration(
-                                //     labelText: 'Vehicle',
-                                //     border: OutlineInputBorder(),
-                                //   ),
-                                //   value: _selectedVehicleId,
-                                //   items:
-                                //       (vehicleData ?? []).map((item) {
-                                //         return DropdownMenuItem<int>(
-                                //           value: item['id'],
-                                //           child: Text(item['plate_no'] ?? ''),
-                                //           onTap: () {
-                                //             setState(() {
-                                //               _selectedVehicleId = item['id'];
-                                //             });
-                                //           },
-                                //         );
-                                //       }).toList(),
-                                //   onChanged: (int? newValue) {
-                                //     setState(() {
-                                //       _selectedVehicleId = newValue;
-                                //     });
-                                //   },
-                                //   validator: (value) {
-                                //     if (value == null) {
-                                //       return 'Please select a vehicle';
-                                //     }
-                                //     return null;
-                                //   },
-                                // ),
                                 SizedBox(height: 20),
 
                                 TextFormField(
@@ -581,37 +462,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     fillColor: Colors.grey[200],
                                   ),
                                 ),
-                                // DropdownButtonFormField<int>(
-                                //   decoration: InputDecoration(
-                                //     labelText: 'Unit',
-                                //     border: OutlineInputBorder(),
-                                //   ),
-                                //   value: _selectedUnitId,
-                                //   items:
-                                //       (unitData ?? []).map((item) {
-                                //         return DropdownMenuItem<int>(
-                                //           value: item['id'],
-                                //           child: Text(item['Name']),
-                                //           onTap: () {
-                                //             setState(() {
-                                //               _selectedUnitId = item['id'];
-                                //             });
-                                //           },
-                                //         );
-                                //       }).toList(),
-                                //   onChanged: (int? newValue) {
-                                //     setState(() {
-                                //       _selectedUnitId = newValue;
-                                //       // _customerController.text = newValue ?? '';
-                                //     });
-                                //   },
-                                //   validator: (value) {
-                                //     if (value == null) {
-                                //       return 'Please select a unit';
-                                //     }
-                                //     return null;
-                                //   },
-                                // ),
                                 SizedBox(height: 20),
                                 TextFormField(
                                   readOnly: true,
@@ -633,61 +483,59 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     fillColor: Colors.grey[200],
                                   ),
                                 ),
-                                // DropdownButtonFormField<int>(
-                                //   decoration: InputDecoration(
-                                //     labelText: 'Product',
-                                //     border: OutlineInputBorder(),
-                                //   ),
-                                //   value: _selectedProductId,
-                                //   items:
-                                //       (productData ?? []).map((item) {
-                                //         return DropdownMenuItem<int>(
-                                //           value: item['id'],
-                                //           child: Text(item['Name']),
-                                //           onTap: () {
-                                //             setState(() {
-                                //               _selectedProductId = item['id'];
-                                //             });
-                                //           },
-                                //         );
-                                //       }).toList(),
-                                //   onChanged: (int? newValue) {
-                                //     setState(() {
-                                //       _selectedProductId = newValue;
-                                //       // _customerController.text = newValue ?? '';
-                                //     });
-                                //   },
-                                //   validator: (value) {
-                                //     if (value == null) {
-                                //       return 'Please select a product';
-                                //     }
-                                //     return null;
-                                //   },
-                                // ),
                                 SizedBox(height: 20),
-                                DropdownButtonFormField<int>(
-                                  decoration: InputDecoration(
-                                    labelText: 'Driver',
-                                    border: OutlineInputBorder(),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
+                                      decoration: InputDecoration(
+                                        hintText: 'Search Driver Name...',
+                                      ),
+                                    ),
                                   ),
-                                  value: _selectedDriverId,
                                   items:
-                                      (driverData ?? []).map((item) {
-                                        return DropdownMenuItem<int>(
-                                          value: item['id'],
-                                          child: Text(item['Name'] ?? ''),
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedDriverId = item['id'];
-                                            });
-                                          },
-                                        );
-                                      }).toList(),
-                                  onChanged: (int? newValue) {
-                                    setState(() {
-                                      _selectedDriverId = newValue;
-                                    });
+                                      (filter, infiniteScrollProps) async =>
+                                          driverData ?? [],
+                                  itemAsString: (item) => item['Name'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
                                   },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedDriverId = newValue['id'];
+                                        _driverController.text =
+                                            newValue['Name'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedDriverId != null
+                                          ? driverData?.firstWhere(
+                                            (driver) =>
+                                                driver['id'] ==
+                                                _selectedDriverId,
+                                          )
+                                          : null,
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a Driver ID';
+                                    }
+                                    return null;
+                                  },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Driver',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
                                 ),
                                 SizedBox(height: 100),
                               ],

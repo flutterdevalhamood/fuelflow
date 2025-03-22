@@ -28,7 +28,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       'icon': Icons.production_quantity_limits,
       'route': Screenroutes.productList,
     },
-    {'title': 'Tank Fuel Level', 'icon': Icons.gas_meter, 'route': ''},
     {
       'title': 'Fuel Refill',
       'icon': Icons.local_gas_station,
