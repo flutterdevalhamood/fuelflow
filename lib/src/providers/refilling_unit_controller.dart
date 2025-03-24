@@ -244,17 +244,20 @@ class RefillingUnitController with ChangeNotifier {
     }
   }
 
-  // Future<void> deleteRefillUnitImagesById(int? id) async {
-  //   try {
-  //     if (token == null) {
-  //       throw Exception("No Token Found");
-  //     }
-  //     await restApi.deleteImagesById(token: 'Bearer $token', id: id);
-  //     await getVehicleData();
-  //   } catch (e) {
-  //     if (e is DioException) {
-  //       print('Dio Exception $e');
-  //     }
-  //   }
-  // }
+  Future<void> deleteRefillUnitImagesById(int? id) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.deleteRefillingUnitImagesById(
+        token: 'Bearer $token',
+        id: id,
+      );
+      await getRefillUnitData();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
 }

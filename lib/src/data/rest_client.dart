@@ -279,4 +279,10 @@ abstract class RestClient {
     @Field("id") int? id,
     @Field("deleteDescription") String? deleteDescription,
   });
+
+  @POST('/RefilingUnitPictureDeleteByID')
+  Future<dynamic> deleteRefillingUnitImagesById({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+  });
 }

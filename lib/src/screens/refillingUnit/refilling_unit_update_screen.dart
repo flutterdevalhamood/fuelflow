@@ -83,12 +83,14 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
     _selectedVehicle = widget.data['vehicle']?['plate_no'];
     _selectedDriver = widget.data['driver']?['Name'];
     _selectedProduct = widget.data['product']?['Name'];
+    _selectedType = widget.data['type'];
 
     // _selectedTypeId = widget.data['type']?['id'];
     _selectedCapacityUnitId = widget.data['capacity_unit']?['id'];
     _selectedVehicleId = widget.data['vehicle_id'];
     _selectedDriverId = widget.data['driver_id'];
     _selectedProductId = widget.data['product']?['id'];
+    _selectedTypeId = int.tryParse(widget.data['type'] ?? '');
 
     print('_selectedType $_selectedType');
     print('_selectedCapacityUnit $_selectedCapacityUnit');
@@ -126,16 +128,16 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
     }
   }
 
-  // Future<void> _deleteImages(int? ImageId) async {
-  //   final vehicle = widget.data;
-  //   if (vehicle['id'] != null) {
-  //     await _refillingUnitController.deleteImagesById(ImageId);
-  //     showSuccessSnack("Vehicle deleted successfully");
-  //     Navigator.pop(context, true);
-  //   } else {
-  //     showErrorSnack("Error deleting images");
-  //   }
-  // }
+  Future<void> _deleteRefillingUnitImages(int? imageId) async {
+    final refillingUnitData = widget.data;
+    if (refillingUnitData['id'] != null) {
+      await _refillingUnitController.deleteRefillUnitImagesById(imageId);
+      showSuccessSnack("Refilling Unit deleted successfully");
+      Navigator.pop(context, true);
+    } else {
+      showErrorSnack("Error deleting images");
+    }
+  }
 
   void showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
@@ -221,7 +223,7 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
         final driverData = refillUnitController.driverData;
 
         return Scaffold(
-          appBar: AppBar(title: Text('Edit Refill Unit Details')),
+          appBar: AppBar(title: Text('Edit Refill Unit')),
           body:
               vehicleData == null || unitData == null
                   ? Center(child: CircularProgressIndicator())
@@ -232,6 +234,39 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
                         child: Column(
                           children: [
                             if (!_isAddImagesClicked) ...[
+                              Text(
+                                'Select Type',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Radio(
+                                    value: 0,
+                                    groupValue: _selectedTypeId,
+                                    onChanged: (int? value) {
+                                      setState(() {
+                                        _selectedTypeId = value!;
+                                      });
+                                    },
+                                  ),
+                                  Text('Vehicle'),
+                                  Radio(
+                                    value: 1,
+                                    groupValue: _selectedTypeId,
+                                    onChanged: (int? value) {
+                                      setState(() {
+                                        _selectedTypeId = value!;
+                                      });
+                                    },
+                                  ),
+                                  Text('Tank'),
+                                ],
+                              ),
                               TextField(
                                 readOnly: true,
                                 controller: _serialNumberController,
@@ -767,7 +802,7 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // _deleteImages(imageId);
+                _deleteRefillingUnitImages(imageId);
               },
               child: Text('OK'),
             ),
