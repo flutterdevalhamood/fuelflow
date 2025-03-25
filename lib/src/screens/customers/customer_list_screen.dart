@@ -330,7 +330,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                                   Colors.blue,
                                                             ),
                                                           ),
-                                                          SizedBox(width: 8),
+                                                          // SizedBox(width: 2),
                                                           IconButton(
                                                             onPressed: () async {
                                                               _deleteCustomer(

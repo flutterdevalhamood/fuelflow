@@ -311,7 +311,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                 ) async {
                                   if (newValue != null) {
                                     setState(() {
-                                      _selectedType = newValue['id'];
+                                      _selectedTypeId = newValue['id'];
                                       _typeController.text = newValue['Name'];
                                     });
                                   }

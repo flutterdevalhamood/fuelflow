@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/customer_controller.dart';
 import 'package:sample/src/util/snack.dart';
+
+import '../../util/email_formatter.dart';
+import '../../util/mobile_number_formatter.dart';
 
 class CustomerRegistrationScreen extends StatefulWidget {
   const CustomerRegistrationScreen({super.key});
@@ -110,6 +114,7 @@ class _CustomerRegistrationScreenState
                   controller: _secondaryMobileController,
                   label: 'Secondary Mobile',
                   icon: Icons.phone_android,
+
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter secondary mobile number';
@@ -125,6 +130,7 @@ class _CustomerRegistrationScreenState
                 ),
                 _buildTextField(
                   controller: _emailController,
+
                   label: 'Email',
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
@@ -203,6 +209,7 @@ class _CustomerRegistrationScreenState
           ),
         ),
         keyboardType: keyboardType,
+        inputFormatters: [EmailInputFormatter()],
         validator: validator,
       ),
     );
@@ -229,6 +236,11 @@ class _CustomerRegistrationScreenState
           ),
         ),
         keyboardType: TextInputType.phone,
+        inputFormatters: [
+          // FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+          LengthLimitingTextInputFormatter(13), // +971 + 9 digits = 13 chars
+          MobileNumberFormatter(), // Custom formatter to handle prefix
+        ],
         validator: validator,
       ),
     );

@@ -135,42 +135,42 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               SizedBox(height: 16),
               _buildDetailCard(Icons.email, 'Email', customer['email'] ?? ''),
               SizedBox(height: 24),
-              if (myVehicleData != null && myVehicleData.isNotEmpty)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        _navigateToMyVehicles(widget.customer);
-                      },
+              // if (myVehicleData != null && myVehicleData.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      _navigateToMyVehicles(widget.customer);
+                    },
+                    child: Text(
+                      'Vehicles',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: 25,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      // Replace with the actual color variable or use Colors.red
+                      borderRadius: BorderRadius.circular(23.0),
+                    ),
+                    child: Center(
                       child: Text(
-                        'Vehicles',
+                        '${myVehicleData.length}',
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
-                        ),
+                          color: Colors.white,
+                        ), // Replace 'colorwhite' with Colors.white
                       ),
                     ),
-                    Container(
-                      height: 25,
-                      width: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade900,
-                        // Replace with the actual color variable or use Colors.red
-                        borderRadius: BorderRadius.circular(23.0),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${myVehicleData.length}',
-                          style: TextStyle(
-                            color: Colors.white,
-                          ), // Replace 'colorwhite' with Colors.white
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               SizedBox(height: 8),
               // myVehicleData != null
               //     ? GridView.builder(

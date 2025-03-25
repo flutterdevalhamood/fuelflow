@@ -18,7 +18,6 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
   @override
   void initState() {
     super.initState();
-
     // Initialize animation controller
     _controller = AnimationController(
       vsync: this,
