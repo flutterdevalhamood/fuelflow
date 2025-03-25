@@ -69,7 +69,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.verified_user, size: 40),
+                const Icon(Icons.verified_user, size: 40, color: Colors.green),
                 const SizedBox(width: 18),
                 Text(
                   'Hi  ${AuthRepo.user ?? ''}',
