@@ -124,10 +124,6 @@ class _DriverListScreenState extends State<DriverListScreen> {
     });
   }
 
-  void _navigateToCustomerEdit(BuildContext context, int index) {
-    // NavigationService().pushNavigation(Screenroutes.customerEdit);
-  }
-
   void _navigateTodriverDetails(Map<String, dynamic> driver) async {
     final result = await NavigationService().pushNavigation(
       Screenroutes.driverDetail,
