@@ -37,6 +37,10 @@ abstract class Appcolors {
     colors: [LightTheme.primaryBlueColor, LightTheme.secondaryBlueColor],
   );
 
+  static Gradient SignInbtnGradient = LinearGradient(
+    colors: [Colors.black45, Colors.black12],
+  );
+
   static Gradient btnDisableGradient = LinearGradient(
     colors: [LightTheme.secondaryBlueColor, LightTheme.secondaryBlueColor],
   );

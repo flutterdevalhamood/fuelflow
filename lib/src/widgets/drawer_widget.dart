@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sample/main.dart';
+import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
@@ -50,99 +51,69 @@ class _DrawerWidgetState extends State<DrawerWidget> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: <Widget>[
-          const SizedBox(height: 75),
-          Column(
-            children: [
-              // Container(
-              //   width: 80,
-              //   height: 80,
-              //   clipBehavior: Clip.hardEdge,
-              //   decoration: BoxDecoration(shape: BoxShape.circle),
-              //   child: Image.network(
-              //     AuthRepo.user?.imagePath ?? '',
-              //     fit: BoxFit.cover,
-              //     errorBuilder:
-              //         (context, error, stackTrace) =>
-              //             Center(child: const Icon(Icons.person, size: 80)),
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              //   child: Text(
-              //     {
-              //           LoginType.candidate: AuthRepo.user?.fullName,
-              //           LoginType.company: AuthRepo.user?.name,
-              //           LoginType.volunteer: AuthRepo.user?.name,
-              //         }[AuthRepo.loginType]?.toCapitalized() ??
-              //         '',
-              //     style: const TextStyle(
-              //       fontWeight: FontWeight.w700,
-              //       fontSize: 30,
-              //     ),
-              //     textAlign: TextAlign.center,
-              //   ),
-              // ),
-              Text(
-                'Hi ${AuthRepo.user ?? ''}',
-                style: const TextStyle(fontSize: 20),
+      child: Column(
+        children: [
+          DrawerHeader(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primaryContainer,
+                  Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withOpacity(0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_user, size: 40),
+                const SizedBox(width: 18),
+                Text(
+                  'Hi  ${AuthRepo.user ?? ''}',
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    color: Appcolors.textWhiteColor(context),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 50),
           ListTile(
-            leading: Icon(Icons.dashboard),
-            title: const Text(
+            leading: Icon(
+              Icons.dashboard,
+              size: 18,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
+            title: Text(
               'Dashboard',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 20,
+              ),
             ),
             onTap: () {
-              Navigator.pop(context); // Closes the drawer
+              Navigator.pop(context);
             },
           ),
-          // if (AuthRepo.loginType == LoginType.candidate)
-          //   ListTile(
-          //     leading: SvgPicture.asset('assets/svg/candidatesvg.svg'),
-          //     title: const Text(
-          //       'Profile',
-          //       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          //     ),
-          //     onTap: () {
-          //       navigatorKey?.currentState?.popAndPushNamed(
-          //         ProfileEditScreen.routeName,
-          //       );
-          //
-          //       // Navigator.of(context).push(
-          //       //     MaterialPageRoute(builder: (context) => ProfileEditScreen()));
-          //     },
-          //   ),
           ListTile(
-            leading: Icon(Icons.logout),
-            title: const Text(
-              'Logout',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            leading: Icon(
+              Icons.logout,
+              size: 18,
+              color: Theme.of(context).colorScheme.onBackground,
             ),
-            onTap: _logout,
-
-            // AuthRepo.logOut();
+            title: Text(
+              'Logout',
+              style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 20,
+              ),
+            ),
+            onTap: () {
+              _logout();
+            },
           ),
-          const SizedBox(height: 250),
-          // Align(
-          //   alignment: Alignment.bottomCenter,
-          //   child: Text(
-          //     "${AuthRepo.loginType?.name.toCapitalized() ?? ''} Profile",
-          //   ),
-          // ),
-          // Align(
-          //   alignment: Alignment.bottomCenter,
-          //   child: Text(
-          //     "Version ${packageInfo?.version ?? ''}",
-          //     style: TextStyle(fontSize: 12),
-          //   ),
-          // ),
         ],
       ),
     );

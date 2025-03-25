@@ -1,8 +1,11 @@
 import 'dart:async'; // For Timer
 
 import 'package:flutter/material.dart';
-import 'package:sample/src/providers/driver_controller.dart';
+import 'package:provider/provider.dart';
+import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
+import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/snack.dart';
 
 class MyVehiclesScreen extends StatefulWidget {
@@ -15,7 +18,7 @@ class MyVehiclesScreen extends StatefulWidget {
 
 class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   final TextEditingController _searchController = TextEditingController();
-  late DriverController _driverController;
+  late VehicleController _vehicleController;
   Timer? _debounceTimer;
   String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
@@ -41,8 +44,8 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
       if (_scrollController.offset >=
               _scrollController.position.maxScrollExtent &&
           !_scrollController.position.outOfRange) {
-        if (!_driverController.isLoading && _driverController.hasMore) {
-          _driverController.loadMore();
+        if (!_vehicleController.isLoading && _vehicleController.hasMore) {
+          _vehicleController.loadMore();
           showInfoSnack('Loading...');
         }
       }
@@ -59,13 +62,27 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
     });
   }
 
+  void _navigateTovehicleDetails(Map<String, dynamic> vehicle) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.vehicleDetail,
+      arguments: vehicle,
+    );
+    if (result == true) {
+      final vehicleController = Provider.of<VehicleController>(
+        context,
+        listen: false,
+      );
+      vehicleController.getVehicleData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // final driverController = Provider.of<DriverController>(context);
     final myVehicleData = widget.data?['my_vehicles'];
     final customerName = widget.data?['Name'] ?? 'Customer';
-    print('myvehicless $myVehicleData');
-    // final watch = context.watch<DriverController>();
+    final watch = context.watch<VehicleController>();
+    final vehicleDetailsData = watch.vehicleData;
     final myVehicles =
         myVehicleData != null && myVehicleData is List
             ? (myVehicleData)
@@ -130,6 +147,11 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
                                   return Column(
                                     children: [
                                       ListTile(
+                                        onTap: () {
+                                          _navigateTovehicleDetails(
+                                            vehicleDetailsData![index],
+                                          );
+                                        },
                                         // contentPadding: EdgeInsets.all(8.0),
                                         leading: Container(
                                           height: 23,

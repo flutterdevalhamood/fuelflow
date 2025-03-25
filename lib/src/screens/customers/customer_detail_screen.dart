@@ -4,6 +4,8 @@ import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
+import '../../providers/customer_controller.dart';
+
 class CustomerDetailScreen extends StatefulWidget {
   final Map<String, dynamic> customer;
 
@@ -50,6 +52,34 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     }
   }
 
+  void _navigateToMyVehicles(Map<String, dynamic> customer) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.myVehicles,
+      arguments: customer,
+    );
+    if (result == true) {
+      final customerController = Provider.of<CustomerController>(
+        context,
+        listen: false,
+      );
+      customerController.getCustomerData();
+    }
+  }
+
+  void _navigateToMyDrivers(Map<String, dynamic> customer) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.myDrivers,
+      arguments: customer,
+    );
+    if (result == true) {
+      final customerController = Provider.of<CustomerController>(
+        context,
+        listen: false,
+      );
+      customerController.getCustomerData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final watch = context.watch<VehicleController>();
@@ -69,6 +99,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             : [];
     final customer = widget.customer;
     final myVehicleData = widget.customer['my_vehicles'];
+    final myDriverData = widget.customer['my_drivers'];
     return Scaffold(
       appBar: AppBar(title: Text('Customer Details')),
       body: Container(
@@ -108,12 +139,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Vehicles',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
+                    InkWell(
+                      onTap: () {
+                        _navigateToMyVehicles(widget.customer);
+                      },
+                      child: Text(
+                        'Vehicles',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade900,
+                        ),
                       ),
                     ),
                     Container(
@@ -136,75 +172,113 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   ],
                 ),
               SizedBox(height: 8),
-              myVehicleData != null
-                  ? GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, // Number of columns in the grid
-                      crossAxisSpacing: 4, // Spacing between columns
-                      mainAxisSpacing: 4, // Spacing between rows
-                      childAspectRatio:
-                          2, // Adjust the aspect ratio of the grid items
-                    ),
-                    shrinkWrap:
-                        true, // Ensure the ListView takes only the required space
-                    physics:
-                        NeverScrollableScrollPhysics(), // Disable scrolling for the inner ListView
-                    itemCount: myVehicleData.length,
-                    itemBuilder: (context, index) {
-                      final customerVehicle = myVehicleData[index];
+              // myVehicleData != null
+              //     ? GridView.builder(
+              //       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              //         crossAxisCount: 2, // Number of columns in the grid
+              //         crossAxisSpacing: 4, // Spacing between columns
+              //         mainAxisSpacing: 4, // Spacing between rows
+              //         childAspectRatio:
+              //             2, // Adjust the aspect ratio of the grid items
+              //       ),
+              //       shrinkWrap:
+              //           true, // Ensure the ListView takes only the required space
+              //       physics:
+              //           NeverScrollableScrollPhysics(), // Disable scrolling for the inner ListView
+              //       itemCount: myVehicleData.length,
+              // itemBuilder: (context, index) {
+              //   final customerVehicle = myVehicleData[index];
 
-                      return InkWell(
-                        onTap:
-                            () => _vehicleDetails(customerVehicle['plate_no']),
-                        child: Card(
-                          color: Colors.green.shade100,
-                          elevation: 4,
-                          margin: EdgeInsets.all(8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  height: 23,
-                                  width: 80,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    // Replace with the actual color variable or use Colors.red
-                                    borderRadius: BorderRadius.circular(23.0),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      "Plate No.",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      ), // Replace 'colorwhite' with Colors.white
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 16),
-                                Text(
-                                  customerVehicle['plate_no'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
+              // return InkWell(
+              //   onTap: () {
+              //     _navigateToMyVehicles(widget.customer);
+              //   },
+              //   // _vehicleDetails(customerVehicle['plate_no']),
+              //   child: Card(
+              //     color: Colors.green.shade100,
+              //     elevation: 4,
+              //     margin: EdgeInsets.all(8),
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(10),
+              //     ),
+              //     child: Padding(
+              //       padding: EdgeInsets.all(16.0),
+              //       child: Column(
+              //         mainAxisAlignment: MainAxisAlignment.center,
+              //         crossAxisAlignment: CrossAxisAlignment.start,
+              //         children: [
+              //           Container(
+              //             height: 23,
+              //             width: 80,
+              //             decoration: BoxDecoration(
+              //               color: Colors.green,
+              //               // Replace with the actual color variable or use Colors.red
+              //               borderRadius: BorderRadius.circular(23.0),
+              //             ),
+              //             child: Center(
+              //               child: Text(
+              //                 "Plate No.",
+              //                 style: TextStyle(
+              //                   color: Colors.white,
+              //                 ), // Replace 'colorwhite' with Colors.white
+              //               ),
+              //             ),
+              //           ),
+              //           SizedBox(width: 16),
+              //           Text(
+              //             customerVehicle['plate_no'] ?? '',
+              //             style: TextStyle(
+              //               fontSize: 14,
+              //               fontWeight: FontWeight.bold,
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              //     );
+              //   },
+              // )
+              // : Text(
+              //   'No vehicles found.',
+              //   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              // ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      _navigateToMyDrivers(widget.customer);
                     },
-                  )
-                  : Text(
-                    'No vehicles found.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    child: Text(
+                      'Drivers',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
                   ),
+                  Container(
+                    height: 25,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade900,
+                      // Replace with the actual color variable or use Colors.red
+                      borderRadius: BorderRadius.circular(23.0),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${myDriverData.length}',
+                        style: TextStyle(
+                          color: Colors.white,
+                        ), // Replace 'colorwhite' with Colors.white
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                             .toList(),
                     onChanged: (value) {
-                      // authController.setLoginType = value ?? LoginType.candidate;
+                      authController.setLoginType = value ?? LoginType.admin;
                     },
                   ),
                 ),

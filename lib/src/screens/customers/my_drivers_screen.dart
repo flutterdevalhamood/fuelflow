@@ -1,8 +1,11 @@
 import 'dart:async'; // For Timer
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
+import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/snack.dart';
 
 class MyDriversScreen extends StatefulWidget {
@@ -59,16 +62,31 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
     });
   }
 
+  void _navigateTodriverDetails(Map<String, dynamic>? driver) async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.driverDetail,
+      arguments: driver,
+    );
+    if (result == true) {
+      final driverController = Provider.of<DriverController>(
+        context,
+        listen: false,
+      );
+      driverController.getDriverData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // final driverController = Provider.of<DriverController>(context);
-    final myVehicleData = widget.data?['my_drivers'];
+    final myDriverData = widget.data?['my_drivers'];
     final customerName = widget.data?['Name'] ?? 'Driver';
-    print('MyDriverss $myVehicleData');
-    // final watch = context.watch<DriverController>();
+    print('MyDriverss $myDriverData');
+    final watch = context.watch<DriverController>();
+    final driverDetailsData = widget.data;
     final myDrivers =
-        myVehicleData != null && myVehicleData is List
-            ? (myVehicleData)
+        myDriverData != null && myDriverData is List
+            ? (myDriverData)
                 .where(
                   (myDriver) => (myDriver['Name'] ?? '').toLowerCase().contains(
                     _searchQuery.toLowerCase(),
@@ -79,7 +97,7 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(customerName)),
       body:
-          myVehicleData != null
+          myDriverData != null
               ? Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -130,6 +148,9 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
                                   return Column(
                                     children: [
                                       ListTile(
+                                        onTap: () {
+                                          _navigateTodriverDetails(myDriver);
+                                        },
                                         // contentPadding: EdgeInsets.all(8.0),
                                         leading: Container(
                                           height: 23,

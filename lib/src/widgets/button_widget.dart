@@ -55,14 +55,14 @@ class ButtonWidget extends StatelessWidget {
       ),
       child: Ink(
         decoration: BoxDecoration(
-          gradient: Appcolors.btnGradient,
+          gradient: Appcolors.SignInbtnGradient,
           borderRadius: BorderRadius.all(
             Radius.circular(AppWidgetSizes.dimen_10),
           ),
         ),
         child: Container(
           decoration: BoxDecoration(
-            gradient: Appcolors.btnGradient,
+            gradient: Appcolors.SignInbtnGradient,
             borderRadius: BorderRadius.all(
               Radius.circular(AppWidgetSizes.dimen_10),
             ),

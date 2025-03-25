@@ -17,6 +17,11 @@ enum LoginType { admin, operator, customer }
 class AuthController with ChangeNotifier {
   LoginType loginType = LoginType.admin;
 
+  set setLoginType(LoginType type) {
+    loginType = type;
+    notifyListeners();
+  }
+
   Future<void> login(String email, String password) async {
     print('login');
     print('email $email');
