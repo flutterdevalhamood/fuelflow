@@ -264,8 +264,15 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                   ),
                                               child: Card(
                                                 elevation: 4.0,
-                                                margin: EdgeInsets.only(
-                                                  bottom: isExpanded ? 0 : 16.0,
+                                                margin: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      MediaQuery.of(
+                                                                context,
+                                                              ).size.width >
+                                                              600
+                                                          ? 24.0
+                                                          : 12.0,
+                                                  vertical: 4.0,
                                                 ),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
@@ -330,7 +337,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                                   Colors.blue,
                                                             ),
                                                           ),
-                                                          // SizedBox(width: 2),
+                                                          // SizedBox(width: 8),
                                                           IconButton(
                                                             onPressed: () async {
                                                               _deleteCustomer(
