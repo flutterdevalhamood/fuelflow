@@ -306,7 +306,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                             ),
                                                       ),
                                                       subtitle: Text(
-                                                        'Representative: ${(customer['representative'] ?? '')}',
+                                                        'Rep: ${(customer['representative'] ?? '')}',
                                                         style: Theme.of(context)
                                                             .textTheme
                                                             .bodyMedium!
