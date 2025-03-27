@@ -22,6 +22,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final TextEditingController _mobileController = TextEditingController();
   late VehicleController _productController;
   int? _selectedCustomerId;
+  bool _isSubmitClicked = false;
 
   @override
   void initState() {
@@ -163,26 +164,42 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                             ),
                             SizedBox(height: 20),
                             ElevatedButton(
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate()) {
-                                  bool isSuccess = await driverController
-                                      .registerDriver(
-                                        _driverController.text.trim(),
-                                        _mobileController.text,
-                                        _selectedCustomerId,
-                                      );
-                                  if (isSuccess) {
-                                    showSuccessSnack(
-                                      "Driver registered successfully!",
-                                    );
-                                    Navigator.pop(context, true);
-                                  } else {
-                                    showErrorSnack("Error registering driver");
-                                  }
+                              onPressed:
+                                  _isSubmitClicked
+                                      ? null
+                                      : () async {
+                                        if (_formKey.currentState!.validate()) {
+                                          setState(() {
+                                            _isSubmitClicked = true;
+                                          });
 
-                                  // Navigate back
-                                }
-                              },
+                                          bool isSuccess =
+                                              await driverController
+                                                  .registerDriver(
+                                                    _driverController.text
+                                                        .trim(),
+                                                    _mobileController.text,
+                                                    _selectedCustomerId,
+                                                  );
+                                          _isSubmitClicked = false;
+                                          if (isSuccess) {
+                                            showSuccessSnack(
+                                              "Driver registered successfully!",
+                                            );
+                                            Navigator.pop(context, true);
+                                          } else {
+                                            showErrorSnack(
+                                              "Error registering driver",
+                                            );
+                                            setState(() {
+                                              _isSubmitClicked =
+                                                  false; // Re-enable button if registration fails
+                                            });
+                                          }
+
+                                          // Navigate back
+                                        }
+                                      },
                               style: ElevatedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 40,
