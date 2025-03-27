@@ -681,9 +681,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                               minimumSize: Size(double.infinity, 50),
                             ),
                             child: Text(
-                              !_isRegistrationComplete
-                                  ? 'Save'
-                                  : 'Upload images',
+                              !_isRegistrationComplete ? 'Save' : 'Save',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyLarge!.copyWith(

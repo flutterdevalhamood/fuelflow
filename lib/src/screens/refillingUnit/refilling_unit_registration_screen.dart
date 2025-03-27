@@ -277,6 +277,7 @@ class _RefillingUnitRegistrationScreenState
                                     if (value == null || value.isEmpty) {
                                       return 'Please enter Serial Number';
                                     }
+                                    return null;
                                   },
                                 ),
                                 SizedBox(height: 20),
@@ -448,12 +449,18 @@ class _RefillingUnitRegistrationScreenState
                                   children: [
                                     Expanded(
                                       flex: 2,
-                                      child: TextField(
+                                      child: TextFormField(
                                         controller: _capacityController,
                                         decoration: InputDecoration(
                                           labelText: 'Capacity',
                                           border: OutlineInputBorder(),
                                         ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter Capacity';
+                                          }
+                                          return null;
+                                        },
                                       ),
                                     ),
                                     SizedBox(width: 10),
@@ -484,6 +491,12 @@ class _RefillingUnitRegistrationScreenState
                                             // _capacityUnitController.text =
                                             //     newValue ?? '';
                                           });
+                                        },
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return 'Enter Unit';
+                                          }
+                                          return null;
                                         },
                                       ),
                                     ),
@@ -633,9 +646,7 @@ class _RefillingUnitRegistrationScreenState
                               minimumSize: Size(double.infinity, 50),
                             ),
                             child: Text(
-                              !_isRegistrationComplete
-                                  ? 'Save'
-                                  : 'Upload images',
+                              !_isRegistrationComplete ? 'Save' : 'Save',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyLarge!.copyWith(
