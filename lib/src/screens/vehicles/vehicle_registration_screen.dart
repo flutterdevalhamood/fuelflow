@@ -41,6 +41,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   List<XFile>? _imageFiles;
   bool _isRegistrationComplete = false; // Track registration completion
   String? _vehicleId;
+  bool _isSubmitClicked = false;
 
   @override
   void initState() {
@@ -186,6 +187,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
 
   Future<void> _registerVehicle() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSubmitClicked = true;
+      });
       bool isSuccess = await _vehicleController.registerVehicle(
         _plateNumberController.text.trim(),
         _capacityController.text.trim(),
@@ -194,6 +198,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         _selectedCapacityUnitId,
         _selectedCustomerId,
       );
+      _isSubmitClicked = false;
       if (isSuccess) {
         showSuccessSnack("Customer registered successfully!");
         _vehicleController.getVehicleData();
@@ -559,11 +564,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                           color: Colors.white,
                           padding: EdgeInsets.all(16.0),
                           child: ElevatedButton(
-                            onPressed: () async {
-                              !_isRegistrationComplete
-                                  ? _registerVehicle()
-                                  : _uploadImages();
-                            },
+                            onPressed:
+                                _isSubmitClicked
+                                    ? null
+                                    : () async {
+                                      !_isRegistrationComplete
+                                          ? _registerVehicle()
+                                          : _uploadImages();
+                                    },
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 50,
