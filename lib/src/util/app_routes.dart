@@ -132,10 +132,11 @@ class Screenroutes {
         );
 
       case Screenroutes.dashboard:
+        final data = settings.arguments as String?;
         return MaterialPageRoute(
           settings: const RouteSettings(name: Screenroutes.dashboard),
           builder: (BuildContext context) {
-            return DashBoardScreen();
+            return DashBoardScreen(userRole: data ?? '');
           },
         );
 

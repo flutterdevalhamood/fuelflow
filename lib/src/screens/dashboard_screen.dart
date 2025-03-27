@@ -4,7 +4,8 @@ import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/widgets/drawer_widget.dart';
 
 class DashBoardScreen extends StatefulWidget {
-  const DashBoardScreen({super.key});
+  final String? userRole;
+  const DashBoardScreen({super.key, this.userRole});
 
   @override
   State<DashBoardScreen> createState() => _DashBoardScreenState();
