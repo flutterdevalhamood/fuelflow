@@ -23,6 +23,7 @@ class VehicleRegistrationScreen extends StatefulWidget {
 }
 
 class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _plateNumberController = TextEditingController();
   final TextEditingController _capacityController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -184,26 +185,26 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   }
 
   Future<void> _registerVehicle() async {
-    // if (_formKey.currentState!.validate()) {
-    bool isSuccess = await _vehicleController.registerVehicle(
-      _plateNumberController.text.trim(),
-      _capacityController.text.trim(),
-      _noteController.text.trim(),
-      _selectedTypeId,
-      _selectedCapacityUnitId,
-      _selectedCustomerId,
-    );
-    if (isSuccess) {
-      showSuccessSnack("Customer registered successfully!");
-      _vehicleController.getVehicleData();
-      // Navigator.pop(context, true);
-    } else {
-      showErrorSnack("Error registering customer");
+    if (_formKey.currentState!.validate()) {
+      bool isSuccess = await _vehicleController.registerVehicle(
+        _plateNumberController.text.trim(),
+        _capacityController.text.trim(),
+        _noteController.text.trim(),
+        _selectedTypeId,
+        _selectedCapacityUnitId,
+        _selectedCustomerId,
+      );
+      if (isSuccess) {
+        showSuccessSnack("Customer registered successfully!");
+        _vehicleController.getVehicleData();
+        // Navigator.pop(context, true);
+      } else {
+        showErrorSnack("Error registering customer");
+      }
+      setState(() {
+        _isRegistrationComplete = true;
+      });
     }
-    setState(() {
-      _isRegistrationComplete = true;
-    });
-    // }
   }
 
   @override
@@ -228,280 +229,286 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                     children: [
                       SingleChildScrollView(
                         padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            if (!_isRegistrationComplete) ...[
-                              DropdownSearch<Map<String, dynamic>>(
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.tight,
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search Customer Name...',
-                                    ),
-                                  ),
-                                ),
-                                items:
-                                    (filter, infiniteScrollProps) =>
-                                        customerData,
-                                itemAsString: (item) => item['Name'] ?? '',
-                                compareFn: (
-                                  Map<String, dynamic> item1,
-                                  Map<String, dynamic> item2,
-                                ) {
-                                  return item1['id'] ==
-                                      item2['id']; // Compare items by their ID
-                                },
-                                onChanged: (
-                                  Map<String, dynamic>? newValue,
-                                ) async {
-                                  if (newValue != null) {
-                                    setState(() {
-                                      _selectedCustomerId = newValue['id'];
-                                      _customerController.text =
-                                          newValue['serial_no'];
-                                    });
-                                  }
-                                },
-                                selectedItem:
-                                    _selectedCustomerId != null
-                                        ? customerData.firstWhere(
-                                          (refill) =>
-                                              refill['id'] ==
-                                              _selectedCustomerId,
-                                        )
-                                        : null,
-                                validator: (value) {
-                                  if (value == null) {
-                                    return 'Please select a Customer Name';
-                                  }
-                                  return null;
-                                },
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration: InputDecoration(
-                                    labelText: 'Customer',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 20),
-                              DropdownSearch<Map<String, dynamic>>(
-                                popupProps: PopupProps.menu(
-                                  showSearchBox: true,
-                                  fit: FlexFit.tight,
-                                  searchFieldProps: TextFieldProps(
-                                    decoration: InputDecoration(
-                                      hintText: 'Search Vehicle Type...',
-                                    ),
-                                  ),
-                                ),
-                                items:
-                                    (filter, infiniteScrollProps) =>
-                                        vehicleTypeData,
-                                itemAsString: (item) => item['Name'] ?? '',
-                                compareFn: (
-                                  Map<String, dynamic> item1,
-                                  Map<String, dynamic> item2,
-                                ) {
-                                  return item1['id'] ==
-                                      item2['id']; // Compare items by their ID
-                                },
-                                onChanged: (
-                                  Map<String, dynamic>? newValue,
-                                ) async {
-                                  if (newValue != null) {
-                                    setState(() {
-                                      _selectedTypeId = newValue['id'];
-                                      _typeController.text = newValue['Name'];
-                                    });
-                                  }
-                                },
-                                selectedItem:
-                                    _selectedTypeId != null
-                                        ? vehicleTypeData.firstWhere(
-                                          (vehicle) =>
-                                              vehicle['id'] == _selectedTypeId,
-                                        )
-                                        : null,
-                                validator: (value) {
-                                  if (value == null) {
-                                    return 'Please select a Customer Name';
-                                  }
-                                  return null;
-                                },
-                                decoratorProps: DropDownDecoratorProps(
-                                  decoration: InputDecoration(
-                                    labelText: 'Type',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 20),
-
-                              TextField(
-                                controller: _plateNumberController,
-                                decoration: InputDecoration(
-                                  labelText: 'Plate Number',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
-                              SizedBox(height: 20),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: TextField(
-                                      controller: _capacityController,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              if (!_isRegistrationComplete) ...[
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
                                       decoration: InputDecoration(
-                                        labelText: 'Capacity',
-                                        border: OutlineInputBorder(),
+                                        hintText: 'Search Customer Name...',
                                       ),
                                     ),
                                   ),
-                                  SizedBox(width: 10),
-                                  Expanded(
-                                    flex: 1,
-                                    child: DropdownButtonFormField<int>(
+                                  items:
+                                      (filter, infiniteScrollProps) =>
+                                          customerData,
+                                  itemAsString: (item) => item['Name'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
+                                  },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedCustomerId = newValue['id'];
+                                        _customerController.text =
+                                            newValue['serial_no'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedCustomerId != null
+                                          ? customerData.firstWhere(
+                                            (refill) =>
+                                                refill['id'] ==
+                                                _selectedCustomerId,
+                                          )
+                                          : null,
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a Customer Name';
+                                    }
+                                    return null;
+                                  },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Customer *',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                DropdownSearch<Map<String, dynamic>>(
+                                  popupProps: PopupProps.menu(
+                                    showSearchBox: true,
+                                    fit: FlexFit.tight,
+                                    searchFieldProps: TextFieldProps(
                                       decoration: InputDecoration(
-                                        labelText: 'Unit',
-                                        border: OutlineInputBorder(),
+                                        hintText: 'Search Vehicle Type...',
                                       ),
-                                      value: _selectedCapacityUnitId,
-                                      items:
-                                          (unitData ?? []).map((item) {
-                                            return DropdownMenuItem<int>(
-                                              value: item['id'],
-                                              child: Text(item['Name']),
+                                    ),
+                                  ),
+                                  items:
+                                      (filter, infiniteScrollProps) =>
+                                          vehicleTypeData,
+                                  itemAsString: (item) => item['Name'] ?? '',
+                                  compareFn: (
+                                    Map<String, dynamic> item1,
+                                    Map<String, dynamic> item2,
+                                  ) {
+                                    return item1['id'] ==
+                                        item2['id']; // Compare items by their ID
+                                  },
+                                  onChanged: (
+                                    Map<String, dynamic>? newValue,
+                                  ) async {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedTypeId = newValue['id'];
+                                        _typeController.text = newValue['Name'];
+                                      });
+                                    }
+                                  },
+                                  selectedItem:
+                                      _selectedTypeId != null
+                                          ? vehicleTypeData.firstWhere(
+                                            (vehicle) =>
+                                                vehicle['id'] ==
+                                                _selectedTypeId,
+                                          )
+                                          : null,
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return 'Please select a Type';
+                                    }
+                                    return null;
+                                  },
+                                  decoratorProps: DropDownDecoratorProps(
+                                    decoration: InputDecoration(
+                                      labelText: 'Type *',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+
+                                TextFormField(
+                                  controller: _plateNumberController,
+
+                                  decoration: InputDecoration(
+                                    labelText: 'Plate Number *',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter Plate Number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 20),
+
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextFormField(
+                                        controller: _capacityController,
+                                        decoration: InputDecoration(
+                                          labelText: 'Capacity *',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter Capacity';
+                                          }
+                                          if (double.tryParse(value) == null) {
+                                            return 'Please enter a valid number';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      flex: 1,
+                                      child: DropdownButtonFormField<int>(
+                                        decoration: InputDecoration(
+                                          labelText: 'Unit *',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        value: _selectedCapacityUnitId,
+                                        items:
+                                            (unitData ?? []).map((item) {
+                                              return DropdownMenuItem<int>(
+                                                value: item['id'],
+                                                child: Text(item['Name']),
+                                                onTap: () {
+                                                  setState(() {
+                                                    _selectedCapacityUnitId =
+                                                        item['id'];
+                                                  });
+                                                },
+                                              );
+                                            }).toList(),
+                                        onChanged: (int? newValue) {
+                                          setState(() {
+                                            _selectedCapacityUnitId = newValue;
+                                            // _capacityUnitController.text =
+                                            //     newValue ?? '';
+                                          });
+                                        },
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return 'Enter Unit';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 20),
+
+                                TextField(
+                                  controller: _noteController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Note',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  maxLines: 3,
+                                ),
+                                SizedBox(height: 100),
+                              ],
+
+                              if (_isRegistrationComplete) ...[
+                                Text(
+                                  'Pictures',
+                                  style: Theme.of(context).textTheme.bodyLarge!
+                                      .copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 10),
+
+                                _imageFiles != null && _imageFiles!.isNotEmpty
+                                    ? GridView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 3,
+                                            crossAxisSpacing: 8,
+                                            mainAxisSpacing: 8,
+                                          ),
+                                      itemCount: _imageFiles!.length,
+                                      itemBuilder: (context, index) {
+                                        return Stack(
+                                          alignment: Alignment.topRight,
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                showFullScreenImage(
+                                                  context,
+                                                  _imageFiles!,
+                                                  index,
+                                                );
+                                              },
+                                              child: Image.file(
+                                                File(_imageFiles![index].path),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            GestureDetector(
                                               onTap: () {
                                                 setState(() {
-                                                  _selectedCapacityUnitId =
-                                                      item['id'];
+                                                  _imageFiles!.removeAt(index);
                                                 });
                                               },
-                                            );
-                                          }).toList(),
-                                      onChanged: (int? newValue) {
-                                        setState(() {
-                                          _selectedCapacityUnitId = newValue;
-                                          // _capacityUnitController.text =
-                                          //     newValue ?? '';
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-
-                              TextField(
-                                controller: _noteController,
-                                decoration: InputDecoration(
-                                  labelText: 'Note',
-                                  border: OutlineInputBorder(),
-                                ),
-                                maxLines: 3,
-                              ),
-                              SizedBox(height: 100),
-                            ],
-
-                            if (_isRegistrationComplete) ...[
-                              Text(
-                                'Pictures',
-                                style: Theme.of(context).textTheme.bodyLarge!
-                                    .copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 10),
-
-                              _imageFiles != null && _imageFiles!.isNotEmpty
-                                  ? GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 3,
-                                          crossAxisSpacing: 8,
-                                          mainAxisSpacing: 8,
-                                        ),
-                                    itemCount: _imageFiles!.length,
-                                    itemBuilder: (context, index) {
-                                      return Stack(
-                                        alignment: Alignment.topRight,
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              showFullScreenImage(
-                                                context,
-                                                _imageFiles!,
-                                                index,
-                                              );
-                                            },
-                                            child: Image.file(
-                                              File(_imageFiles![index].path),
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _imageFiles!.removeAt(index);
-                                              });
-                                            },
-                                            child: Container(
-                                              margin: EdgeInsets.all(4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(
-                                                  0.5,
+                                              child: Container(
+                                                margin: EdgeInsets.all(4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.5),
+                                                  shape: BoxShape.circle,
                                                 ),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.close,
-                                                color: Colors.white,
-                                                size: 20,
+                                                child: Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  )
-                                  : Text('No images selected.'),
-                              SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      _pickImages();
-                                    },
-                                    icon: Icon(
-                                      Icons.photo_library,
-                                      color: Appcolors.textWhiteColor(context),
-                                    ),
-                                    label: Text(
-                                      'Gallery',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!.copyWith(
+                                          ],
+                                        );
+                                      },
+                                    )
+                                    : Text('No images selected.'),
+                                SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        _pickImages();
+                                      },
+                                      icon: Icon(
+                                        Icons.photo_library,
                                         color: Appcolors.textWhiteColor(
                                           context,
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      _takePicture();
-                                    },
-                                    icon: Icon(
-                                      Icons.camera_alt,
-                                      color: Appcolors.textWhiteColor(context),
-                                    ),
-                                    label: Center(
-                                      child: Text(
-                                        'Camera',
+                                      label: Text(
+                                        'Gallery',
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodyMedium!.copyWith(
@@ -511,12 +518,35 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 80),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        _takePicture();
+                                      },
+                                      icon: Icon(
+                                        Icons.camera_alt,
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                      ),
+                                      label: Center(
+                                        child: Text(
+                                          'Camera',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium!.copyWith(
+                                            color: Appcolors.textWhiteColor(
+                                              context,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 80),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
 
@@ -545,9 +575,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               minimumSize: Size(double.infinity, 50),
                             ),
                             child: Text(
-                              !_isRegistrationComplete
-                                  ? 'Save'
-                                  : 'Upload images',
+                              !_isRegistrationComplete ? 'Save' : 'Save',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyLarge!.copyWith(

@@ -42,10 +42,9 @@ class AuthController with ChangeNotifier {
 
         final user = loginResponse.Data?.name;
         final data = loginResponse.Data;
-
-        AuthRepo.user = user;
         AuthRepo.loginType = loginType;
         AuthRepo.token = loginResponse.Token;
+        AuthRepo.role = loginResponse.Data?.roles?.Name;
 
         NavigationService().pushNavigation(Screenroutes.dashboard);
       } else {

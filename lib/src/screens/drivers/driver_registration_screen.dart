@@ -1,8 +1,10 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
+import 'package:sample/src/util/mobile_number_formatter.dart';
 import 'package:sample/src/util/snack.dart';
 
 class DriverRegistrationScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class DriverRegistrationScreen extends StatefulWidget {
 class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _driverController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
   late VehicleController _productController;
   int? _selectedCustomerId;
@@ -38,6 +41,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   void dispose() {
     _nameController.dispose();
     _mobileController.dispose();
+    _driverController.dispose();
     super.dispose();
   }
 
@@ -128,7 +132,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                             ),
                             SizedBox(height: 20),
                             _buildTextField(
-                              controller: _nameController,
+                              controller: _driverController,
                               label: 'Driver Name',
                               icon: Icons.business,
                               validator: (value) {
@@ -163,7 +167,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                                 if (_formKey.currentState!.validate()) {
                                   bool isSuccess = await driverController
                                       .registerDriver(
-                                        _nameController.text.trim(),
+                                        _driverController.text.trim(),
                                         _mobileController.text,
                                         _selectedCustomerId,
                                       );
@@ -255,6 +259,10 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
         ),
         keyboardType: TextInputType.phone,
         validator: validator,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(13),
+          MobileNumberFormatter(),
+        ],
       ),
     );
   }

@@ -271,7 +271,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                               ).size.width >
                                                               600
                                                           ? 24.0
-                                                          : 12.0,
+                                                          : 2.0,
                                                   vertical: 4.0,
                                                 ),
                                                 shape: RoundedRectangleBorder(
@@ -320,6 +320,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                       trailing: Row(
                                                         mainAxisSize:
                                                             MainAxisSize.min,
+
                                                         children: [
                                                           IconButton(
                                                             onPressed: () {

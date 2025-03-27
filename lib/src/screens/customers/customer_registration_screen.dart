@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/customer_controller.dart';
+import 'package:sample/src/util/email_formatter.dart';
 import 'package:sample/src/util/snack.dart';
 
-import '../../util/email_formatter.dart';
 import '../../util/mobile_number_formatter.dart';
 
 class CustomerRegistrationScreen extends StatefulWidget {
@@ -134,6 +134,7 @@ class _CustomerRegistrationScreenState
                   label: 'Email',
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
+                  inputFormatters: [EmailInputFormatter()],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter email';
@@ -194,6 +195,7 @@ class _CustomerRegistrationScreenState
     required IconData icon,
     required String? Function(String?) validator,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -209,7 +211,7 @@ class _CustomerRegistrationScreenState
           ),
         ),
         keyboardType: keyboardType,
-        inputFormatters: [EmailInputFormatter()],
+        inputFormatters: inputFormatters,
         validator: validator,
       ),
     );
