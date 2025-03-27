@@ -274,6 +274,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                           : 2.0,
                                                   vertical: 4.0,
                                                 ),
+
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.vertical(
@@ -294,28 +295,57 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                                         Icons.person,
                                                         size: 30,
                                                       ),
-                                                      title: Text(
-                                                        customer['Name'] ?? '',
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .bodyLarge!
-                                                            .copyWith(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                      ),
-                                                      subtitle: Text(
-                                                        'Rep: ${(customer['representative'] ?? '')}',
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .bodyMedium!
-                                                            .copyWith(
-                                                              color:
-                                                                  Appcolors.textLightGrayColor(
+                                                      title: ConstrainedBox(
+                                                        constraints:
+                                                            BoxConstraints(
+                                                              maxWidth:
+                                                                  MediaQuery.of(
                                                                     context,
-                                                                  ),
+                                                                  ).size.width *
+                                                                  0.5,
                                                             ),
+                                                        child: Text(
+                                                          customer['Name'] ??
+                                                              '',
+                                                          style: Theme.of(
+                                                                context,
+                                                              )
+                                                              .textTheme
+                                                              .bodyLarge!
+                                                              .copyWith(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis,
+                                                          maxLines: 1,
+                                                        ),
+                                                      ),
+                                                      subtitle: ConstrainedBox(
+                                                        constraints:
+                                                            BoxConstraints(
+                                                              maxWidth:
+                                                                  MediaQuery.of(
+                                                                    context,
+                                                                  ).size.width *
+                                                                  0.5,
+                                                            ),
+                                                        child: Text(
+                                                          'Rep: ${(customer['representative'] ?? '')}',
+                                                          style: Theme.of(
+                                                                context,
+                                                              )
+                                                              .textTheme
+                                                              .bodyMedium!
+                                                              .copyWith(
+                                                                color:
+                                                                    Appcolors.textLightGrayColor(
+                                                                      context,
+                                                                    ),
+                                                              ),
+                                                        ),
                                                       ),
                                                       trailing: Row(
                                                         mainAxisSize:
