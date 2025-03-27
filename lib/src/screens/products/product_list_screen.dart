@@ -28,6 +28,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupScrollController();
       _productListController = Provider.of<ProductController>(
@@ -40,7 +41,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
         });
       });
     });
-    super.initState();
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sample/src/providers/Product_controller.dart';
 import 'package:sample/src/util/snack.dart';
 
@@ -15,6 +16,16 @@ class _ProductReRegistrationScreenState
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   late ProductController _productListController;
+  bool _isSubmitClicked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _productListController = Provider.of<ProductController>(
+      context,
+      listen: false,
+    );
+  }
 
   @override
   void dispose() {
@@ -55,27 +66,36 @@ class _ProductReRegistrationScreenState
                   icon: Icons.shopping_bag,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter the driver name';
+                      return 'Please enter the product name';
                     }
                     return null;
                   },
                 ),
                 SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      bool isSuccess = await _productListController
-                          .registerProduct(_nameController.text.trim());
-                      if (isSuccess) {
-                        showSuccessSnack("Driver registered successfully!");
-                        Navigator.pop(context, true);
-                      } else {
-                        showErrorSnack("Error registering driver");
-                      }
+                  onPressed:
+                      _isSubmitClicked
+                          ? null
+                          : () async {
+                            if (_formKey.currentState!.validate()) {
+                              setState(() {
+                                _isSubmitClicked = true;
+                              });
+                              bool isSuccess = await _productListController
+                                  .registerProduct(_nameController.text.trim());
+                              _isSubmitClicked = false;
+                              if (isSuccess) {
+                                showSuccessSnack(
+                                  "Product registered successfully!",
+                                );
+                                Navigator.pop(context, true);
+                              } else {
+                                showErrorSnack("Error registering product");
+                              }
 
-                      // Navigate back
-                    }
-                  },
+                              // Navigate back
+                            }
+                          },
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                     shape: RoundedRectangleBorder(
