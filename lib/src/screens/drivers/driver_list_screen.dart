@@ -3,6 +3,7 @@ import 'dart:async'; // For Timer
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/driver_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/snack.dart';
 
@@ -239,36 +240,45 @@ class _DriverListScreenState extends State<DriverListScreen> {
                                                       ),
                                                 ),
                                               ),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    onPressed: () {
-                                                      NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .driverEdit,
-                                                            arguments: driver,
-                                                          );
-                                                    },
+                                              trailing:
+                                                  AuthRepo.role == "customer"
+                                                      ? SizedBox.shrink()
+                                                      : Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          IconButton(
+                                                            onPressed: () {
+                                                              NavigationService()
+                                                                  .pushNavigation(
+                                                                    Screenroutes
+                                                                        .driverEdit,
+                                                                    arguments:
+                                                                        driver,
+                                                                  );
+                                                            },
 
-                                                    icon: Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                    ),
-                                                  ),
-                                                  SizedBox(width: 8),
-                                                  IconButton(
-                                                    onPressed: () async {
-                                                      _deleteDriver(index);
-                                                    },
-                                                    icon: Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                          ),
+                                                          SizedBox(width: 8),
+                                                          IconButton(
+                                                            onPressed:
+                                                                () async {
+                                                                  _deleteDriver(
+                                                                    index,
+                                                                  );
+                                                                },
+                                                            icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                             ),
                                             Padding(
                                               padding:
@@ -290,17 +300,20 @@ class _DriverListScreenState extends State<DriverListScreen> {
                     ),
                   )
                   : SizedBox.shrink(),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DriverRegistrationScreen(),
-                ),
-              );
-            },
-            child: Icon(Icons.add),
-          ),
+          floatingActionButton:
+              AuthRepo.role == "customer"
+                  ? SizedBox.shrink()
+                  : FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DriverRegistrationScreen(),
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.add),
+                  ),
         );
       },
     );

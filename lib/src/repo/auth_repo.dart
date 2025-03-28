@@ -11,6 +11,7 @@ class AuthRepo {
   static const _prefLoginType = "loginType";
   static const _prefTokenKey = "token";
   static const _prefRoleKey = "role";
+  static const _prefCustomerIdKey = "customerId";
 
   static set token(String? token) {
     if (token == null) {
@@ -68,6 +69,22 @@ class AuthRepo {
       (element) => element.name == type,
       orElse: () => LoginType.admin,
     );
+  }
+
+  static set customerId(int? customerId) {
+    if (customerId == null) {
+      prefs?.remove(_prefCustomerIdKey);
+    } else {
+      final userJson = jsonEncode(customerId);
+      prefs?.setString(_prefCustomerIdKey, userJson);
+    }
+  }
+
+  static int? get customerId {
+    var value = prefs?.getString(_prefCustomerIdKey);
+    if (value == null) return null;
+    final customerIdJson = jsonDecode(value);
+    return customerIdJson;
   }
 
   static logOut() {

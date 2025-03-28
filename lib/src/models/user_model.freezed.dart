@@ -188,7 +188,7 @@ $UserDataCopyWith<$Res>? get Data {
 /// @nodoc
 mixin _$UserData {
 
- int? get id; String? get name; int? get role_id; String? get email; String? get imageUrl; int? get isActive; Roles? get roles;
+ int? get id; String? get name; int? get role_id; String? get email; String? get imageUrl; int? get isActive; Roles? get roles; Customer? get customer;
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -201,16 +201,16 @@ $UserDataCopyWith<UserData> get copyWith => _$UserDataCopyWithImpl<UserData>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.customer, customer) || other.customer == customer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles);
+int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles,customer);
 
 @override
 String toString() {
-  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles)';
+  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles, customer: $customer)';
 }
 
 
@@ -221,11 +221,11 @@ abstract mixin class $UserDataCopyWith<$Res>  {
   factory $UserDataCopyWith(UserData value, $Res Function(UserData) _then) = _$UserDataCopyWithImpl;
 @useResult
 $Res call({
- int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles
+ int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles, Customer? customer
 });
 
 
-$RolesCopyWith<$Res>? get roles;
+$RolesCopyWith<$Res>? get roles;$CustomerCopyWith<$Res>? get customer;
 
 }
 /// @nodoc
@@ -238,7 +238,7 @@ class _$UserDataCopyWithImpl<$Res>
 
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,Object? customer = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -247,7 +247,8 @@ as int?,email: freezed == email ? _self.email : email // ignore: cast_nullable_t
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as int?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
-as Roles?,
+as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
+as Customer?,
   ));
 }
 /// Create a copy of UserData
@@ -262,6 +263,18 @@ $RolesCopyWith<$Res>? get roles {
   return $RolesCopyWith<$Res>(_self.roles!, (value) {
     return _then(_self.copyWith(roles: value));
   });
+}/// Create a copy of UserData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CustomerCopyWith<$Res>? get customer {
+    if (_self.customer == null) {
+    return null;
+  }
+
+  return $CustomerCopyWith<$Res>(_self.customer!, (value) {
+    return _then(_self.copyWith(customer: value));
+  });
 }
 }
 
@@ -270,7 +283,7 @@ $RolesCopyWith<$Res>? get roles {
 @JsonSerializable()
 
 class _UserData implements UserData {
-  const _UserData({this.id, this.name, this.role_id, this.email, this.imageUrl, this.isActive, this.roles});
+  const _UserData({this.id, this.name, this.role_id, this.email, this.imageUrl, this.isActive, this.roles, this.customer});
   factory _UserData.fromJson(Map<String, dynamic> json) => _$UserDataFromJson(json);
 
 @override final  int? id;
@@ -280,6 +293,7 @@ class _UserData implements UserData {
 @override final  String? imageUrl;
 @override final  int? isActive;
 @override final  Roles? roles;
+@override final  Customer? customer;
 
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
@@ -294,16 +308,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.customer, customer) || other.customer == customer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles);
+int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles,customer);
 
 @override
 String toString() {
-  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles)';
+  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles, customer: $customer)';
 }
 
 
@@ -314,11 +328,11 @@ abstract mixin class _$UserDataCopyWith<$Res> implements $UserDataCopyWith<$Res>
   factory _$UserDataCopyWith(_UserData value, $Res Function(_UserData) _then) = __$UserDataCopyWithImpl;
 @override @useResult
 $Res call({
- int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles
+ int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles, Customer? customer
 });
 
 
-@override $RolesCopyWith<$Res>? get roles;
+@override $RolesCopyWith<$Res>? get roles;@override $CustomerCopyWith<$Res>? get customer;
 
 }
 /// @nodoc
@@ -331,7 +345,7 @@ class __$UserDataCopyWithImpl<$Res>
 
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,Object? customer = freezed,}) {
   return _then(_UserData(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -340,7 +354,8 @@ as int?,email: freezed == email ? _self.email : email // ignore: cast_nullable_t
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as int?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
-as Roles?,
+as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
+as Customer?,
   ));
 }
 
@@ -355,6 +370,18 @@ $RolesCopyWith<$Res>? get roles {
 
   return $RolesCopyWith<$Res>(_self.roles!, (value) {
     return _then(_self.copyWith(roles: value));
+  });
+}/// Create a copy of UserData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CustomerCopyWith<$Res>? get customer {
+    if (_self.customer == null) {
+    return null;
+  }
+
+  return $CustomerCopyWith<$Res>(_self.customer!, (value) {
+    return _then(_self.copyWith(customer: value));
   });
 }
 }
@@ -486,6 +513,142 @@ class __$RolesCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,}) {
   return _then(_Roles(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$Customer {
+
+ int get id; String get Name;
+/// Create a copy of Customer
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CustomerCopyWith<Customer> get copyWith => _$CustomerCopyWithImpl<Customer>(this as Customer, _$identity);
+
+  /// Serializes this Customer to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Name);
+
+@override
+String toString() {
+  return 'Customer(id: $id, Name: $Name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CustomerCopyWith<$Res>  {
+  factory $CustomerCopyWith(Customer value, $Res Function(Customer) _then) = _$CustomerCopyWithImpl;
+@useResult
+$Res call({
+ int id, String Name
+});
+
+
+
+
+}
+/// @nodoc
+class _$CustomerCopyWithImpl<$Res>
+    implements $CustomerCopyWith<$Res> {
+  _$CustomerCopyWithImpl(this._self, this._then);
+
+  final Customer _self;
+  final $Res Function(Customer) _then;
+
+/// Create a copy of Customer
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? Name = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// @nodoc
+@JsonSerializable()
+
+class _Customer implements Customer {
+  const _Customer({required this.id, required this.Name});
+  factory _Customer.fromJson(Map<String, dynamic> json) => _$CustomerFromJson(json);
+
+@override final  int id;
+@override final  String Name;
+
+/// Create a copy of Customer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CustomerCopyWith<_Customer> get copyWith => __$CustomerCopyWithImpl<_Customer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CustomerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Name);
+
+@override
+String toString() {
+  return 'Customer(id: $id, Name: $Name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CustomerCopyWith<$Res> implements $CustomerCopyWith<$Res> {
+  factory _$CustomerCopyWith(_Customer value, $Res Function(_Customer) _then) = __$CustomerCopyWithImpl;
+@override @useResult
+$Res call({
+ int id, String Name
+});
+
+
+
+
+}
+/// @nodoc
+class __$CustomerCopyWithImpl<$Res>
+    implements _$CustomerCopyWith<$Res> {
+  __$CustomerCopyWithImpl(this._self, this._then);
+
+  final _Customer _self;
+  final $Res Function(_Customer) _then;
+
+/// Create a copy of Customer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,}) {
+  return _then(_Customer(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
 as String,

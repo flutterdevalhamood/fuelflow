@@ -39,6 +39,10 @@ _UserData _$UserDataFromJson(Map<String, dynamic> json) => _UserData(
       json['roles'] == null
           ? null
           : Roles.fromJson(json['roles'] as Map<String, dynamic>),
+  customer:
+      json['customer'] == null
+          ? null
+          : Customer.fromJson(json['customer'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$UserDataToJson(_UserData instance) => <String, dynamic>{
@@ -49,12 +53,21 @@ Map<String, dynamic> _$UserDataToJson(_UserData instance) => <String, dynamic>{
   'imageUrl': instance.imageUrl,
   'isActive': instance.isActive,
   'roles': instance.roles,
+  'customer': instance.customer,
 };
 
 _Roles _$RolesFromJson(Map<String, dynamic> json) =>
     _Roles(id: (json['id'] as num).toInt(), Name: json['Name'] as String);
 
 Map<String, dynamic> _$RolesToJson(_Roles instance) => <String, dynamic>{
+  'id': instance.id,
+  'Name': instance.Name,
+};
+
+_Customer _$CustomerFromJson(Map<String, dynamic> json) =>
+    _Customer(id: (json['id'] as num).toInt(), Name: json['Name'] as String);
+
+Map<String, dynamic> _$CustomerToJson(_Customer instance) => <String, dynamic>{
   'id': instance.id,
   'Name': instance.Name,
 };

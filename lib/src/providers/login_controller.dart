@@ -32,7 +32,6 @@ class AuthController with ChangeNotifier {
     try {
       print('try');
       final loginResponse = await restApi.login(
-        // type: loginType.name,
         email: email,
         password: password,
       );
@@ -40,13 +39,18 @@ class AuthController with ChangeNotifier {
       if (loginResponse.IsSuccess == true) {
         log(JsonEncoder.withIndent("\t").convert(loginResponse));
 
-        final user = loginResponse.Data?.name;
         final data = loginResponse.Data;
         AuthRepo.loginType = loginType;
         AuthRepo.token = loginResponse.Token;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
+        AuthRepo.user = loginResponse.Data?.name;
+        AuthRepo.customerId = loginResponse.Data?.customer?.id;
+        print('customeriddddd ${AuthRepo.customerId}');
 
-        NavigationService().pushNavigation(Screenroutes.dashboard);
+        NavigationService().pushNavigation(
+          Screenroutes.dashboard,
+          arguments: {'role': loginResponse.Data?.roles?.Name},
+        );
       } else {
         showErrorSnack(Messages.authenticationFailure);
       }

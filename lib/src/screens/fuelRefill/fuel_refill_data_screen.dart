@@ -7,7 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
+import 'package:sample/src/screens/fuelRefill/fuel_refill_driver_card.dart';
+import 'package:sample/src/screens/fuelRefill/fuel_refill_vehicle_card.dart';
 import 'package:sample/src/util/app_routes.dart';
+import 'package:sample/src/util/quantity_input_formatter.dart';
 import 'package:sample/src/util/snack.dart';
 
 import '../../util/app_colors.dart';
@@ -25,7 +29,10 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   final _formKey = GlobalKey<FormState>();
   final dropDownKey = GlobalKey<DropdownSearchState>();
   final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _customerController = TextEditingController();
+  final TextEditingController _customerController =
+      AuthRepo.role == "customer"
+          ? TextEditingController(text: AuthRepo.user)
+          : TextEditingController();
   final TextEditingController _unitController = TextEditingController();
   final TextEditingController _productController = TextEditingController();
   final TextEditingController _driverController = TextEditingController();
@@ -287,75 +294,98 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                           : null,
                                   validator: (value) {
                                     if (value == null) {
-                                      return 'Please select a Refill ID';
+                                      return 'Please select a Refilling Unit';
                                     }
                                     return null;
                                   },
                                   decoratorProps: DropDownDecoratorProps(
                                     decoration: InputDecoration(
-                                      labelText: 'Refill Serial Number',
+                                      labelText: 'Select Refilling Unit',
                                       border: OutlineInputBorder(),
                                     ),
                                   ),
                                 ),
                                 SizedBox(height: 20),
-                                DropdownSearch<Map<String, dynamic>>(
-                                  popupProps: PopupProps.menu(
-                                    showSearchBox: true,
-                                    fit: FlexFit.tight,
-                                    searchFieldProps: TextFieldProps(
+                                AuthRepo.role == "customer"
+                                    ? TextFormField(
+                                      readOnly: true,
+                                      controller: _customerController,
                                       decoration: InputDecoration(
-                                        hintText: 'Search customer...',
+                                        labelText: 'Customer',
+                                        border: OutlineInputBorder(),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        filled: true,
+                                        fillColor: Colors.grey[200],
+                                      ),
+                                    )
+                                    : DropdownSearch<Map<String, dynamic>>(
+                                      popupProps: PopupProps.menu(
+                                        showSearchBox: true,
+                                        fit: FlexFit.tight,
+                                        searchFieldProps: TextFieldProps(
+                                          decoration: InputDecoration(
+                                            hintText: 'Search customer...',
+                                          ),
+                                        ),
+                                      ),
+                                      items:
+                                          (filter, infiniteScrollProps) =>
+                                              customerData,
+                                      itemAsString:
+                                          (item) => item['Name'] ?? '',
+                                      compareFn: (
+                                        Map<String, dynamic> item1,
+                                        Map<String, dynamic> item2,
+                                      ) {
+                                        return item1['id'] ==
+                                            item2['id']; // Compare items by their ID
+                                      },
+                                      onChanged: (
+                                        Map<String, dynamic>? newValue,
+                                      ) async {
+                                        if (newValue != null) {
+                                          setState(() {
+                                            _selectedCustomerId =
+                                                newValue['id'];
+                                            _customerController.text =
+                                                newValue['Name'];
+                                          });
+                                          await _fuelRefillController
+                                              .getDriverVehicleDropdown(
+                                                _selectedCustomerId,
+                                              );
+                                        }
+                                      },
+                                      selectedItem:
+                                          _selectedCustomerId != null
+                                              ? customerData.firstWhere(
+                                                (customer) =>
+                                                    customer['id'] ==
+                                                    _selectedCustomerId,
+                                              )
+                                              : null,
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return 'Please select a customer';
+                                        }
+                                        return null;
+                                      },
+                                      decoratorProps: DropDownDecoratorProps(
+                                        decoration: InputDecoration(
+                                          labelText: 'Customer',
+                                          border: OutlineInputBorder(),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  items:
-                                      (filter, infiniteScrollProps) =>
-                                          customerData,
-                                  itemAsString: (item) => item['Name'] ?? '',
-                                  compareFn: (
-                                    Map<String, dynamic> item1,
-                                    Map<String, dynamic> item2,
-                                  ) {
-                                    return item1['id'] ==
-                                        item2['id']; // Compare items by their ID
-                                  },
-                                  onChanged: (
-                                    Map<String, dynamic>? newValue,
-                                  ) async {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _selectedCustomerId = newValue['id'];
-                                        _customerController.text =
-                                            newValue['Name'];
-                                      });
-                                      await _fuelRefillController
-                                          .getDriverVehicleDropdown(
-                                            _selectedCustomerId,
-                                          );
-                                    }
-                                  },
-                                  selectedItem:
-                                      _selectedCustomerId != null
-                                          ? customerData.firstWhere(
-                                            (customer) =>
-                                                customer['id'] ==
-                                                _selectedCustomerId,
-                                          )
-                                          : null,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a customer';
-                                    }
-                                    return null;
-                                  },
-                                  decoratorProps: DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: 'Customer',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ),
                                 // InkWell(
                                 //   onTap: _showCustomerFilterBottomSheet,
                                 //   child: IgnorePointer(
@@ -370,62 +400,103 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 //   ),
                                 // ),
                                 SizedBox(height: 20),
-                                DropdownSearch<Map<String, dynamic>>(
-                                  popupProps: PopupProps.menu(
-                                    showSearchBox: true,
-                                    fit: FlexFit.tight,
-                                    searchFieldProps: TextFieldProps(
-                                      decoration: InputDecoration(
-                                        hintText: 'Search vehicle Number...',
-                                      ),
-                                    ),
+
+                                // DropdownSearch<Map<String, dynamic>>(
+                                //   popupProps: PopupProps.menu(
+                                //     showSearchBox: true,
+                                //     fit: FlexFit.tight,
+                                //     searchFieldProps: TextFieldProps(
+                                //       decoration: InputDecoration(
+                                //         hintText: 'Search vehicle Number...',
+                                //       ),
+                                //     ),
+                                //   ),
+                                //   items:
+                                //       (filter, infiniteScrollProps) async =>
+                                //           vehicleData ?? [],
+                                //   itemAsString:
+                                //       (item) => item['plate_no'] ?? '',
+                                //   compareFn: (
+                                //     Map<String, dynamic> item1,
+                                //     Map<String, dynamic> item2,
+                                //   ) {
+                                //     return item1['id'] ==
+                                //         item2['id']; // Compare items by their ID
+                                //   },
+                                //   onChanged: (
+                                //     Map<String, dynamic>? newValue,
+                                //   ) async {
+                                //     if (newValue != null) {
+                                //       setState(() {
+                                //         _selectedVehicleId = newValue['id'];
+                                //         _vehicleController.text =
+                                //             newValue['plate_no'];
+                                //       });
+                                //     }
+                                //   },
+                                //   selectedItem:
+                                //       _selectedVehicleId != null
+                                //           ? vehicleData?.firstWhere(
+                                //             (vehicle) =>
+                                //                 vehicle['id'] ==
+                                //                 _selectedVehicleId,
+                                //           )
+                                //           : null,
+                                //   validator: (value) {
+                                //     if (value == null) {
+                                //       return 'Please select a Vehicle ID';
+                                //     }
+                                //     return null;
+                                //   },
+                                //   decoratorProps: DropDownDecoratorProps(
+                                //     decoration: InputDecoration(
+                                //       labelText: 'Vehicle Number',
+                                //       border: OutlineInputBorder(),
+                                //     ),
+                                //   ),
+                                // ),
+                                // SizedBox(height: 20),
+                                // Replace the DropdownSearch widget for vehicle with this:
+                                TextFormField(
+                                  controller: _vehicleController,
+                                  readOnly: true,
+                                  decoration: InputDecoration(
+                                    labelText: 'Vehicle Number',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.arrow_forward_ios),
                                   ),
-                                  items:
-                                      (filter, infiniteScrollProps) async =>
-                                          vehicleData ?? [],
-                                  itemAsString:
-                                      (item) => item['plate_no'] ?? '',
-                                  compareFn: (
-                                    Map<String, dynamic> item1,
-                                    Map<String, dynamic> item2,
-                                  ) {
-                                    return item1['id'] ==
-                                        item2['id']; // Compare items by their ID
-                                  },
-                                  onChanged: (
-                                    Map<String, dynamic>? newValue,
-                                  ) async {
-                                    if (newValue != null) {
+                                  onTap: () async {
+                                    // Navigate to vehicle list screen and wait for result
+                                    final selectedVehicle =
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) =>
+                                                    FuelRefillVehicleCard(
+                                                      vehicles:
+                                                          vehicleData ?? [],
+                                                    ),
+                                          ),
+                                        );
+
+                                    if (selectedVehicle != null) {
                                       setState(() {
-                                        _selectedVehicleId = newValue['id'];
+                                        _selectedVehicleId =
+                                            selectedVehicle['id'];
                                         _vehicleController.text =
-                                            newValue['plate_no'];
+                                            selectedVehicle['plate_no'];
                                       });
                                     }
                                   },
-                                  selectedItem:
-                                      _selectedVehicleId != null
-                                          ? vehicleData?.firstWhere(
-                                            (vehicle) =>
-                                                vehicle['id'] ==
-                                                _selectedVehicleId,
-                                          )
-                                          : null,
                                   validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a Vehicle ID';
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please select a vehicle';
                                     }
                                     return null;
                                   },
-                                  decoratorProps: DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: 'Vehicle Number',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
                                 ),
                                 SizedBox(height: 20),
-
                                 TextFormField(
                                   controller: _quantityController,
                                   decoration: InputDecoration(
@@ -439,7 +510,12 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     if (double.tryParse(value) == null) {
                                       return 'Please enter a valid number';
                                     }
+                                    return null;
                                   },
+                                  inputFormatters: [QuantityInputFormatter()],
+                                  keyboardType: TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                                 ),
                                 SizedBox(height: 20),
                                 TextFormField(
@@ -484,59 +560,85 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                   ),
                                 ),
                                 SizedBox(height: 20),
-                                DropdownSearch<Map<String, dynamic>>(
-                                  popupProps: PopupProps.menu(
-                                    showSearchBox: true,
-                                    fit: FlexFit.tight,
-                                    searchFieldProps: TextFieldProps(
-                                      decoration: InputDecoration(
-                                        hintText: 'Search Driver Name...',
-                                      ),
-                                    ),
+                                TextFormField(
+                                  controller: _driverController,
+                                  readOnly: true,
+                                  decoration: InputDecoration(
+                                    labelText: 'Driver Name',
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.arrow_forward_ios),
                                   ),
-                                  items:
-                                      (filter, infiniteScrollProps) async =>
-                                          driverData ?? [],
-                                  itemAsString: (item) => item['Name'] ?? '',
-                                  compareFn: (
-                                    Map<String, dynamic> item1,
-                                    Map<String, dynamic> item2,
-                                  ) {
-                                    return item1['id'] ==
-                                        item2['id']; // Compare items by their ID
-                                  },
-                                  onChanged: (
-                                    Map<String, dynamic>? newValue,
-                                  ) async {
-                                    if (newValue != null) {
+                                  onTap: () async {
+                                    // Navigate to vehicle list screen and wait for result
+                                    final selectedDriver = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) => FuelRefillDriverCard(
+                                              drivers: driverData ?? [],
+                                            ),
+                                      ),
+                                    );
+
+                                    if (selectedDriver != null) {
                                       setState(() {
-                                        _selectedDriverId = newValue['id'];
+                                        _selectedDriverId =
+                                            selectedDriver['id'];
                                         _driverController.text =
-                                            newValue['Name'];
+                                            selectedDriver['Name'];
                                       });
                                     }
                                   },
-                                  selectedItem:
-                                      _selectedDriverId != null
-                                          ? driverData?.firstWhere(
-                                            (driver) =>
-                                                driver['id'] ==
-                                                _selectedDriverId,
-                                          )
-                                          : null,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a Driver ID';
-                                    }
-                                    return null;
-                                  },
-                                  decoratorProps: DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: 'Driver',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
                                 ),
+                                SizedBox(height: 20),
+                                // DropdownSearch<Map<String, dynamic>>(
+                                //   popupProps: PopupProps.menu(
+                                //     showSearchBox: true,
+                                //     fit: FlexFit.tight,
+                                //     searchFieldProps: TextFieldProps(
+                                //       decoration: InputDecoration(
+                                //         hintText: 'Search Driver Name...',
+                                //       ),
+                                //     ),
+                                //   ),
+                                //   items:
+                                //       (filter, infiniteScrollProps) async =>
+                                //           driverData ?? [],
+                                //   itemAsString: (item) => item['Name'] ?? '',
+                                //   compareFn: (
+                                //     Map<String, dynamic> item1,
+                                //     Map<String, dynamic> item2,
+                                //   ) {
+                                //     return item1['id'] ==
+                                //         item2['id']; // Compare items by their ID
+                                //   },
+                                //   onChanged: (
+                                //     Map<String, dynamic>? newValue,
+                                //   ) async {
+                                //     if (newValue != null) {
+                                //       setState(() {
+                                //         _selectedDriverId = newValue['id'];
+                                //         _driverController.text =
+                                //             newValue['Name'];
+                                //       });
+                                //     }
+                                //   },
+                                //   selectedItem:
+                                //       _selectedDriverId != null
+                                //           ? driverData?.firstWhere(
+                                //             (driver) =>
+                                //                 driver['id'] ==
+                                //                 _selectedDriverId,
+                                //           )
+                                //           : null,
+                                //
+                                //   decoratorProps: DropDownDecoratorProps(
+                                //     decoration: InputDecoration(
+                                //       labelText: 'Driver',
+                                //       border: OutlineInputBorder(),
+                                //     ),
+                                //   ),
+                                // ),
                                 SizedBox(height: 100),
                               ],
                               if (_isRegistrationComplete) ...[

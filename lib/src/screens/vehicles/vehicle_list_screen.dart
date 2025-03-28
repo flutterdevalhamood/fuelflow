@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/vehicles/vehicle_registration_screen.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
@@ -285,48 +286,55 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                                   color: Colors.grey,
                                                 ),
                                               ),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // IconButton(
-                                                  //   onPressed: () async {
-                                                  //     await NavigationService()
-                                                  //         .pushNavigation(
-                                                  //           Screenroutes
-                                                  //               .vehicleRefill,
-                                                  //           arguments: vehicle,
-                                                  //         );
-                                                  //   },
-                                                  //   icon: Icon(
-                                                  //     Icons.local_gas_station,
-                                                  //   ),
-                                                  // ),
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                    ),
-                                                    onPressed: () async {
-                                                      await NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .editDetail,
-                                                            arguments:
-                                                                vehicles[index],
-                                                          );
-                                                    },
-                                                  ),
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                    onPressed: () async {
-                                                      _deleteVehicle(index);
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
+                                              trailing:
+                                                  AuthRepo.role == "customer"
+                                                      ? SizedBox.shrink()
+                                                      : Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          // IconButton(
+                                                          //   onPressed: () async {
+                                                          //     await NavigationService()
+                                                          //         .pushNavigation(
+                                                          //           Screenroutes
+                                                          //               .vehicleRefill,
+                                                          //           arguments: vehicle,
+                                                          //         );
+                                                          //   },
+                                                          //   icon: Icon(
+                                                          //     Icons.local_gas_station,
+                                                          //   ),
+                                                          // ),
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                            onPressed: () async {
+                                                              await NavigationService()
+                                                                  .pushNavigation(
+                                                                    Screenroutes
+                                                                        .editDetail,
+                                                                    arguments:
+                                                                        vehicles[index],
+                                                                  );
+                                                            },
+                                                          ),
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                            onPressed: () async {
+                                                              _deleteVehicle(
+                                                                index,
+                                                              );
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
                                               onTap:
                                                   () => _vehicleDetails(
                                                     vehicles[index],
@@ -343,17 +351,20 @@ class _HomeScreenState extends State<VehicleListScreen> {
                   )
                   : SizedBox.shrink(),
 
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => VehicleRegistrationScreen(),
-                ),
-              );
-            },
-            child: Icon(Icons.add),
-          ),
+          floatingActionButton:
+              AuthRepo.role == "customer"
+                  ? SizedBox.shrink()
+                  : FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VehicleRegistrationScreen(),
+                        ),
+                      );
+                    },
+                    child: Icon(Icons.add),
+                  ),
         );
       },
     );

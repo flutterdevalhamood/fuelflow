@@ -12,36 +12,57 @@ class DashBoardScreen extends StatefulWidget {
 }
 
 class _DashBoardScreenState extends State<DashBoardScreen> {
-  final List<Map<String, dynamic>> gridItems = [
-    {
-      'title': 'Customers',
-      'icon': Icons.people,
-      'route': Screenroutes.customerList,
-    },
-    {
-      'title': 'Vehicles',
-      'icon': Icons.directions_car,
-      'route': Screenroutes.vehicleList,
-    },
-    {'title': 'Drivers', 'icon': Icons.badge, 'route': Screenroutes.driverList},
-    {
-      'title': 'Products',
-      'icon': Icons.production_quantity_limits,
-      'route': Screenroutes.productList,
-    },
-    {
-      'title': 'Fuel Refill',
-      'icon': Icons.local_gas_station,
-      'route': Screenroutes.fuelRefillListScreen,
-    },
-    {
-      'title': 'Refilling Unit',
-      'icon': Icons.gas_meter_outlined,
-      'route': Screenroutes.refillingUnitListScreen,
-    },
-  ];
+  List<Map<String, dynamic>> getGridItems() {
+    final allGridItems = [
+      {
+        'title': 'Customers',
+        'icon': Icons.people,
+        'route': Screenroutes.customerList,
+      },
+      {
+        'title': 'Vehicles',
+        'icon': Icons.directions_car,
+        'route': Screenroutes.vehicleList,
+      },
+      {
+        'title': 'Drivers',
+        'icon': Icons.badge,
+        'route': Screenroutes.driverList,
+      },
+      {
+        'title': 'Products',
+        'icon': Icons.production_quantity_limits,
+        'route': Screenroutes.productList,
+      },
+      {
+        'title': 'Fuel Refill',
+        'icon': Icons.local_gas_station,
+        'route': Screenroutes.fuelRefillListScreen,
+      },
+      {
+        'title': 'Refilling Unit',
+        'icon': Icons.gas_meter_outlined,
+        'route': Screenroutes.refillingUnitListScreen,
+      },
+    ];
+
+    if (widget.userRole == "customer") {
+      return allGridItems
+          .where(
+            (item) =>
+                item['title'] == 'Vehicles' ||
+                item['title'] == 'Drivers' ||
+                item['title'] == 'Fuel Refill',
+          )
+          .toList();
+    } else if (widget.userRole == "superadmin") {
+      return allGridItems;
+    }
+    return [];
+  }
 
   _getBody(BuildContext context) {
+    final gridItems = getGridItems();
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

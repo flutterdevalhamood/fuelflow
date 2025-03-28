@@ -28,6 +28,7 @@ abstract class UserData with _$UserData {
     String? imageUrl,
     int? isActive,
     Roles? roles,
+    Customer? customer,
   }) = _UserData;
 
   factory UserData.fromJson(Map<String, dynamic> json) =>
@@ -39,4 +40,12 @@ abstract class Roles with _$Roles {
   const factory Roles({required int id, required String Name}) = _Roles;
 
   factory Roles.fromJson(Map<String, dynamic> json) => _$RolesFromJson(json);
+}
+
+@freezed
+abstract class Customer with _$Customer {
+  const factory Customer({required int id, required String Name}) = _Customer;
+
+  factory Customer.fromJson(Map<String, dynamic> json) =>
+      _$CustomerFromJson(json);
 }
