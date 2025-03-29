@@ -24,9 +24,90 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
     });
   }
 
+  Widget _buildAbuDhabiPlate(String plateNumber) {
+    // Split the plate number into letters and numbers if possible
+    final parts = plateNumber.split(' ');
+    final letters = parts.length > 1 ? parts[0] : '';
+    final numbers = parts.length > 1 ? parts[1] : plateNumber;
+
+    return Align(
+      alignment: Alignment.bottomRight,
+      child: Container(
+        width: 160, // Increased width to accommodate the layout
+        height: 40, // Increased height for better visibility
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.red, Colors.red],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Letters (e.g., "OP")
+            if (letters.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Text(
+                  letters,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+            // Arabic text in the middle
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'أبوظبي',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'ABU DHABI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+
+            // Numbers (e.g., "0000")
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Text(
+                numbers,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final vehicles =
+    print('vehicledataaa ${widget.vehicles}');
+    final filteredvehicles =
         widget.vehicles.isNotEmpty
             ? (widget.vehicles ?? [])
                 .where(
@@ -50,7 +131,7 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
           children: [
             // Search bar
             Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: 16.0, top: 16),
               child: TextField(
                 decoration: InputDecoration(
                   filled: true,
@@ -72,11 +153,11 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
             // Vehicle list
             Expanded(
               child:
-                  vehicles.isEmpty
+                  filteredvehicles.isEmpty
                       ? Center(
                         child: Text(
                           _searchQuery.isEmpty
-                              ? 'No customers registered yet.'
+                              ? 'No vehicles registered yet.'
                               : 'No results found.',
                           style: Theme.of(
                             context,
@@ -85,9 +166,10 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
                       )
                       : ListView.builder(
                         physics: BouncingScrollPhysics(),
-                        itemCount: widget.vehicles.length,
+                        itemCount: filteredvehicles.length,
                         itemBuilder: (context, index) {
-                          final vehicle = widget.vehicles[index];
+                          final vehicle = filteredvehicles[index];
+                          final plateNo = vehicle['plate_no'] ?? 'N/A';
                           return Card(
                             margin: EdgeInsets.only(bottom: 12),
                             color: Colors.grey[900],
@@ -99,56 +181,62 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
                               onTap: () => Navigator.pop(context, vehicle),
                               child: Padding(
                                 padding: EdgeInsets.all(16),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Vehicle icon
-                                    Container(
-                                      padding: EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueAccent.withOpacity(
-                                          0.2,
+                                    Row(
+                                      children: [
+                                        // Vehicle icon
+                                        Container(
+                                          padding: EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueAccent
+                                                .withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.directions_car,
+                                            color: Colors.blueAccent,
+                                          ),
                                         ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.directions_car,
-                                        color: Colors.blueAccent,
-                                      ),
-                                    ),
 
-                                    SizedBox(width: 16),
+                                        SizedBox(width: 16),
 
-                                    // Vehicle details
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            vehicle['plate_no'] ??
-                                                'No Plate Number',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                        // Vehicle details
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              _buildAbuDhabiPlate(plateNo),
+                                              // Text(
+                                              //   vehicle['model'] ??
+                                              //       'Unknown model',
+                                              //   style: TextStyle(
+                                              //     color: Colors.white,
+                                              //     fontSize: 16,
+                                              //     fontWeight: FontWeight.bold,
+                                              //   ),
+                                              // ),
+                                              // SizedBox(height: 4),
+                                              // Text(
+                                              //   vehicle['make'] ??
+                                              //       'Unknown make',
+                                              //   style: TextStyle(
+                                              //     color: Colors.grey[400],
+                                              //     fontSize: 14,
+                                              //   ),
+                                              // ),
+                                            ],
                                           ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            vehicle['model'] ?? 'Unknown model',
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
 
-                                    // Selection indicator
-                                    Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey[600],
+                                        // Selection indicator
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

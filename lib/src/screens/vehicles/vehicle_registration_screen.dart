@@ -10,6 +10,7 @@ import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
+import 'package:sample/src/util/quantity_input_formatter.dart';
 
 import '../../util/app_sizes.dart';
 import '../../util/snack.dart';
@@ -382,6 +383,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                           }
                                           return null;
                                         },
+                                        inputFormatters: [
+                                          QuantityInputFormatter(),
+                                        ],
                                       ),
                                     ),
                                     SizedBox(width: 10),
