@@ -185,15 +185,17 @@ abstract class RestClient {
   );
 
   @POST('/Refil')
+  @MultiPart()
   Future<dynamic> postRefilData({
     @Header("Authorization") String? token,
-    @Field("qty") String? quantity,
-    @Field("customer_id") int? customerId,
-    @Field("unit_id") int? unitId,
-    @Field("product_id") int? productId,
-    @Field("driver_id") int? driverId,
-    @Field("vehicle_id") int? vehicleId,
-    @Field("refiling_unit_id") int? refillingUnitId,
+    @Part(name: "qty") String? quantity,
+    @Part(name: "customer_id") int? customerId,
+    @Part(name: "unit_id") int? unitId,
+    @Part(name: "product_id") int? productId,
+    @Part(name: "driver_id") int? driverId,
+    @Part(name: "vehicle_id") int? vehicleId,
+    @Part(name: "refiling_unit_id") int? refillingUnitId,
+    @Part(name: 'document[]') List<MultipartFile>? files,
   });
 
   @POST('/RefilUpdate')

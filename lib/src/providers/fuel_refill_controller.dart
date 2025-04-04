@@ -192,6 +192,7 @@ class FuelRefillController with ChangeNotifier {
     int? driverId,
     int? vehicleId,
     int? refillingUnitId,
+    List<MultipartFile>? files,
   }) async {
     try {
       final postRefillData = await restApi.postRefilData(
@@ -203,6 +204,7 @@ class FuelRefillController with ChangeNotifier {
         driverId: driverId,
         vehicleId: vehicleId,
         refillingUnitId: refillingUnitId,
+        files: files,
       );
 
       if (postRefillData['IsSuccess'] == true) {

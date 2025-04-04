@@ -14,6 +14,7 @@ class DrawerWidget extends StatefulWidget {
 }
 
 class _DrawerWidgetState extends State<DrawerWidget> {
+  @override
   void _logout() async {
     // Show a confirmation dialog before deleting
     bool confirmLogout =
@@ -71,10 +72,39 @@ class _DrawerWidgetState extends State<DrawerWidget> {
               children: [
                 const Icon(Icons.verified_user, size: 40, color: Colors.green),
                 const SizedBox(width: 18),
-                Text(
-                  'Hi  ${AuthRepo.user ?? ''}',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                    color: Appcolors.textWhiteColor(context),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hi  ${AuthRepo.user ?? ''}',
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color: Appcolors.textWhiteColor(context),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${AuthRepo.role}',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium!.copyWith(
+                            color: Appcolors.textWhiteColor(context),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

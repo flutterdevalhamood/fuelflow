@@ -9,6 +9,7 @@ import 'package:sample/src/providers/refilling_unit_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_sizes.dart';
+import 'package:sample/src/util/quantity_input_formatter.dart';
 import 'package:sample/src/util/snack.dart';
 
 import '../../util/app_routes.dart';
@@ -369,12 +370,19 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
                                 children: [
                                   Expanded(
                                     flex: 2,
-                                    child: TextField(
+                                    child: TextFormField(
                                       controller: _capacityController,
                                       decoration: InputDecoration(
                                         labelText: 'Capacity',
                                         border: OutlineInputBorder(),
                                       ),
+                                      inputFormatters: [
+                                        QuantityInputFormatter(),
+                                      ],
+                                      keyboardType:
+                                          TextInputType.numberWithOptions(
+                                            decimal: true,
+                                          ),
                                     ),
                                   ),
                                   SizedBox(width: 10),

@@ -45,6 +45,8 @@ class AuthController with ChangeNotifier {
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
+        AuthRepo.role = loginResponse.Data?.roles?.Name;
+
         print('customeriddddd ${AuthRepo.customerId}');
 
         NavigationService().pushNavigation(

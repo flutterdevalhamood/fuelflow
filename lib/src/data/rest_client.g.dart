@@ -703,24 +703,47 @@ class _RestClient implements RestClient {
     int? driverId,
     int? vehicleId,
     int? refillingUnitId,
+    List<MultipartFile>? files,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
-    final _data = {
-      'qty': quantity,
-      'customer_id': customerId,
-      'unit_id': unitId,
-      'product_id': productId,
-      'driver_id': driverId,
-      'vehicle_id': vehicleId,
-      'refiling_unit_id': refillingUnitId,
-    };
-    _data.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (quantity != null) {
+      _data.fields.add(MapEntry('qty', quantity));
+    }
+    if (customerId != null) {
+      _data.fields.add(MapEntry('customer_id', customerId.toString()));
+    }
+    if (unitId != null) {
+      _data.fields.add(MapEntry('unit_id', unitId.toString()));
+    }
+    if (productId != null) {
+      _data.fields.add(MapEntry('product_id', productId.toString()));
+    }
+    if (driverId != null) {
+      _data.fields.add(MapEntry('driver_id', driverId.toString()));
+    }
+    if (vehicleId != null) {
+      _data.fields.add(MapEntry('vehicle_id', vehicleId.toString()));
+    }
+    if (refillingUnitId != null) {
+      _data.fields.add(
+        MapEntry('refiling_unit_id', refillingUnitId.toString()),
+      );
+    }
+    if (files != null) {
+      _data.files.addAll(files.map((i) => MapEntry('document[]', i)));
+    }
     final _options = _setStreamType<dynamic>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
             '/Refil',

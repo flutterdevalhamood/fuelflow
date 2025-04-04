@@ -11,6 +11,7 @@ import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_driver_card.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_vehicle_card.dart';
 import 'package:sample/src/util/app_routes.dart';
+import 'package:sample/src/util/image_compress.dart';
 import 'package:sample/src/util/quantity_input_formatter.dart';
 import 'package:sample/src/util/snack.dart';
 
@@ -49,6 +50,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   List<XFile>? _driverImageFiles;
   bool _showVehicleImages = false;
   bool _showDriverImages = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -77,19 +79,53 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
   }
 
   Future<void> _postRefillData() async {
-    if (_formKey.currentState!.validate()) {
-      bool isSuccess = await _fuelRefillController.postRefillData(
-        refillingUnitId: _selectedRefillId,
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      setState(() => _isLoading = true);
+
+      // Validate images before processing
+      if ((_vehicleImageFiles == null || _vehicleImageFiles!.isEmpty) &&
+          (_driverImageFiles == null || _driverImageFiles!.isEmpty)) {
+        setState(() => _isLoading = false);
+        showErrorSnack("Please select at least one image");
+        return;
+      }
+
+      // Process images in parallel
+      final vehicleImages = _vehicleImageFiles ?? [];
+      final driverImages = _driverImageFiles ?? [];
+
+      final List<MultipartFile> allImages = [];
+      for (var file in [...vehicleImages, ...driverImages]) {
+        final compressedFile = await compressImage(file.path);
+        allImages.add(await MultipartFile.fromFile(compressedFile.path));
+      }
+
+      // final allImages = await Future.wait([
+      //   ...vehicleImages.map((file) => MultipartFile.fromFile(file.path)),
+      //   ...driverImages.map((file) => MultipartFile.fromFile(file.path)),
+      // ]);
+
+      // Start the API call without waiting for navigation
+      final apiCall = _fuelRefillController.postRefillData(
+        refillingUnitId: _selectedRefillId!,
         qty: _quantityController.text.trim(),
-        customerId: _selectedCustomerId,
+        customerId: AuthRepo.customerId,
         unitId: _fuelRefillController.defaultCapacityUnitId,
         productId: _fuelRefillController.defaultProductId,
         driverId: _selectedDriverId ?? 0,
-        vehicleId: _selectedVehicleId,
+        vehicleId: _selectedVehicleId!,
+        files: allImages,
       );
+
+      // Show immediate feedback to user
+      final isSuccess = await apiCall;
+      setState(() => _isLoading = false);
+
       if (isSuccess) {
-        await _uploadImages();
-        showSuccessSnack("Refill entry Successfull!");
+        showSuccessSnack("Refill entry Successful!");
+        // Don't wait for navigation to complete
         NavigationService().pushAndRemoveUntilNavigation(
           Screenroutes.fuelRefillListScreen,
           removeUntilPageName: Screenroutes.fuelRefillListScreen,
@@ -97,74 +133,57 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
       } else {
         showErrorSnack("Error uploading Refill data");
       }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      showErrorSnack("An error occurred: ${e.toString()}");
+      debugPrint("Error in _postRefillData: $e");
     }
   }
 
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImages(bool isVehicle) async {
-    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
-    if (pickedFiles != null) {
-      setState(() {
-        if (isVehicle) {
-          _vehicleImageFiles = [...?_vehicleImageFiles, ...pickedFiles];
-        } else {
-          _driverImageFiles = [...?_driverImageFiles, ...pickedFiles];
-        }
-      });
+    try {
+      final pickedFiles = await _picker.pickMultiImage(
+        imageQuality: 80, // Reduce image quality for faster processing
+        maxWidth: 1920, // Limit image size
+      );
+
+      if (pickedFiles != null) {
+        setState(() {
+          if (isVehicle) {
+            _vehicleImageFiles = [...?_vehicleImageFiles, ...pickedFiles];
+          } else {
+            _driverImageFiles = [...?_driverImageFiles, ...pickedFiles];
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+      showErrorSnack("Failed to pick images");
     }
   }
 
   Future<void> _takePicture(bool isVehicle) async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.camera,
-    );
-    if (pickedFile != null) {
-      setState(() {
-        if (isVehicle) {
-          _vehicleImageFiles = [...?_vehicleImageFiles, pickedFile];
-        } else {
-          _driverImageFiles = [...?_driverImageFiles, pickedFile];
-        }
-      });
-    }
-  }
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        preferredCameraDevice: CameraDevice.rear,
+      );
 
-  Future<void> _uploadImages() async {
-    final _refillId = _fuelRefillController.refillId;
-    if (_refillId == null) {
-      print('Refill ID is null');
-      return;
-    }
-
-    List<MultipartFile> allImages = [];
-
-    // Combine vehicle and driver images
-    if (_vehicleImageFiles != null && _vehicleImageFiles!.isNotEmpty) {
-      for (var file in _vehicleImageFiles!) {
-        allImages.add(await MultipartFile.fromFile(file.path));
+      if (pickedFile != null) {
+        setState(() {
+          if (isVehicle) {
+            _vehicleImageFiles = [...?_vehicleImageFiles, pickedFile];
+          } else {
+            _driverImageFiles = [...?_driverImageFiles, pickedFile];
+          }
+        });
       }
-    }
-
-    if (_driverImageFiles != null && _driverImageFiles!.isNotEmpty) {
-      for (var file in _driverImageFiles!) {
-        allImages.add(await MultipartFile.fromFile(file.path));
-      }
-    }
-
-    if (allImages.isEmpty) {
-      print('No images selected');
-      return;
-    }
-
-    bool isSuccess = await _fuelRefillController.uploadRefillImages(
-      allImages,
-      _refillId.toString(),
-    );
-    if (isSuccess) {
-      showSuccessSnack('Images uploaded successfully');
-    } else {
-      showErrorSnack('Error uploading images');
+    } catch (e) {
+      debugPrint("Error taking picture: $e");
+      showErrorSnack("Failed to take picture");
     }
   }
 
@@ -639,9 +658,12 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                           color: Colors.white,
                           padding: EdgeInsets.all(16.0),
                           child: ElevatedButton(
-                            onPressed: () async {
-                              _postRefillData();
-                            },
+                            onPressed:
+                                _isLoading
+                                    ? null
+                                    : () async {
+                                      _postRefillData();
+                                    },
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 50,
@@ -652,15 +674,30 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                               ),
                               minimumSize: Size(double.infinity, 50),
                             ),
-                            child: Text(
-                              'Save',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge!.copyWith(
-                                color: Appcolors.textWhiteColor(context),
-                                fontSize: AppWidgetSizes.fontSize18,
-                              ),
-                            ),
+                            child:
+                                _isLoading
+                                    ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Appcolors.textWhiteColor(context),
+                                            ),
+                                      ),
+                                    )
+                                    : Text(
+                                      'Save',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge!.copyWith(
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                        fontSize: AppWidgetSizes.fontSize18,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),

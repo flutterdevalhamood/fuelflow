@@ -9,6 +9,7 @@ import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_sizes.dart';
+import 'package:sample/src/util/quantity_input_formatter.dart';
 
 class EditFuelRefillScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -298,11 +299,15 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                         children: [
                           Expanded(
                             flex: 2,
-                            child: TextField(
+                            child: TextFormField(
                               controller: _qtyController,
                               decoration: InputDecoration(
                                 labelText: 'Capacity',
                                 border: OutlineInputBorder(),
+                              ),
+                              inputFormatters: [QuantityInputFormatter()],
+                              keyboardType: TextInputType.numberWithOptions(
+                                decimal: true,
                               ),
                             ),
                           ),
