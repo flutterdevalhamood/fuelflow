@@ -5,8 +5,6 @@ import 'package:sample/src/blocs/login_bloc.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_enums.dart';
-import 'package:sample/src/util/app_navigation.dart';
-import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/app_sizes.dart';
 import 'package:sample/src/util/input_validator.dart';
 import 'package:sample/src/widgets/button_widget.dart';
@@ -86,32 +84,32 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             AppWidgetSizes.verticalSpace80,
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: "Login Type",
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton(
-                    value: authController.loginType,
-                    items:
-                        LoginType.values
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(e.name),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (value) {
-                      authController.setLoginType = value ?? LoginType.admin;
-                    },
-                  ),
-                ),
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(horizontal: 2),
+            //   child: InputDecorator(
+            //     decoration: const InputDecoration(
+            //       labelText: "Login Type",
+            //       contentPadding: EdgeInsets.symmetric(horizontal: 16),
+            //     ),
+            //     child: DropdownButtonHideUnderline(
+            //       child: DropdownButton(
+            //         value: authController.loginType,
+            //         items:
+            //             LoginType.values
+            //                 .map(
+            //                   (e) => DropdownMenuItem(
+            //                     value: e,
+            //                     child: Text(e.name),
+            //                   ),
+            //                 )
+            //                 .toList(),
+            //         onChanged: (value) {
+            //           authController.setLoginType = value ?? LoginType.admin;
+            //         },
+            //       ),
+            //     ),
+            //   ),
+            // ),
             AppWidgetSizes.verticalSpace50,
             Column(
               children: [
@@ -234,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            forgetPasswordWidget(context),
+            // forgetPasswordWidget(context),
             AppWidgetSizes.verticalSpace100,
             _loginButtonWidget(context: context),
             AppWidgetSizes.verticalSpace50,
@@ -244,25 +242,25 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget forgetPasswordWidget(BuildContext context) {
-    final style = Theme.of(context).textTheme;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        style: ButtonStyle(padding: MaterialStateProperty.all(EdgeInsets.zero)),
-        onPressed:
-            () =>
-                NavigationService().pushNavigation(Screenroutes.forgotPassword),
-        child: Text(
-          'Forgot Password',
-          style: style.bodySmall!.copyWith(
-            fontSize: AppWidgetSizes.fontSize11,
-            color: Appcolors.blackColor,
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget forgetPasswordWidget(BuildContext context) {
+  //   final style = Theme.of(context).textTheme;
+  //   return Align(
+  //     alignment: Alignment.centerRight,
+  //     child: TextButton(
+  //       style: ButtonStyle(padding: MaterialStateProperty.all(EdgeInsets.zero)),
+  //       onPressed:
+  //           () =>
+  //               NavigationService().pushNavigation(Screenroutes.forgotPassword),
+  //       child: Text(
+  //         'Forgot Password',
+  //         style: style.bodySmall!.copyWith(
+  //           fontSize: AppWidgetSizes.fontSize11,
+  //           color: Appcolors.blackColor,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   _userIdpwdValidation({required BuildContext context}) {
     if (pwdTextField.text.length > 5 && userIdTextField.text.length > 7) {

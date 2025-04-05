@@ -206,8 +206,8 @@ abstract class RestClient {
     @Field("id") int? id,
     @Field("description") String? description,
     @Field("capacity") String? capacity,
-    @Field("capacity_unit_id") String? capacityUnit,
-    @Field("customer_id") String? customer,
+    @Field("capacity_unit_id") int? capacityUnit,
+    @Field("driver_id") int? driverId,
   });
 
   @POST('/RefilDelete')

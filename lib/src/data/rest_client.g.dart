@@ -765,8 +765,8 @@ class _RestClient implements RestClient {
     int? id,
     String? description,
     String? capacity,
-    String? capacityUnit,
-    String? customer,
+    int? capacityUnit,
+    int? driverId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -780,7 +780,7 @@ class _RestClient implements RestClient {
       'description': description,
       'capacity': capacity,
       'capacity_unit_id': capacityUnit,
-      'customer_id': customer,
+      'driver_id': driverId,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
