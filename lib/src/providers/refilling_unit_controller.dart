@@ -140,6 +140,7 @@ class RefillingUnitController with ChangeNotifier {
         refillUnitId = postRefillUnitData['Data'];
         notifyListeners();
         print('refillUnitId $refillUnitId');
+        getRefillUnitData();
         return true;
       } else {
         print('API call failed: ${postRefillUnitData['Message']}');

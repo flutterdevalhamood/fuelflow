@@ -106,6 +106,9 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                                     ..setEntry(3, 2, 0.001) // Perspective
                                     ..rotateY(_rotationAnimation.value),
                               child: _buildDetailCard(
+                                refillUnitData['type'] == '0'
+                                    ? 'Vehicle'
+                                    : 'Tank',
                                 (refillUnitData['code'].toString()) ?? '',
                                 refillUnitData['serial_no'] ?? '',
                                 refillUnitData['vehicle']?['plate_no'] ?? '',
@@ -190,6 +193,7 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
   }
 
   Widget _buildDetailCard(
+    String? type,
     String code,
     String serialNumber,
     String vehicle,
@@ -234,6 +238,8 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                       color: Appcolors.textWhiteColor(context),
                     ),
                   ),
+                  SizedBox(height: 20),
+                  _buildDetailRow('Type', type),
                   SizedBox(height: 20),
                   _buildDetailRow('Code', code),
                   SizedBox(height: 20),
