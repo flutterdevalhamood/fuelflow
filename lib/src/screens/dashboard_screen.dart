@@ -18,31 +18,37 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'title': 'Customers',
         'icon': Icons.people,
         'route': Screenroutes.customerList,
+        'color': Colors.purple,
       },
       {
         'title': 'Vehicles',
         'icon': Icons.directions_car,
         'route': Screenroutes.vehicleList,
+        'color': Colors.orange,
       },
       {
         'title': 'Drivers',
         'icon': Icons.badge,
         'route': Screenroutes.driverList,
+        'color': Colors.red,
       },
       {
         'title': 'Products',
         'icon': Icons.production_quantity_limits,
         'route': Screenroutes.productList,
+        'color': Colors.blue,
       },
       {
         'title': 'Fuel Refill',
         'icon': Icons.local_gas_station,
         'route': Screenroutes.fuelRefillListScreen,
+        'color': Colors.green,
       },
       {
         'title': 'Refilling Unit',
         'icon': Icons.gas_meter_outlined,
         'route': Screenroutes.refillingUnitListScreen,
+        'color': Colors.brown,
       },
     ];
 
@@ -68,7 +74,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.blue.shade50, Colors.white],
+          colors: [Colors.blueGrey, Colors.blueAccent],
         ),
       ),
       child: GridView.builder(
@@ -81,23 +87,37 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         ),
         itemCount: gridItems.length,
         itemBuilder: (context, index) {
+          final color = gridItems[index]['color'] ?? Colors.grey;
           return Card(
             elevation: 2.0,
-            child: InkWell(
-              onTap: () {
-                NavigationService().pushNavigation(gridItems[index]['route']);
-                // print('${gridItems[index]['title']} tapped');
-              },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(gridItems[index]['icon'], size: 35.0),
-                  SizedBox(height: 8.0),
-                  Text(
-                    gridItems[index]['title'],
-                    style: TextStyle(fontSize: 14.0),
-                  ),
-                ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.55), color.withOpacity(0.9)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  NavigationService().pushNavigation(gridItems[index]['route']);
+                  // print('${gridItems[index]['title']} tapped');
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(gridItems[index]['icon'], size: 35.0),
+                    SizedBox(height: 8.0),
+                    Text(
+                      gridItems[index]['title'],
+                      style: TextStyle(fontSize: 14.0),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

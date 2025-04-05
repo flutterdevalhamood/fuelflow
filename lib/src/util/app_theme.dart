@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 final ThemeData appTheme = ThemeData(
   // Primary and accent colors
-  primaryColor: Colors.blue.shade900,
+  primaryColor: Colors.blueGrey,
   colorScheme: ColorScheme.light(
-    primary: Colors.blue.shade900,
-    secondary: Colors.blue.shade500,
+    primary: Colors.lightGreen,
+    secondary: Colors.blueGrey,
   ),
 
   // AppBar theme

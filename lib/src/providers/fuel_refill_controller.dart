@@ -224,6 +224,51 @@ class FuelRefillController with ChangeNotifier {
     }
   }
 
+  Future<void> editRefillData(
+    String? plateNumber,
+    int? id,
+    String? capacity,
+    int? capacityUnitId,
+    int? driverId,
+  ) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.refillUpdate(
+        token: 'Bearer $token',
+        plateNumber: plateNumber,
+        id: id,
+        capacity: capacity,
+        capacityUnit: capacityUnitId,
+        driverId: driverId,
+      );
+      getRefilldata();
+      notifyListeners();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
+
+  Future<void> deleteImagesById(int? id) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      await restApi.deleteRefillingUnitImagesById(
+        token: 'Bearer $token',
+        id: id,
+      );
+      await getRefilldata();
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio Exception $e');
+      }
+    }
+  }
+
   Future<bool> uploadRefillImages(
     List<MultipartFile>? files,
     String? id,

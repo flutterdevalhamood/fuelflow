@@ -1,15 +1,16 @@
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_sizes.dart';
 import 'package:sample/src/util/quantity_input_formatter.dart';
+import 'package:sample/src/util/snack.dart';
 
 class EditFuelRefillScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -27,6 +28,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
   late TextEditingController _driverNameController;
   late TextEditingController _qtyController;
   late TextEditingController _capacityUnitController;
+  late TextEditingController _unitController;
 
   // Dropdown values
   String? _selectedCapacityUnit;
@@ -58,9 +60,11 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
 
     // Initialize controllers with existing data
 
-    _customerNameController = TextEditingController(
-      text: widget.data['customer']?['name'] ?? '',
-    );
+    _customerNameController =
+        AuthRepo.role == "customer"
+            ? TextEditingController(text: AuthRepo.user)
+            : TextEditingController();
+
     _plateNumberController = TextEditingController(
       text: widget.data['vehicle']?['plate_no'] ?? '',
     );
@@ -74,6 +78,10 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     );
     _capacityUnitController = TextEditingController(
       text: widget.data['vehicle_capacity_unit']?['Name'] ?? '',
+    );
+
+    _unitController = TextEditingController(
+      text: widget.data['unit']?['Name'] ?? '',
     );
 
     _selectedCapacityUnit = widget.data['unit']?['Name'];
@@ -98,38 +106,37 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     super.dispose();
   }
 
-  // Future<void> saveEditedData() async {
-  //   final id = widget.data['id'];
-  //   final plateNumber = _plateNumberController.text.trim();
-  //   final description = _noteController.text.trim();
-  //   final capacity = _capacityController.text.trim();
-  //
-  //   if (id != null) {
-  //     await _vehicleController.editVehicleData(
-  //       id,
-  //       plateNumber,
-  //       description,
-  //       capacity,
-  //       _selectedCapacityUnitId,
-  //       _selectedCustomerId,
-  //     );
-  //     showSuccessSnack('Vehicle updated successfully');
-  //     Navigator.pop(context, true);
-  //   } else {
-  //     showErrorSnack('Error updating data');
-  //   }
-  // }
+  Future<void> saveEditedData() async {
+    final id = widget.data['id'];
+    final plateNumber = _plateNumberController.text.trim();
+    // final description = _qtyController.text.trim();
+    final capacity = _qtyController.text.trim();
 
-  // Future<void> _deleteImages(int? ImageId) async {
-  //   final vehicle = widget.data;
-  //   if (vehicle['id'] != null) {
-  //     await _vehicleController.deleteImagesById(ImageId);
-  //     showSuccessSnack("Vehicle deleted successfully");
-  //     Navigator.pop(context, true);
-  //   } else {
-  //     showErrorSnack("Error deleting images");
-  //   }
-  // }
+    if (id != null) {
+      await _fuelRefillController.editRefillData(
+        plateNumber,
+        id,
+        capacity,
+        _selectedCapacityUnitId,
+        _selectedDriverId,
+      );
+      showSuccessSnack('Refill Data updated successfully');
+      Navigator.pop(context, true);
+    } else {
+      showErrorSnack('Error updating refill data');
+    }
+  }
+
+  Future<void> _deleteImages(int? ImageId) async {
+    final refillData = widget.data;
+    if (refillData['id'] != null) {
+      await _fuelRefillController.deleteImagesById(ImageId);
+      showSuccessSnack("Refill Image deleted successfully");
+      Navigator.pop(context, true);
+    } else {
+      showErrorSnack("Error deleting images");
+    }
+  }
 
   void showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
@@ -228,55 +235,73 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                 child: Column(
                   children: [
                     if (!_isAddImagesClicked) ...[
-                      DropdownSearch<Map<String, dynamic>>(
-                        popupProps: PopupProps.menu(
-                          showSearchBox: true,
-                          fit: FlexFit.tight,
-                          searchFieldProps: TextFieldProps(
+                      AuthRepo.role == "customer"
+                          ? TextFormField(
+                            readOnly: true,
+                            controller: _customerNameController,
                             decoration: InputDecoration(
-                              hintText: 'Search Customer Name...',
+                              labelText: 'Customer',
+                              border: OutlineInputBorder(),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[200],
                             ),
-                          ),
-                        ),
-                        items:
-                            (filter, infiniteScrollProps) async =>
-                                customerDropdownData ?? [],
-                        itemAsString: (item) => item['Name'] ?? '',
-                        compareFn: (
-                          Map<String, dynamic> item1,
-                          Map<String, dynamic> item2,
-                        ) {
-                          return item1['id'] ==
-                              item2['id']; // Compare items by their ID
-                        },
-                        onChanged: (Map<String, dynamic>? newValue) async {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedCustomerId = newValue['id'];
-                              _customerNameController.text = newValue['Name'];
-                            });
-                          }
-                        },
-                        selectedItem:
-                            _selectedCustomerId != null
-                                ? customerDropdownData?.firstWhere(
-                                  (customer) =>
-                                      customer['id'] == _selectedCustomerId,
-                                )
-                                : null,
-                        validator: (value) {
-                          if (value == null) {
-                            return 'Please select a Customer ID';
-                          }
-                          return null;
-                        },
-                        decoratorProps: DropDownDecoratorProps(
-                          decoration: InputDecoration(
-                            labelText: 'Customer',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
+                          )
+                          : SizedBox.shrink(),
+                      // DropdownSearch<Map<String, dynamic>>(
+                      //   popupProps: PopupProps.menu(
+                      //     showSearchBox: true,
+                      //     fit: FlexFit.tight,
+                      //     searchFieldProps: TextFieldProps(
+                      //       decoration: InputDecoration(
+                      //         hintText: 'Search Customer Name...',
+                      //       ),
+                      //     ),
+                      //   ),
+                      //   items:
+                      //       (filter, infiniteScrollProps) async =>
+                      //           customerDropdownData ?? [],
+                      //   itemAsString: (item) => item['Name'] ?? '',
+                      //   compareFn: (
+                      //     Map<String, dynamic> item1,
+                      //     Map<String, dynamic> item2,
+                      //   ) {
+                      //     return item1['id'] ==
+                      //         item2['id']; // Compare items by their ID
+                      //   },
+                      //   onChanged: (Map<String, dynamic>? newValue) async {
+                      //     if (newValue != null) {
+                      //       setState(() {
+                      //         _selectedCustomerId = newValue['id'];
+                      //         _customerNameController.text = newValue['Name'];
+                      //       });
+                      //     }
+                      //   },
+                      //   selectedItem:
+                      //       _selectedCustomerId != null
+                      //           ? customerDropdownData?.firstWhere(
+                      //             (customer) =>
+                      //                 customer['id'] == _selectedCustomerId,
+                      //           )
+                      //           : null,
+                      //   validator: (value) {
+                      //     if (value == null) {
+                      //       return 'Please select a Customer ID';
+                      //     }
+                      //     return null;
+                      //   },
+                      //   decoratorProps: DropDownDecoratorProps(
+                      //     decoration: InputDecoration(
+                      //       labelText: 'Customer',
+                      //       border: OutlineInputBorder(),
+                      //     ),
+                      //   ),
+                      // ),
                       SizedBox(height: 20),
                       TextField(
                         readOnly: true,
@@ -314,63 +339,95 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                           SizedBox(width: 10),
                           Expanded(
                             flex: 1,
-                            child: DropdownButtonFormField<int>(
+                            child: TextFormField(
+                              readOnly: true,
+                              controller: _unitController,
                               decoration: InputDecoration(
                                 labelText: 'Unit',
                                 border: OutlineInputBorder(),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
-                              value: _selectedCapacityUnitId,
-                              items:
-                                  (unitData ?? []).map((item) {
-                                    return DropdownMenuItem<int>(
-                                      value: item['id'],
-                                      child: Text(item['Name']),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedCapacityUnitId = item['id'];
-                                        });
-                                      },
-                                    );
-                                  }).toList(),
-                              onChanged: (newValue) {
-                                setState(() {
-                                  _selectedCapacityUnitId = newValue;
-                                  // _capacityUnitController.text =
-                                  //     newValue ?? '';
-                                });
-                              },
                             ),
+                            // DropdownButtonFormField<int>(
+                            //   decoration: InputDecoration(
+                            //     labelText: 'Unit',
+                            //     border: OutlineInputBorder(),
+                            //   ),
+                            //   value: _selectedCapacityUnitId,
+                            //   items:
+                            //       (unitData ?? []).map((item) {
+                            //         return DropdownMenuItem<int>(
+                            //           value: item['id'],
+                            //           child: Text(item['Name']),
+                            //           onTap: () {
+                            //             setState(() {
+                            //               _selectedCapacityUnitId = item['id'];
+                            //             });
+                            //           },
+                            //         );
+                            //       }).toList(),
+                            //   onChanged: (newValue) {
+                            //     setState(() {
+                            //       _selectedCapacityUnitId = newValue;
+                            //       // _capacityUnitController.text =
+                            //       //     newValue ?? '';
+                            //     });
+                            //   },
+                            // ),
                           ),
                         ],
                       ),
                       SizedBox(height: 20),
-                      DropdownButtonFormField<int>(
+                      TextFormField(
+                        readOnly: true,
+                        controller: _productNameController,
                         decoration: InputDecoration(
-                          labelText: 'product',
+                          labelText: 'Product',
                           border: OutlineInputBorder(),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[200],
                         ),
-                        value: _selectedProductId,
-                        items:
-                            (productData ?? []).map((item) {
-                              return DropdownMenuItem<int>(
-                                value: item['id'],
-                                child: Text(item['Name'].toString()),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedProductId = item['id'];
-                                  });
-                                },
-                              );
-                            }).toList(),
-                        onChanged: (newValue) {
-                          setState(() {
-                            _selectedProductId = newValue;
-                            // _customerNameController.text =
-                            //     newValue ?? '';
-                          });
-                        },
                       ),
 
+                      // DropdownButtonFormField<int>(
+                      //   decoration: InputDecoration(
+                      //     labelText: 'product',
+                      //     border: OutlineInputBorder(),
+                      //   ),
+                      //   value: _selectedProductId,
+                      //   items:
+                      //       (productData ?? []).map((item) {
+                      //         return DropdownMenuItem<int>(
+                      //           value: item['id'],
+                      //           child: Text(item['Name'].toString()),
+                      //           onTap: () {
+                      //             setState(() {
+                      //               _selectedProductId = item['id'];
+                      //             });
+                      //           },
+                      //         );
+                      //       }).toList(),
+                      //   onChanged: (newValue) {
+                      //     setState(() {
+                      //       _selectedProductId = newValue;
+                      //       // _customerNameController.text =
+                      //       //     newValue ?? '';
+                      //     });
+                      //   },
+                      // ),
                       SizedBox(height: 20),
                       DropdownButtonFormField<int>(
                         decoration: InputDecoration(
@@ -475,25 +532,25 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                           ),
                         ),
                       SizedBox(height: 10),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _isAddImagesClicked = true;
-                          });
-                        },
-                        icon: Icon(
-                          Icons.photo_library,
-                          color: Appcolors.textWhiteColor(context),
-                        ),
-                        label: Text(
-                          'Add Images',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium!.copyWith(
-                            color: Appcolors.textWhiteColor(context),
-                          ),
-                        ),
-                      ),
+                      // ElevatedButton.icon(
+                      //   onPressed: () {
+                      //     setState(() {
+                      //       _isAddImagesClicked = true;
+                      //     });
+                      //   },
+                      //   icon: Icon(
+                      //     Icons.photo_library,
+                      //     color: Appcolors.textWhiteColor(context),
+                      //   ),
+                      //   label: Text(
+                      //     'Add Images',
+                      //     style: Theme.of(
+                      //       context,
+                      //     ).textTheme.bodyMedium!.copyWith(
+                      //       color: Appcolors.textWhiteColor(context),
+                      //     ),
+                      //   ),
+                      // ),
                     ] else ...[
                       if (fuelRefillData['refil_images'] != null &&
                           fuelRefillData['refil_images'].isNotEmpty)
@@ -694,7 +751,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: () async {
-                                  // saveEditedData();
+                                  saveEditedData();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   padding: EdgeInsets.symmetric(
@@ -757,7 +814,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // _deleteImages(imageId);
+                _deleteImages(imageId);
               },
               child: Text('OK'),
             ),

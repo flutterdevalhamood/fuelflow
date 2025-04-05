@@ -168,7 +168,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
     try {
       final pickedFile = await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 80,
+        imageQuality: 70,
         preferredCameraDevice: CameraDevice.rear,
       );
 
