@@ -161,6 +161,43 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                                             image['Title'],
                                             width: 150,
                                             fit: BoxFit.cover,
+                                            loadingBuilder: (
+                                              BuildContext context,
+                                              Widget child,
+                                              ImageChunkEvent? loadingProgress,
+                                            ) {
+                                              if (loadingProgress == null)
+                                                return child;
+                                              return Container(
+                                                width: 150,
+                                                color: Colors.grey[200],
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    CircularProgressIndicator(
+                                                      value:
+                                                          loadingProgress
+                                                                      .expectedTotalBytes !=
+                                                                  null
+                                                              ? loadingProgress
+                                                                      .cumulativeBytesLoaded /
+                                                                  loadingProgress
+                                                                      .expectedTotalBytes!
+                                                              : null,
+                                                    ),
+                                                    SizedBox(height: 8),
+                                                    Text(
+                                                      '${(loadingProgress.cumulativeBytesLoaded / 1024).toStringAsFixed(1)}KB / '
+                                                      '${(loadingProgress.expectedTotalBytes! / 1024).toStringAsFixed(1)}KB',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
                                             errorBuilder: (
                                               context,
                                               error,
