@@ -170,6 +170,7 @@ class FuelRefillController with ChangeNotifier {
         driverData = List<Map<String, dynamic>>.from(
           driverVehicleDropDownData['Data']['driver'],
         );
+        print('driverdatacontroller $driverData');
         vehicleData = List<Map<String, dynamic>>.from(
           driverVehicleDropDownData['Data']['vehicle'],
         );
@@ -224,23 +225,15 @@ class FuelRefillController with ChangeNotifier {
     }
   }
 
-  Future<void> editRefillData(
-    String? plateNumber,
-    int? id,
-    String? capacity,
-    int? capacityUnitId,
-    int? driverId,
-  ) async {
+  Future<void> editRefillData(int? id, String? capacity, int? driverId) async {
     try {
       if (token == null) {
         throw Exception("No Token Found");
       }
       await restApi.refillUpdate(
         token: 'Bearer $token',
-        plateNumber: plateNumber,
         id: id,
-        capacity: capacity,
-        capacityUnit: capacityUnitId,
+        qty: capacity,
         driverId: driverId,
       );
       getRefilldata();

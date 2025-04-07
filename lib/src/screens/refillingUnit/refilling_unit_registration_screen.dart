@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:dio/dio.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:sample/src/providers/refilling_unit_controller.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_driver_card.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_vehicle_card.dart';
+import 'package:sample/src/util/image_compress.dart';
 import 'package:sample/src/util/snack.dart';
 
 import '../../util/app_colors.dart';
@@ -74,8 +76,27 @@ class _RefillingUnitRegistrationScreenState
   }
 
   Future<void> _postRefillData() async {
-    if (_formKey.currentState!.validate()) {
-      bool isSuccess = await _refillingUnitController.postRefillUnitData(
+    if (!_formKey.currentState!.validate()) return;
+    try {
+      setState(() => _isLoading = true);
+      if ((_vehicleImageFiles == null || _vehicleImageFiles!.isEmpty) &&
+          (_driverImageFiles == null || _driverImageFiles!.isEmpty)) {
+        setState(() => _isLoading = false);
+        showErrorSnack("Please select at least one image");
+        return;
+      }
+
+      // Process images in parallel
+      final vehicleImages = _vehicleImageFiles ?? [];
+      final driverImages = _driverImageFiles ?? [];
+
+      final List<MultipartFile> allImages = [];
+      for (var file in [...vehicleImages, ...driverImages]) {
+        final compressedFile = await compressImage(file.path);
+        allImages.add(await MultipartFile.fromFile(compressedFile.path));
+      }
+
+      final apiCall = await _refillingUnitController.postRefillUnitData(
         type: _selectedType,
         serialNo: _serialNumberController.text.trim(),
         vehicleId: _selectedVehicleId,
@@ -83,16 +104,24 @@ class _RefillingUnitRegistrationScreenState
         productId: _selectedProductId,
         capacity: _capacityController.text.trim(),
         capacityUnitId: _selectedCapacityUnitId,
+        files: allImages,
       );
+      final isSuccess = await apiCall;
+      setState(() => _isLoading = false);
       if (isSuccess) {
         showSuccessSnack("Refill Unit entry Successfull!");
         Navigator.pop(context, true);
-        // setState(() {
-        //   _isRegistrationComplete = true;
-        // });
+        // NavigationService().pushAndRemoveUntilNavigation(
+        //   Screenroutes.refillingUnitListScreen,
+        //   removeUntilPageName: Screenroutes.refillingUnitListScreen,
+        // );
       } else {
         showErrorSnack("Error uploading Refill Unit data");
       }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      showErrorSnack("An error occurred: ${e.toString()}");
+      debugPrint("Error in _postRefillData: $e");
     }
   }
 
@@ -858,15 +887,30 @@ class _RefillingUnitRegistrationScreenState
                               ),
                               minimumSize: Size(double.infinity, 50),
                             ),
-                            child: Text(
-                              'Save',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge!.copyWith(
-                                color: Appcolors.textWhiteColor(context),
-                                fontSize: AppWidgetSizes.fontSize18,
-                              ),
-                            ),
+                            child:
+                                _isLoading
+                                    ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Appcolors.textWhiteColor(context),
+                                            ),
+                                      ),
+                                    )
+                                    : Text(
+                                      'Save',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge!.copyWith(
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                        fontSize: AppWidgetSizes.fontSize18,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),

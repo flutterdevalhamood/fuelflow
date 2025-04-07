@@ -201,12 +201,8 @@ abstract class RestClient {
   @POST('/RefilUpdate')
   Future<dynamic> refillUpdate({
     @Header("Authorization") String? token,
-    @Field("plate_no") String? plateNumber,
-    @Field("vehicle_type_id") int? vehicleType,
     @Field("id") int? id,
-    @Field("description") String? description,
-    @Field("capacity") String? capacity,
-    @Field("capacity_unit_id") int? capacityUnit,
+    @Field("qty") String? qty,
     @Field("driver_id") int? driverId,
   });
 
@@ -225,6 +221,14 @@ abstract class RestClient {
     @Part(name: 'id') String? id,
   });
 
+  @POST('/RefilingUnitPictureUpload')
+  @MultiPart()
+  Future<dynamic> uploadRefillingUnitImages({
+    @Header("Authorization") String? token,
+    @Part(name: 'document[]') List<MultipartFile>? files,
+    @Part(name: 'id') String? id,
+  });
+
   @GET('/RefilingUnit/paginate/{page}/{limit}')
   Future<dynamic> getRefilingUnitData(
     @Path("page") int page,
@@ -235,13 +239,14 @@ abstract class RestClient {
   @POST('/RefilingUnit')
   Future<dynamic> postRefillingUnit({
     @Header("Authorization") String? token,
-    @Field("type") int? type,
-    @Field("serial_no") String? serialNumber,
-    @Field("vehicle_id") int? vehicleId,
-    @Field("driver_id") int? driverId,
-    @Field("capacity") String? capacity,
-    @Field("capacity_unit_id") int? capacityUnitId,
-    @Field("default_product_id") int? defaultProductId,
+    @Part(name: "type") int? type,
+    @Part(name: "serial_no") String? serialNumber,
+    @Part(name: "vehicle_id") int? vehicleId,
+    @Part(name: "driver_id") int? driverId,
+    @Part(name: "capacity") String? capacity,
+    @Part(name: "capacity_unit_id") int? capacityUnitId,
+    @Part(name: "default_product_id") int? defaultProductId,
+    @Part(name: 'document[]') List<MultipartFile>? files,
   });
 
   @POST('/RefilingUnitPictureUpload')

@@ -114,28 +114,34 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                                 refillUnitData['vehicle']?['plate_no'] ?? '',
                                 refillUnitData['driver']?['Name'] ?? '',
                                 refillUnitData['capacity'] ?? '',
+                                refillUnitData['product']?['Name'] ?? '',
                               ),
                             ),
                             SizedBox(height: 20),
-                            if (refillUnitData['refil_images'] != null &&
-                                refillUnitData['refil_images'].isNotEmpty)
+                            if (refillUnitData['refiling_unit_images'] !=
+                                    null &&
+                                refillUnitData['refiling_unit_images']
+                                    .isNotEmpty)
                               Text(
                                 'Images',
                                 style: Theme.of(context).textTheme.bodyLarge!
                                     .copyWith(fontWeight: FontWeight.bold),
                               ),
-                            SizedBox(height: 10),
-                            if (refillUnitData['refil_images'] != null &&
-                                refillUnitData['refil_images'].isNotEmpty)
+                            SizedBox(height: 20),
+                            if (refillUnitData['refiling_unit_images'] !=
+                                    null &&
+                                refillUnitData['refiling_unit_images']
+                                    .isNotEmpty)
                               SizedBox(
                                 height: 150,
                                 child: ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   itemCount:
-                                      refillUnitData['refil_images'].length,
+                                      refillUnitData['refiling_unit_images']
+                                          .length,
                                   itemBuilder: (context, index) {
                                     final image =
-                                        refillUnitData['refil_images'][index];
+                                        refillUnitData['refiling_unit_images'][index];
                                     return Padding(
                                       padding: const EdgeInsets.only(
                                         right: 8.0,
@@ -199,6 +205,7 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
     String vehicle,
     String driver,
     String? capacity,
+    String? product,
   ) {
     return Stack(
       alignment: Alignment.topCenter,
@@ -247,9 +254,11 @@ class _RefillingUnitDetailScreenState extends State<RefillingUnitDetailScreen>
                   SizedBox(height: 20),
                   _buildDetailRow('Vehicle', vehicle),
                   SizedBox(height: 20),
+                  _buildDetailRow('Capacity ', capacity),
+                  SizedBox(height: 20),
                   _buildDetailRow('Driver ', driver),
                   SizedBox(height: 20),
-                  _buildDetailRow('Capacity ', capacity),
+                  _buildDetailRow('Product ', product),
                   SizedBox(height: 20),
                 ],
               ),

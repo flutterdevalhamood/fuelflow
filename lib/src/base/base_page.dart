@@ -27,6 +27,7 @@ class BasePage extends StatelessWidget {
     this.scrollController,
 
     this.selectedTabIndex = 0,
+    this.backgroundDecoration,
   }) : super(key: key);
   final bool? menuRequired;
   final bool? noScrollableScrollPhysics;
@@ -47,13 +48,17 @@ class BasePage extends StatelessWidget {
   final PreferredSizeWidget? preferredSizeWidget;
   final ScrollController? scrollController;
   final int selectedTabIndex;
+  final BoxDecoration? backgroundDecoration;
 
   @override
   Widget build(BuildContext context) {
     if (menuRequired == true) {
       return Scaffold(
         appBar: getAppBar(context),
-        body: Container(child: getBody(context)),
+        body: Container(
+          decoration: backgroundDecoration,
+          child: getBody(context),
+        ),
 
         bottomNavigationBar: footer,
       );
@@ -61,7 +66,10 @@ class BasePage extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: getAppBar(context),
-      body: getBody(context),
+      body: Container(
+        decoration: backgroundDecoration,
+        child: getBody(context),
+      ),
       resizeToAvoidBottomInset: resizeToAvoidBottomInset ?? true,
       bottomNavigationBar: _getFooter(context),
     );
@@ -260,7 +268,7 @@ class BasePage extends StatelessWidget {
 
   Widget getBody(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: Colors.transparent,
 
       // decoration: BoxDecoration(
       //   image: DecorationImage(

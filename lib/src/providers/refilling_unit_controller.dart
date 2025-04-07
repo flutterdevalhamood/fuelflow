@@ -121,8 +121,8 @@ class RefillingUnitController with ChangeNotifier {
     String? capacity,
     int? capacityUnitId,
     int? productId,
-
     int? refillingUnitId,
+    List<MultipartFile>? files,
   }) async {
     try {
       final postRefillUnitData = await restApi.postRefillingUnit(
@@ -134,6 +134,7 @@ class RefillingUnitController with ChangeNotifier {
         capacity: capacity,
         capacityUnitId: capacityUnitId,
         defaultProductId: productId,
+        files: files,
       );
 
       if (postRefillUnitData['IsSuccess'] == true) {
@@ -164,7 +165,7 @@ class RefillingUnitController with ChangeNotifier {
       if (token == null) {
         throw Exception("No token found");
       }
-      final response = await restApi.uploadRefillImages(
+      final response = await restApi.uploadRefillingUnitImages(
         token: 'Bearer $token',
         files: files,
         id: id,

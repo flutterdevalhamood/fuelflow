@@ -760,12 +760,8 @@ class _RestClient implements RestClient {
   @override
   Future<dynamic> refillUpdate({
     String? token,
-    String? plateNumber,
-    int? vehicleType,
     int? id,
-    String? description,
-    String? capacity,
-    int? capacityUnit,
+    String? qty,
     int? driverId,
   }) async {
     final _extra = <String, dynamic>{};
@@ -773,15 +769,7 @@ class _RestClient implements RestClient {
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
-    final _data = {
-      'plate_no': plateNumber,
-      'vehicle_type_id': vehicleType,
-      'id': id,
-      'description': description,
-      'capacity': capacity,
-      'capacity_unit_id': capacityUnit,
-      'driver_id': driverId,
-    };
+    final _data = {'id': id, 'qty': qty, 'driver_id': driverId};
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
       Options(method: 'POST', headers: _headers, extra: _extra)
@@ -865,6 +853,44 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<dynamic> uploadRefillingUnitImages({
+    String? token,
+    List<MultipartFile>? files,
+    String? id,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (files != null) {
+      _data.files.addAll(files.map((i) => MapEntry('document[]', i)));
+    }
+    if (id != null) {
+      _data.fields.add(MapEntry('id', id));
+    }
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/RefilingUnitPictureUpload',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
   Future<dynamic> getRefilingUnitData(
     int page,
     int limit,
@@ -901,22 +927,40 @@ class _RestClient implements RestClient {
     String? capacity,
     int? capacityUnitId,
     int? defaultProductId,
+    List<MultipartFile>? files,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
-    final _data = {
-      'type': type,
-      'serial_no': serialNumber,
-      'vehicle_id': vehicleId,
-      'driver_id': driverId,
-      'capacity': capacity,
-      'capacity_unit_id': capacityUnitId,
-      'default_product_id': defaultProductId,
-    };
-    _data.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (type != null) {
+      _data.fields.add(MapEntry('type', type.toString()));
+    }
+    if (serialNumber != null) {
+      _data.fields.add(MapEntry('serial_no', serialNumber));
+    }
+    if (vehicleId != null) {
+      _data.fields.add(MapEntry('vehicle_id', vehicleId.toString()));
+    }
+    if (driverId != null) {
+      _data.fields.add(MapEntry('driver_id', driverId.toString()));
+    }
+    if (capacity != null) {
+      _data.fields.add(MapEntry('capacity', capacity));
+    }
+    if (capacityUnitId != null) {
+      _data.fields.add(MapEntry('capacity_unit_id', capacityUnitId.toString()));
+    }
+    if (defaultProductId != null) {
+      _data.fields.add(
+        MapEntry('default_product_id', defaultProductId.toString()),
+      );
+    }
+    if (files != null) {
+      _data.files.addAll(files.map((i) => MapEntry('document[]', i)));
+    }
     final _options = _setStreamType<dynamic>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(

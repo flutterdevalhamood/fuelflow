@@ -44,7 +44,7 @@ class AuthController with ChangeNotifier {
         AuthRepo.token = loginResponse.Token;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
-        AuthRepo.customerId = loginResponse.Data?.customer?.id;
+        AuthRepo.customerId = loginResponse.Data?.customer?.id ?? 0;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
 
         print('customeriddddd ${AuthRepo.customerId}');

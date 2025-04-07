@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_colors.dart';
 import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/app_sizes.dart';
 import 'package:sample/src/util/quantity_input_formatter.dart';
 import 'package:sample/src/util/snack.dart';
@@ -55,6 +57,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
         listen: false,
       );
       _fuelRefillController.getFuelRefillDropdown();
+      _fuelRefillController.getDriverVehicleDropdown(1);
     });
     super.initState();
 
@@ -91,9 +94,10 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     _selectedCapacityUnitId = widget.data['unit']?['id'];
     _selectedCustomerId = widget.data['customer']?['id'];
     _selectedProductId = widget.data['product']?['id'];
-    _selectedDriverId = widget.data['driver']?['id'];
+    _selectedDriverId = widget.data['driver_id'];
 
     print('_selectedCapacityUnit $_selectedCapacityUnit');
+    print('Driver data: $_selectedDriverId');
     // _loadImages();
   }
 
@@ -114,10 +118,8 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
 
     if (id != null) {
       await _fuelRefillController.editRefillData(
-        plateNumber,
         id,
         capacity,
-        _selectedCapacityUnitId,
         _selectedDriverId,
       );
       showSuccessSnack('Refill Data updated successfully');
@@ -179,37 +181,37 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
     }
   }
 
-  // Future<void> _uploadImages() async {
-  //   final _vehicleId = _vehicleController.vehicleData?[0]['id'];
-  //   print('aaaaa $_vehicleId');
-  //   if (_imageFiles == null || _imageFiles!.isEmpty) {
-  //     print('No images selected');
-  //     return;
-  //   }
-  //
-  //   List<MultipartFile> multipartFiles = [];
-  //   for (var file in _imageFiles!) {
-  //     multipartFiles.add(await MultipartFile.fromFile(file.path));
-  //   }
-  //
-  //   if (_vehicleId != null) {
-  //     bool isSuccess = await _vehicleController.uploadVehiclePictures(
-  //       multipartFiles,
-  //       _vehicleId.toString(),
-  //     );
-  //     if (isSuccess) {
-  //       showSuccessSnack('Image uploaded successfully');
-  //       NavigationService().pushAndRemoveUntilNavigation(
-  //         Screenroutes.vehicleList,
-  //         removeUntilPageName: Screenroutes.vehicleList,
-  //       );
-  //     } else {
-  //       showErrorSnack('Error uploading image');
-  //     }
-  //   } else {
-  //     print('Vehicle ID is null');
-  //   }
-  // }
+  Future<void> _uploadImages() async {
+    final _vehicleId = _fuelRefillController.refillUnitsData?[0]['id'];
+    print('aaaaa $_vehicleId');
+    if (_imageFiles == null || _imageFiles!.isEmpty) {
+      print('No images selected');
+      return;
+    }
+
+    List<MultipartFile> multipartFiles = [];
+    for (var file in _imageFiles!) {
+      multipartFiles.add(await MultipartFile.fromFile(file.path));
+    }
+
+    if (_vehicleId != null) {
+      bool isSuccess = await _fuelRefillController.uploadRefillImages(
+        multipartFiles,
+        _vehicleId.toString(),
+      );
+      if (isSuccess) {
+        showSuccessSnack('Image uploaded successfully');
+        NavigationService().pushAndRemoveUntilNavigation(
+          Screenroutes.fuelRefillListScreen,
+          removeUntilPageName: Screenroutes.fuelRefillListScreen,
+        );
+      } else {
+        showErrorSnack('Error uploading image');
+      }
+    } else {
+      print('Vehicle ID is null');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,9 +223,10 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
         final customerDropdownData = fuelRefillController.customerData;
         final productData = fuelRefillController.productData;
         final driverData = fuelRefillController.driverData;
+        print('driverdataaa $driverData');
 
         return Scaffold(
-          appBar: AppBar(title: Text('Edit Fuel Refill Details')),
+          appBar: AppBar(title: Text('Edit Fuel Refill')),
           body:
           // vehicleTypeData == null || unitData == null
           //     ? Center(child: CircularProgressIndicator())
@@ -253,55 +256,6 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                             ),
                           )
                           : SizedBox.shrink(),
-                      // DropdownSearch<Map<String, dynamic>>(
-                      //   popupProps: PopupProps.menu(
-                      //     showSearchBox: true,
-                      //     fit: FlexFit.tight,
-                      //     searchFieldProps: TextFieldProps(
-                      //       decoration: InputDecoration(
-                      //         hintText: 'Search Customer Name...',
-                      //       ),
-                      //     ),
-                      //   ),
-                      //   items:
-                      //       (filter, infiniteScrollProps) async =>
-                      //           customerDropdownData ?? [],
-                      //   itemAsString: (item) => item['Name'] ?? '',
-                      //   compareFn: (
-                      //     Map<String, dynamic> item1,
-                      //     Map<String, dynamic> item2,
-                      //   ) {
-                      //     return item1['id'] ==
-                      //         item2['id']; // Compare items by their ID
-                      //   },
-                      //   onChanged: (Map<String, dynamic>? newValue) async {
-                      //     if (newValue != null) {
-                      //       setState(() {
-                      //         _selectedCustomerId = newValue['id'];
-                      //         _customerNameController.text = newValue['Name'];
-                      //       });
-                      //     }
-                      //   },
-                      //   selectedItem:
-                      //       _selectedCustomerId != null
-                      //           ? customerDropdownData?.firstWhere(
-                      //             (customer) =>
-                      //                 customer['id'] == _selectedCustomerId,
-                      //           )
-                      //           : null,
-                      //   validator: (value) {
-                      //     if (value == null) {
-                      //       return 'Please select a Customer ID';
-                      //     }
-                      //     return null;
-                      //   },
-                      //   decoratorProps: DropDownDecoratorProps(
-                      //     decoration: InputDecoration(
-                      //       labelText: 'Customer',
-                      //       border: OutlineInputBorder(),
-                      //     ),
-                      //   ),
-                      // ),
                       SizedBox(height: 20),
                       TextField(
                         readOnly: true,
@@ -355,32 +309,6 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                                 fillColor: Colors.grey[200],
                               ),
                             ),
-                            // DropdownButtonFormField<int>(
-                            //   decoration: InputDecoration(
-                            //     labelText: 'Unit',
-                            //     border: OutlineInputBorder(),
-                            //   ),
-                            //   value: _selectedCapacityUnitId,
-                            //   items:
-                            //       (unitData ?? []).map((item) {
-                            //         return DropdownMenuItem<int>(
-                            //           value: item['id'],
-                            //           child: Text(item['Name']),
-                            //           onTap: () {
-                            //             setState(() {
-                            //               _selectedCapacityUnitId = item['id'];
-                            //             });
-                            //           },
-                            //         );
-                            //       }).toList(),
-                            //   onChanged: (newValue) {
-                            //     setState(() {
-                            //       _selectedCapacityUnitId = newValue;
-                            //       // _capacityUnitController.text =
-                            //       //     newValue ?? '';
-                            //     });
-                            //   },
-                            // ),
                           ),
                         ],
                       ),
@@ -402,32 +330,6 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                         ),
                       ),
 
-                      // DropdownButtonFormField<int>(
-                      //   decoration: InputDecoration(
-                      //     labelText: 'product',
-                      //     border: OutlineInputBorder(),
-                      //   ),
-                      //   value: _selectedProductId,
-                      //   items:
-                      //       (productData ?? []).map((item) {
-                      //         return DropdownMenuItem<int>(
-                      //           value: item['id'],
-                      //           child: Text(item['Name'].toString()),
-                      //           onTap: () {
-                      //             setState(() {
-                      //               _selectedProductId = item['id'];
-                      //             });
-                      //           },
-                      //         );
-                      //       }).toList(),
-                      //   onChanged: (newValue) {
-                      //     setState(() {
-                      //       _selectedProductId = newValue;
-                      //       // _customerNameController.text =
-                      //       //     newValue ?? '';
-                      //     });
-                      //   },
-                      // ),
                       SizedBox(height: 20),
                       DropdownButtonFormField<int>(
                         decoration: InputDecoration(
@@ -532,25 +434,25 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                           ),
                         ),
                       SizedBox(height: 10),
-                      // ElevatedButton.icon(
-                      //   onPressed: () {
-                      //     setState(() {
-                      //       _isAddImagesClicked = true;
-                      //     });
-                      //   },
-                      //   icon: Icon(
-                      //     Icons.photo_library,
-                      //     color: Appcolors.textWhiteColor(context),
-                      //   ),
-                      //   label: Text(
-                      //     'Add Images',
-                      //     style: Theme.of(
-                      //       context,
-                      //     ).textTheme.bodyMedium!.copyWith(
-                      //       color: Appcolors.textWhiteColor(context),
-                      //     ),
-                      //   ),
-                      // ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _isAddImagesClicked = true;
+                          });
+                        },
+                        icon: Icon(
+                          Icons.photo_library,
+                          color: Appcolors.textWhiteColor(context),
+                        ),
+                        label: Text(
+                          'Add Images',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.copyWith(
+                            color: Appcolors.textWhiteColor(context),
+                          ),
+                        ),
+                      ),
                     ] else ...[
                       if (fuelRefillData['refil_images'] != null &&
                           fuelRefillData['refil_images'].isNotEmpty)
@@ -709,7 +611,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                         ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: _uploadImages,
                         child: Text(
                           'Upload Images',
                           style: TextStyle(

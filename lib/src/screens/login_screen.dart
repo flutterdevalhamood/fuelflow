@@ -47,6 +47,13 @@ class _LoginScreenState extends State<LoginScreen> {
       menuRequired: false,
       appBarType: AppBarType.empty,
       preferredHeight: AppWidgetSizes.dimen_60,
+      backgroundDecoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.blueGrey, Colors.blueAccent],
+        ),
+      ),
     );
   }
 
@@ -130,6 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: EdgeInsets.only(
                       left: AppWidgetSizes.dimen_16,
                       right: AppWidgetSizes.dimen_16,
+                      top: AppWidgetSizes.dimen_4,
+                      bottom: AppWidgetSizes.dimen_4,
                     ),
                     child: SizedBox(
                       width:
@@ -187,6 +196,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: EdgeInsets.only(
                       left: AppWidgetSizes.dimen_16,
                       right: AppWidgetSizes.dimen_16,
+                      top: AppWidgetSizes.dimen_4,
+                      bottom: AppWidgetSizes.dimen_4,
                     ),
                     child: SizedBox(
                       width:
