@@ -147,20 +147,20 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                               controller: _mobileController,
                               label: 'Mobile',
                               icon: Icons.phone_android,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter mobile number';
-                                }
-                                if (!value.startsWith('+971')) {
-                                  return 'Mobile number must start with +971';
-                                }
-                                if (!RegExp(
-                                  r'^\+971[0-9]{9}$',
-                                ).hasMatch(value)) {
-                                  return 'Enter a valid UAE mobile number (e.g., +971501234567)';
-                                }
-                                return null;
-                              },
+                              // validator: (value) {
+                              //   if (value == null || value.isEmpty) {
+                              //     return 'Please enter mobile number';
+                              //   }
+                              //   if (!value.startsWith('+971')) {
+                              //     return 'Mobile number must start with +971';
+                              //   }
+                              //   if (!RegExp(
+                              //     r'^\+971[0-9]{9}$',
+                              //   ).hasMatch(value)) {
+                              //     return 'Enter a valid UAE mobile number (e.g., +971501234567)';
+                              //   }
+                              //   return null;
+                              // },
                             ),
                             SizedBox(height: 20),
                             ElevatedButton(
@@ -258,7 +258,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    required String? Function(String?) validator,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),

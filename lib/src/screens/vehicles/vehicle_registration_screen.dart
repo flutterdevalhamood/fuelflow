@@ -79,13 +79,20 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   }
 
   Future<void> _takePicture() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.camera,
-    );
-    if (pickedFile != null) {
-      setState(() {
-        _imageFiles = [...?_imageFiles, pickedFile];
-      });
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _imageFiles = [...?_imageFiles, pickedFile];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error taking picture: $e");
+      showErrorSnack("Failed to take picture");
     }
   }
 
