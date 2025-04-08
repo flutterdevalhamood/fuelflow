@@ -67,6 +67,36 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     return [];
   }
 
+  Future<bool> _onWillPop() async {
+    bool? shouldLogout = await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Logout'),
+            content: const Text('Are you sure you want to logout?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldLogout ?? false) {
+      Navigator.of(context).pushReplacementNamed(Screenroutes.login);
+      return true;
+    }
+    return false;
+  }
+
   _getBody(BuildContext context) {
     final gridItems = getGridItems();
     return Container(
@@ -128,10 +158,13 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: DrawerWidget(),
-      appBar: AppBar(title: Text('Dashboard')),
-      body: _getBody(context),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        drawer: DrawerWidget(),
+        appBar: AppBar(title: Text('Dashboard')),
+        body: _getBody(context),
+      ),
     );
   }
 }
