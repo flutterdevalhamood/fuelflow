@@ -450,43 +450,50 @@ class _RefillingUnitRegistrationScreenState
                                   return null;
                                 },
                               ),
-                              SizedBox(height: 20),
-                              TextFormField(
-                                controller: _vehicleController,
-                                readOnly: true,
-                                decoration: InputDecoration(
-                                  labelText: 'Vehicle Number',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.arrow_forward_ios),
-                                ),
-                                onTap: () async {
-                                  final selectedVehicle = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => FuelRefillVehicleCard(
-                                            vehicles: vehicleData ?? [],
-                                          ),
+                              _selectedType == 1
+                                  ? SizedBox.shrink()
+                                  : SizedBox(height: 20),
+                              _selectedType == 0
+                                  ? TextFormField(
+                                    controller: _vehicleController,
+                                    readOnly: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Vehicle Number',
+                                      border: OutlineInputBorder(),
+                                      suffixIcon: Icon(Icons.arrow_forward_ios),
                                     ),
-                                  );
+                                    onTap: () async {
+                                      final selectedVehicle =
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      FuelRefillVehicleCard(
+                                                        vehicles:
+                                                            vehicleData ?? [],
+                                                      ),
+                                            ),
+                                          );
 
-                                  if (selectedVehicle != null) {
-                                    setState(() {
-                                      _selectedVehicleId =
-                                          selectedVehicle['id'];
-                                      _vehicleController.text =
-                                          selectedVehicle['plate_no'];
-                                      _showVehicleImages = true;
-                                    });
-                                  }
-                                },
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please select a vehicle';
-                                  }
-                                  return null;
-                                },
-                              ),
+                                      if (selectedVehicle != null) {
+                                        setState(() {
+                                          _selectedVehicleId =
+                                              selectedVehicle['id'];
+                                          _vehicleController.text =
+                                              selectedVehicle['plate_no'];
+                                          _showVehicleImages = true;
+                                        });
+                                      }
+                                    },
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please select a vehicle';
+                                      }
+                                      return null;
+                                    },
+                                  )
+                                  : SizedBox.shrink(),
                               if (_showVehicleImages)
                                 _buildImageSection(
                                   'Vehicle',
