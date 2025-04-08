@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
+import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -72,6 +73,9 @@ class Screenroutes {
       "refillingUnitRegistrationScreen";
   static const String refillingUnitUpdateScreen = "refillingUnitUpdateScreen";
   static const String refillingUnitDetailScreen = "refillingUnitDetailScreen";
+
+  //reports
+  static const String reportsScreen = "reportsScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -345,6 +349,14 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return RefillingUnitDetailScreen(data: data ?? {});
+          },
+        );
+
+      case Screenroutes.reportsScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.reportsScreen),
+          builder: (BuildContext context) {
+            return ReportsScreen();
           },
         );
     }

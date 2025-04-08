@@ -50,6 +50,12 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'route': Screenroutes.refillingUnitListScreen,
         'color': Colors.brown,
       },
+      {
+        'title': 'Reports',
+        'icon': Icons.insert_chart,
+        'route': Screenroutes.reportsScreen,
+        'color': Colors.teal,
+      },
     ];
 
     if (widget.userRole == "customer") {
