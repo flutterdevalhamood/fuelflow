@@ -182,7 +182,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
   }
 
   Future<void> _uploadImages() async {
-    final _vehicleId = _fuelRefillController.refillUnitsData?[0]['id'];
+    final _vehicleId = widget.data['id'];
     print('aaaaa $_vehicleId');
     if (_imageFiles == null || _imageFiles!.isEmpty) {
       print('No images selected');
@@ -613,7 +613,7 @@ class _EditFuelRefillScreenState extends State<EditFuelRefillScreen> {
                       ElevatedButton(
                         onPressed: _uploadImages,
                         child: Text(
-                          'Upload Images',
+                          'Save',
                           style: TextStyle(
                             color: Appcolors.textWhiteColor(context),
                           ),
