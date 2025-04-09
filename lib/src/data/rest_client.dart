@@ -292,4 +292,12 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Field("id") int? id,
   });
+
+  @POST('/RefilReport')
+  Future<dynamic> postReportsData({
+    @Header("Authorization") String? token,
+    @Field("fromDate") String? fromDate,
+    @Field("toDate") String? toDate,
+    @Field("customer_id") int? customerId,
+  });
 }

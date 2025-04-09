@@ -111,7 +111,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
       final apiCall = _fuelRefillController.postRefillData(
         refillingUnitId: _selectedRefillId!,
         qty: _quantityController.text.trim(),
-        customerId: AuthRepo.customerId,
+        customerId: _selectedCustomerId,
         unitId: _fuelRefillController.defaultCapacityUnitId,
         productId: _fuelRefillController.defaultProductId,
         driverId: _selectedDriverId ?? 0,
