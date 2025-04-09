@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/customer_controller.dart';
 import 'package:sample/src/providers/reports_controller.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
@@ -142,22 +142,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
       if (success! && _reportsController?.reportUrl != null) {
         final reportUrl = _reportsController!.reportUrl!;
-        if (Platform.isAndroid) {
-          // Option 1: Try launching in external browser first
-          try {
-            if (await canLaunchUrl(Uri.parse(reportUrl))) {
-              await launchUrl(
-                Uri.parse(reportUrl),
-                mode: LaunchMode.externalApplication,
-              );
-              return;
-            }
-          } catch (e) {
-            print('External launch failed: $e');
-          }
-        }
+
         setState(() {
-          _reportUrl = _reportsController?.reportUrl;
+          _reportUrl = reportUrl;
           _showWebView = true;
         });
 
@@ -248,12 +235,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildWebView() {
-    return Stack(
-      children: [
-        WebViewWidget(controller: _webViewController),
-        if (_isLoading) Center(child: CircularProgressIndicator()),
-      ],
+    return SfPdfViewer.network(
+      _reportUrl!,
+      canShowPaginationDialog: true,
+      onDocumentLoadFailed: (details) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load PDF: ${details.description}')),
+        );
+      },
     );
+    // return Stack(
+    //   children: [
+    //     WebViewWidget(controller: _webViewController),
+    //     if (_isLoading) Center(child: CircularProgressIndicator()),
+    //   ],
+    // );
   }
 
   Widget _buildFilterSection(List<Map<String, dynamic>>? customerData) {
