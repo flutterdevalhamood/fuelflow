@@ -39,17 +39,18 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'color': Colors.blue,
       },
       {
-        'title': 'Fuel Refill',
-        'icon': Icons.local_gas_station,
-        'route': Screenroutes.fuelRefillListScreen,
-        'color': Colors.green,
-      },
-      {
         'title': 'Refilling Unit',
         'icon': Icons.gas_meter_outlined,
         'route': Screenroutes.refillingUnitListScreen,
         'color': Colors.brown,
       },
+      {
+        'title': 'Fuel Refill',
+        'icon': Icons.local_gas_station,
+        'route': Screenroutes.fuelRefillListScreen,
+        'color': Colors.green,
+      },
+
       {
         'title': 'Reports',
         'icon': Icons.insert_chart,

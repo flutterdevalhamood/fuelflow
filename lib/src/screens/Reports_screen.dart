@@ -221,13 +221,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     : _showWebView
                     ? _buildWebView()
                     : SizedBox.shrink(),
-            // : _reportData.isEmpty
-            // ? Center(
-            //   child: Text(
-            //     'No data available. Apply filters and load data.',
-            //   ),
-            // )
-            // : _buildReportTable(),
           ),
         ],
       ),
@@ -354,7 +347,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 items: [
                   DropdownMenuItem<String>(
                     value: null,
-                    child: Text('All Customers'),
+                    child: Text('Pick Customer'),
                   ),
                   ...?customerData?.map((customer) {
                     return DropdownMenuItem<String>(
@@ -368,7 +361,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     _selectedCustomerId = value;
                   });
                 },
-                hint: Text('All Customers'),
+                hint: Text('Pick Customers'),
               ),
             ],
           ),
