@@ -579,42 +579,50 @@ class _RefillingUnitRegistrationScreenState
                                   true,
                                 ),
                               SizedBox(height: 20),
-                              TextFormField(
-                                controller: _driverController,
-                                readOnly: true,
-                                decoration: InputDecoration(
-                                  labelText: 'Driver Name',
-                                  border: OutlineInputBorder(),
-                                  suffixIcon: Icon(Icons.arrow_forward_ios),
-                                ),
-                                onTap: () async {
-                                  final selectedDriver = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => FuelRefillDriverCard(
-                                            drivers: driverData ?? [],
-                                          ),
+                              _selectedType == 0
+                                  ? TextFormField(
+                                    controller: _driverController,
+                                    readOnly: true,
+                                    decoration: InputDecoration(
+                                      labelText: 'Driver Name',
+                                      border: OutlineInputBorder(),
+                                      suffixIcon: Icon(Icons.arrow_forward_ios),
                                     ),
-                                  );
+                                    onTap: () async {
+                                      final selectedDriver =
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      FuelRefillDriverCard(
+                                                        drivers:
+                                                            driverData ?? [],
+                                                      ),
+                                            ),
+                                          );
 
-                                  if (selectedDriver != null && mounted) {
-                                    setState(() {
-                                      _selectedDriverId = selectedDriver['id'];
-                                      _driverController.text =
-                                          selectedDriver['Name'];
-                                      _showDriverImages = true;
-                                    });
-                                  }
-                                },
-                              ),
+                                      if (selectedDriver != null && mounted) {
+                                        setState(() {
+                                          _selectedDriverId =
+                                              selectedDriver['id'];
+                                          _driverController.text =
+                                              selectedDriver['Name'];
+                                          _showDriverImages = true;
+                                        });
+                                      }
+                                    },
+                                  )
+                                  : SizedBox.shrink(),
                               if (_showDriverImages)
                                 _buildImageSection(
                                   'Driver',
                                   _driverImageFiles,
                                   false,
                                 ),
-                              SizedBox(height: 20),
+                              _selectedType == 0
+                                  ? SizedBox(height: 20)
+                                  : SizedBox.shrink(),
                               DropdownSearch<Map<String, dynamic>>(
                                 popupProps: PopupProps.menu(
                                   showSearchBox: true,
