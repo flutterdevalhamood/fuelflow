@@ -426,7 +426,8 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 },
                                 decoratorProps: DropDownDecoratorProps(
                                   decoration: InputDecoration(
-                                    labelText: 'Select Refilling Unit',
+                                    labelText:
+                                        'Select Refilling Unit (Serial Number)',
                                     border: OutlineInputBorder(),
                                   ),
                                 ),
