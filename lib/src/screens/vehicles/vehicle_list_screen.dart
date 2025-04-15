@@ -222,124 +222,92 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                         );
                                       }
                                       final vehicle = vehicles[index];
-                                      return Dismissible(
-                                        key: Key(
-                                          vehicle['plate_no'] ??
-                                              index.toString(),
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 4,
                                         ),
-                                        direction: DismissDirection.endToStart,
-                                        background: Container(
-                                          color: Colors.red,
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                          ),
-                                          alignment: Alignment.centerRight,
-                                          child: Icon(
-                                            Icons.delete,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        onDismissed: (direction) {
-                                          final vehicleId =
-                                              _vehicleController
-                                                  .vehicleData?[index]['id'];
-                                          final reason =
-                                              _reasonController.text.trim();
-                                          watch.deleteVehicle(
-                                            vehicleId,
-                                            reason,
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          child: Card(
-                                            elevation: 4,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
+                                        child: Card(
+                                          elevation: 4,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                            child: ListTile(
-                                              contentPadding: EdgeInsets.all(
-                                                16,
-                                              ),
-                                              leading: Icon(
-                                                Icons.directions_car,
-                                                size: 30,
-                                                color: Colors.blue,
-                                              ),
-                                              title: Text(
-                                                vehicle['plate_no'] ??
-                                                    'Unknown',
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              subtitle: Text(
-                                                vehicle['type']?['Name'] ??
-                                                    'No Type',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                              trailing:
-                                                  AuthRepo.role == "customer"
-                                                      ? SizedBox.shrink()
-                                                      : Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          // IconButton(
-                                                          //   onPressed: () async {
-                                                          //     await NavigationService()
-                                                          //         .pushNavigation(
-                                                          //           Screenroutes
-                                                          //               .vehicleRefill,
-                                                          //           arguments: vehicle,
-                                                          //         );
-                                                          //   },
-                                                          //   icon: Icon(
-                                                          //     Icons.local_gas_station,
-                                                          //   ),
-                                                          // ),
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              Icons.edit,
-                                                              color:
-                                                                  Colors.blue,
-                                                            ),
-                                                            onPressed: () async {
-                                                              await NavigationService()
-                                                                  .pushNavigation(
-                                                                    Screenroutes
-                                                                        .editDetail,
-                                                                    arguments:
-                                                                        vehicles[index],
-                                                                  );
-                                                            },
-                                                          ),
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              Icons.delete,
-                                                              color: Colors.red,
-                                                            ),
-                                                            onPressed: () async {
-                                                              _deleteVehicle(
-                                                                index,
-                                                              );
-                                                            },
-                                                          ),
-                                                        ],
-                                                      ),
-                                              onTap:
-                                                  () => _vehicleDetails(
-                                                    vehicles[index],
-                                                  ),
+                                          ),
+                                          child: ListTile(
+                                            contentPadding: EdgeInsets.all(16),
+                                            leading: Icon(
+                                              Icons.directions_car,
+                                              size: 30,
+                                              color: Colors.blue,
                                             ),
+                                            title: Text(
+                                              vehicle['plate_no'] ?? 'Unknown',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              vehicle['type']?['Name'] ??
+                                                  'No Type',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            trailing:
+                                                AuthRepo.role == "customer"
+                                                    ? SizedBox.shrink()
+                                                    : Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        // IconButton(
+                                                        //   onPressed: () async {
+                                                        //     await NavigationService()
+                                                        //         .pushNavigation(
+                                                        //           Screenroutes
+                                                        //               .vehicleRefill,
+                                                        //           arguments: vehicle,
+                                                        //         );
+                                                        //   },
+                                                        //   icon: Icon(
+                                                        //     Icons.local_gas_station,
+                                                        //   ),
+                                                        // ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            Icons.edit,
+                                                            color: Colors.blue,
+                                                          ),
+                                                          onPressed: () async {
+                                                            await NavigationService()
+                                                                .pushNavigation(
+                                                                  Screenroutes
+                                                                      .editDetail,
+                                                                  arguments:
+                                                                      vehicles[index],
+                                                                );
+                                                          },
+                                                        ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            Icons.delete,
+                                                            color: Colors.red,
+                                                          ),
+                                                          onPressed: () async {
+                                                            _deleteVehicle(
+                                                              index,
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                            onTap:
+                                                () => _vehicleDetails(
+                                                  vehicles[index],
+                                                ),
                                           ),
                                         ),
                                       );

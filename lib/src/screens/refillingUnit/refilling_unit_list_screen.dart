@@ -218,105 +218,74 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                         );
                                       }
                                       final refillUnit = refillUnitData[index];
-                                      return Dismissible(
-                                        key: Key(
-                                          refillUnit['serial_no'] ?? index,
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 4,
                                         ),
-                                        direction: DismissDirection.endToStart,
-                                        background: Container(
-                                          color: Colors.red,
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                          ),
-                                          alignment: Alignment.centerRight,
-                                          child: Icon(
-                                            Icons.delete,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        onDismissed: (direction) {
-                                          final refillUnitId =
-                                              _fuelRefillingUnitController
-                                                  .refillUnitData?[index]['id'];
-                                          final reason =
-                                              _reasonController.text.trim();
-                                          watch.deleteRefillUnitData(
-                                            refillUnitId,
-                                            reason,
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                          child: Card(
-                                            elevation: 4,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
+                                        child: Card(
+                                          elevation: 4,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                            child: ListTile(
-                                              contentPadding: EdgeInsets.all(
-                                                16,
-                                              ),
-                                              leading: Icon(
-                                                Icons.local_gas_station,
-                                                size: 30,
-                                                color: Colors.blue,
-                                              ),
-                                              title: Text(
-                                                refillUnit['serial_no'] ??
-                                                    'Unknown',
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              subtitle: Text(
-                                                refillUnit['code'] ??
-                                                    'No Driver',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                    ),
-                                                    onPressed: () async {
-                                                      await NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .refillingUnitUpdateScreen,
-                                                            arguments:
-                                                                refillUnitData[index],
-                                                          );
-                                                    },
-                                                  ),
-                                                  // IconButton(
-                                                  //   icon: Icon(
-                                                  //     Icons.delete,
-                                                  //     color: Colors.red,
-                                                  //   ),
-                                                  //   onPressed: () async {
-                                                  //     _deleteRefillUnitData(
-                                                  //       index,
-                                                  //     );
-                                                  //   },
-                                                  // ),
-                                                ],
-                                              ),
-                                              onTap:
-                                                  () => _refillDetails(
-                                                    refillUnit,
-                                                  ),
+                                          ),
+                                          child: ListTile(
+                                            contentPadding: EdgeInsets.all(16),
+                                            leading: Icon(
+                                              Icons.local_gas_station,
+                                              size: 30,
+                                              color: Colors.blue,
                                             ),
+                                            title: Text(
+                                              refillUnit['serial_no'] ??
+                                                  'Unknown',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              refillUnit['code'] ?? 'No Driver',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: Icon(
+                                                    Icons.edit,
+                                                    color: Colors.blue,
+                                                  ),
+                                                  onPressed: () async {
+                                                    await NavigationService()
+                                                        .pushNavigation(
+                                                          Screenroutes
+                                                              .refillingUnitUpdateScreen,
+                                                          arguments:
+                                                              refillUnitData[index],
+                                                        );
+                                                  },
+                                                ),
+                                                // IconButton(
+                                                //   icon: Icon(
+                                                //     Icons.delete,
+                                                //     color: Colors.red,
+                                                //   ),
+                                                //   onPressed: () async {
+                                                //     _deleteRefillUnitData(
+                                                //       index,
+                                                //     );
+                                                //   },
+                                                // ),
+                                              ],
+                                            ),
+                                            onTap:
+                                                () =>
+                                                    _refillDetails(refillUnit),
                                           ),
                                         ),
                                       );
