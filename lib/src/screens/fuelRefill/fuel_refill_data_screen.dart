@@ -427,7 +427,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 decoratorProps: DropDownDecoratorProps(
                                   decoration: InputDecoration(
                                     labelText:
-                                        'Select Refilling Unit (Serial Number)',
+                                        'Select Refilling Unit (Serial Number)*',
                                     border: OutlineInputBorder(),
                                   ),
                                 ),
@@ -438,7 +438,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     readOnly: true,
                                     controller: _customerController,
                                     decoration: InputDecoration(
-                                      labelText: 'Customer',
+                                      labelText: 'Customer*',
                                       border: OutlineInputBorder(),
                                       enabledBorder: OutlineInputBorder(
                                         borderSide: BorderSide(
@@ -505,7 +505,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                     },
                                     decoratorProps: DropDownDecoratorProps(
                                       decoration: InputDecoration(
-                                        labelText: 'Customer',
+                                        labelText: 'Customer*',
                                         border: OutlineInputBorder(),
                                       ),
                                     ),
@@ -515,7 +515,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                                 controller: _vehicleController,
                                 readOnly: true,
                                 decoration: InputDecoration(
-                                  labelText: 'Vehicle Number',
+                                  labelText: 'Vehicle Number*',
                                   border: OutlineInputBorder(),
                                   suffixIcon: Icon(Icons.arrow_forward_ios),
                                 ),
@@ -558,7 +558,7 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
                               TextFormField(
                                 controller: _quantityController,
                                 decoration: InputDecoration(
-                                  labelText: 'Quantity',
+                                  labelText: 'Quantity*',
                                   border: OutlineInputBorder(),
                                 ),
                                 validator: (value) {

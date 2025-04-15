@@ -518,7 +518,7 @@ class _RefillingUnitRegistrationScreenState
                               TextFormField(
                                 controller: _serialNumberController,
                                 decoration: InputDecoration(
-                                  labelText: 'Serial Number',
+                                  labelText: 'Refilling Unit Serial Number*',
                                   border: OutlineInputBorder(),
                                 ),
                                 validator: (value) {
@@ -536,7 +536,7 @@ class _RefillingUnitRegistrationScreenState
                                     controller: _vehicleController,
                                     readOnly: true,
                                     decoration: InputDecoration(
-                                      labelText: 'Vehicle Number',
+                                      labelText: 'Vehicle Number*',
                                       border: OutlineInputBorder(),
                                       suffixIcon: Icon(Icons.arrow_forward_ios),
                                     ),
@@ -670,7 +670,7 @@ class _RefillingUnitRegistrationScreenState
                                 },
                                 decoratorProps: DropDownDecoratorProps(
                                   decoration: InputDecoration(
-                                    labelText: 'Product Name',
+                                    labelText: 'Product Name*',
                                     border: OutlineInputBorder(),
                                   ),
                                 ),
@@ -683,7 +683,7 @@ class _RefillingUnitRegistrationScreenState
                                     child: TextFormField(
                                       controller: _capacityController,
                                       decoration: InputDecoration(
-                                        labelText: 'Capacity',
+                                        labelText: 'Capacity*',
                                         border: OutlineInputBorder(),
                                       ),
                                       validator: (value) {
@@ -699,7 +699,7 @@ class _RefillingUnitRegistrationScreenState
                                     flex: 1,
                                     child: DropdownButtonFormField<int>(
                                       decoration: InputDecoration(
-                                        labelText: 'Unit',
+                                        labelText: 'Unit*',
                                         border: OutlineInputBorder(),
                                       ),
                                       value: _selectedCapacityUnitId,

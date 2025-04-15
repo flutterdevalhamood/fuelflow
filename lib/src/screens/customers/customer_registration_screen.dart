@@ -73,7 +73,7 @@ class _CustomerRegistrationScreenState
                 SizedBox(height: 20),
                 _buildTextField(
                   controller: _nameController,
-                  label: 'Company Name',
+                  label: 'Company Name*',
                   icon: Icons.business,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -84,7 +84,7 @@ class _CustomerRegistrationScreenState
                 ),
                 _buildTextField(
                   controller: _representativeController,
-                  label: 'Representative',
+                  label: 'Representative*',
                   icon: Icons.person,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -95,7 +95,7 @@ class _CustomerRegistrationScreenState
                 ),
                 _buildMobileTextField(
                   controller: _mobileController,
-                  label: 'Mobile',
+                  label: 'Mobile*',
                   icon: Icons.phone_android,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -131,7 +131,7 @@ class _CustomerRegistrationScreenState
                 _buildTextField(
                   controller: _emailController,
 
-                  label: 'Email',
+                  label: 'Email*',
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
                   inputFormatters: [EmailInputFormatter()],

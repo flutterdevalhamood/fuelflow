@@ -62,7 +62,7 @@ class _ProductReRegistrationScreenState
                 SizedBox(height: 20),
                 _buildTextField(
                   controller: _nameController,
-                  label: 'Product Name',
+                  label: 'Product Name*',
                   icon: Icons.shopping_bag,
                   validator: (value) {
                     if (value == null || value.isEmpty) {

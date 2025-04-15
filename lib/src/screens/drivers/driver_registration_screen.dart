@@ -126,7 +126,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                               },
                               decoratorProps: DropDownDecoratorProps(
                                 decoration: InputDecoration(
-                                  labelText: 'Customer',
+                                  labelText: 'Customer*',
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -134,7 +134,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                             SizedBox(height: 20),
                             _buildTextField(
                               controller: _driverController,
-                              label: 'Driver Name',
+                              label: 'Driver Name*',
                               icon: Icons.business,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
