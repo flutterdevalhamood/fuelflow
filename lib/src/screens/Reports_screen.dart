@@ -283,7 +283,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   ? DateFormat(
                                     'dd MMM yyyy',
                                   ).format(_startDate!)
-                                  : 'Select start date',
+                                  : '',
                             ),
                             Icon(Icons.calendar_today, size: 20),
                           ],
@@ -317,7 +317,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             Text(
                               _endDate != null
                                   ? DateFormat('dd MMM yyyy').format(_endDate!)
-                                  : 'Select end date',
+                                  : '',
                             ),
                             Icon(Icons.calendar_today, size: 20),
                           ],
@@ -333,8 +333,52 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Customer', style: TextStyle(fontSize: 14)),
+              // Text('Customer', style: TextStyle(fontSize: 14)),
               SizedBox(height: 4),
+
+              // DropdownSearch<Map<String, dynamic>>(
+              //   popupProps: PopupProps.menu(
+              //     showSearchBox: true,
+              //     fit: FlexFit.tight,
+              //     searchFieldProps: TextFieldProps(
+              //       decoration: InputDecoration(hintText: 'Pick Customer'),
+              //     ),
+              //   ),
+              //   items: (filter, infiniteScrollProps) => customerData ?? [],
+              //   itemAsString: (item) => item['Name'] ?? '',
+              //   compareFn: (
+              //     Map<String, dynamic> item1,
+              //     Map<String, dynamic> item2,
+              //   ) {
+              //     return item1['id'] ==
+              //         item2['id']; // Compare items by their ID
+              //   },
+              //   onChanged: (Map<String, dynamic>? newValue) async {
+              //     if (newValue != null) {
+              //       setState(() {
+              //         _selectedCustomerId = newValue['id'];
+              //       });
+              //     }
+              //   },
+              //   selectedItem:
+              //       _selectedCustomerId != null
+              //           ? customerData?.firstWhere(
+              //             (customer) => customer['id'] == _selectedCustomerId,
+              //           )
+              //           : null,
+              //   validator: (value) {
+              //     if (value == null) {
+              //       return 'Please select a Customer Name';
+              //     }
+              //     return null;
+              //   },
+              //   decoratorProps: DropDownDecoratorProps(
+              //     decoration: InputDecoration(
+              //       labelText: 'Customer *',
+              //       border: OutlineInputBorder(),
+              //     ),
+              //   ),
+              // ),
               DropdownButtonFormField<String>(
                 value: _selectedCustomerId,
                 decoration: InputDecoration(

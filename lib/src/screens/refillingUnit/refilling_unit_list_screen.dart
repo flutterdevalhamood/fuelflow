@@ -76,66 +76,66 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
     });
   }
 
-  void _deleteRefillUnitData(int index) {
-    final refillUnitId =
-        _fuelRefillingUnitController.refillUnitData?[index]['id'];
-
-    print('refillUnitId $refillUnitId');
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Delete Refill Unit Data"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min, // To make the dialog compact
-            children: [
-              Text("Are you sure you want to delete this refill Unit?"),
-              SizedBox(height: 16), // Add some spacing
-              TextField(
-                controller: _reasonController,
-                decoration: InputDecoration(
-                  labelText: 'Reason for deletion',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3, // Allow multiple lines for the reason
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), // Cancel
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () async {
-                String reason = _reasonController.text.trim();
-                print('reasonfordelete $reason');
-                if (reason.isNotEmpty) {
-                  if (refillUnitId != null) {
-                    await _fuelRefillingUnitController.deleteRefillUnitData(
-                      refillUnitId,
-                      _reasonController.text.trim(),
-                    );
-                  }
-                  print("Deleting RefillUnitData with reason: $reason");
-                  Navigator.pop(context);
-                  showSuccessSnack('RefillUnitData Deleted Successfully');
-                } else {
-                  // Show an error or prompt the user to enter a reason
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Please enter a reason for deletion"),
-                    ),
-                  );
-                }
-              },
-              child: Text("Delete", style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // void _deleteRefillUnitData(int index) {
+  //   final refillUnitId =
+  //       _fuelRefillingUnitController.refillUnitData?[index]['id'];
+  //
+  //   print('refillUnitId $refillUnitId');
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text("Delete Refill Unit Data"),
+  //         content: Column(
+  //           mainAxisSize: MainAxisSize.min, // To make the dialog compact
+  //           children: [
+  //             Text("Are you sure you want to delete this refill Unit?"),
+  //             SizedBox(height: 16), // Add some spacing
+  //             TextField(
+  //               controller: _reasonController,
+  //               decoration: InputDecoration(
+  //                 labelText: 'Reason for deletion',
+  //                 border: OutlineInputBorder(),
+  //               ),
+  //               maxLines: 3, // Allow multiple lines for the reason
+  //             ),
+  //           ],
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context), // Cancel
+  //             child: Text("Cancel"),
+  //           ),
+  //           TextButton(
+  //             onPressed: () async {
+  //               String reason = _reasonController.text.trim();
+  //               print('reasonfordelete $reason');
+  //               if (reason.isNotEmpty) {
+  //                 if (refillUnitId != null) {
+  //                   await _fuelRefillingUnitController.deleteRefillUnitData(
+  //                     refillUnitId,
+  //                     _reasonController.text.trim(),
+  //                   );
+  //                 }
+  //                 print("Deleting RefillUnitData with reason: $reason");
+  //                 Navigator.pop(context);
+  //                 showSuccessSnack('RefillUnitData Deleted Successfully');
+  //               } else {
+  //                 // Show an error or prompt the user to enter a reason
+  //                 ScaffoldMessenger.of(context).showSnackBar(
+  //                   SnackBar(
+  //                     content: Text("Please enter a reason for deletion"),
+  //                   ),
+  //                 );
+  //               }
+  //             },
+  //             child: Text("Delete", style: TextStyle(color: Colors.red)),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   void _refillDetails(Map<String, dynamic> refillUnitData) {
     final result = NavigationService().pushNavigation(
@@ -299,17 +299,17 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                           );
                                                     },
                                                   ),
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                    onPressed: () async {
-                                                      _deleteRefillUnitData(
-                                                        index,
-                                                      );
-                                                    },
-                                                  ),
+                                                  // IconButton(
+                                                  //   icon: Icon(
+                                                  //     Icons.delete,
+                                                  //     color: Colors.red,
+                                                  //   ),
+                                                  //   onPressed: () async {
+                                                  //     _deleteRefillUnitData(
+                                                  //       index,
+                                                  //     );
+                                                  //   },
+                                                  // ),
                                                 ],
                                               ),
                                               onTap:
