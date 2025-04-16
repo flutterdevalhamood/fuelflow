@@ -466,7 +466,10 @@ class _RefillingUnitRegistrationScreenState
         final vehicleData = refillUnitController.vehicleData;
 
         return Scaffold(
-          appBar: AppBar(title: Text('Fuel Unit Entry'), centerTitle: true),
+          appBar: AppBar(
+            title: Text('Refilling Unit Entry'),
+            centerTitle: true,
+          ),
           body:
               unitData == null || driverData == null || vehicleData == null
                   ? Center(child: CircularProgressIndicator())
