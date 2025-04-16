@@ -172,7 +172,7 @@ class _DriverDetailScreenState extends State<DriverDetailScreen>
               color: Appcolors.textWhiteColor(context),
               overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 2,
+            maxLines: 1,
           ),
         ),
       ],
