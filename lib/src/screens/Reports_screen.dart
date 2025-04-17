@@ -37,7 +37,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (Platform.isAndroid) {
       WebViewPlatform.instance = AndroidWebViewPlatform();
     }
-    _initializeControllers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeControllers();
+    });
+
     _initWebViewController();
   }
 
