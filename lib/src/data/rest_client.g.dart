@@ -1165,7 +1165,7 @@ class _RestClient implements RestClient {
     String? token,
     String? fromDate,
     String? toDate,
-    int? customerId,
+    String? customerId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1183,6 +1183,35 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/RefilReport',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postActivityReportsData({
+    String? token,
+    String? fromDate,
+    String? toDate,
+    String? action,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'fromDate': fromDate, 'toDate': toDate, 'action': action};
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/ActivityReport',
             queryParameters: queryParameters,
             data: _data,
           )

@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'dart:io';
 
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   bool _showWebView = false;
   late WebViewController _webViewController;
   String? _reportUrl;
+  bool _isActivityReport = false;
+  String? _selectedAction;
 
   @override
   void initState() {
@@ -129,25 +132,47 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       final fromDate = DateFormat('yyyy-MM-dd').format(_startDate!);
       final toDate = DateFormat('yyyy-MM-dd').format(_endDate!);
-      final customerId =
-          _selectedCustomerId != null
-              ? int.tryParse(_selectedCustomerId!)
-              : null;
+      bool success = false;
 
-      final success = await _reportsController?.postReportsData(
-        fromDate,
-        toDate,
-        customerId,
-      );
+      if (_isActivityReport) {
+        // Fetch activity report
+        success =
+            await _reportsController?.postActivityReportsData(
+              fromDate,
+              toDate,
+              _selectedAction == 'all' ? 'all' : _selectedAction,
+            ) ??
+            false;
 
-      if (success! && _reportsController?.reportUrl != null) {
-        final reportUrl = _reportsController!.reportUrl!;
+        if (success && _reportsController?.activityReportUrl != null) {
+          _reportUrl = _reportsController!.activityReportUrl!;
+        }
+      } else {
+        // Fetch refill report
+        final customerId =
+            _selectedCustomerId == 'all'
+                ? 'all'
+                : _selectedCustomerId != null
+                ? int.tryParse(_selectedCustomerId!)
+                : null;
 
+        success =
+            await _reportsController?.postReportsData(
+              fromDate,
+              toDate,
+              customerId.toString(),
+            ) ??
+            false;
+
+        if (success && _reportsController?.reportUrl != null) {
+          _reportUrl = _reportsController!.reportUrl!;
+        }
+      }
+
+      if (success && _reportUrl != null) {
         setState(() {
-          _reportUrl = reportUrl;
           _showWebView = true;
         });
-
         // Load the URL with error handling
         try {
           await _webViewController.loadRequest(
@@ -189,7 +214,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final customerData = _customerController?.customerData;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Refill Report'),
+        title: Text(_isActivityReport ? 'Activity Report' : 'Refill Report'),
         actions: [
           IconButton(icon: Icon(Icons.refresh), onPressed: _fetchReportData),
         ],
@@ -330,98 +355,133 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ],
           ),
           SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              // Text('Customer', style: TextStyle(fontSize: 14)),
-              SizedBox(height: 4),
-
-              // DropdownSearch<Map<String, dynamic>>(
-              //   popupProps: PopupProps.menu(
-              //     showSearchBox: true,
-              //     fit: FlexFit.tight,
-              //     searchFieldProps: TextFieldProps(
-              //       decoration: InputDecoration(hintText: 'Pick Customer'),
-              //     ),
-              //   ),
-              //   items: (filter, infiniteScrollProps) => customerData ?? [],
-              //   itemAsString: (item) => item['Name'] ?? '',
-              //   compareFn: (
-              //     Map<String, dynamic> item1,
-              //     Map<String, dynamic> item2,
-              //   ) {
-              //     return item1['id'] ==
-              //         item2['id']; // Compare items by their ID
-              //   },
-              //   onChanged: (Map<String, dynamic>? newValue) async {
-              //     if (newValue != null) {
-              //       setState(() {
-              //         _selectedCustomerId = newValue['id'];
-              //       });
-              //     }
-              //   },
-              //   selectedItem:
-              //       _selectedCustomerId != null
-              //           ? customerData?.firstWhere(
-              //             (customer) => customer['id'] == _selectedCustomerId,
-              //           )
-              //           : null,
-              //   validator: (value) {
-              //     if (value == null) {
-              //       return 'Please select a Customer Name';
-              //     }
-              //     return null;
-              //   },
-              //   decoratorProps: DropDownDecoratorProps(
-              //     decoration: InputDecoration(
-              //       labelText: 'Customer *',
-              //       border: OutlineInputBorder(),
-              //     ),
-              //   ),
-              // ),
-              DropdownButtonFormField<String>(
-                value: _selectedCustomerId,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Refill Report'),
+                  selected: !_isActivityReport,
+                  onSelected: (selected) {
+                    setState(() {
+                      _isActivityReport = !selected;
+                    });
+                  },
                 ),
-                items: [
-                  DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('Pick Customer'),
-                  ),
-                  ...?customerData?.map((customer) {
-                    return DropdownMenuItem<String>(
-                      value: customer['id'].toString(),
-                      child: Text(customer['Name'] ?? 'Unknown Customer'),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCustomerId = value;
-                  });
-                },
-                hint: Text('Pick Customers'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Activity Report'),
+                  selected: _isActivityReport,
+                  onSelected: (selected) {
+                    setState(() {
+                      _isActivityReport = selected;
+                    });
+                  },
+                ),
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+          // Dynamic form based on report type
+          _isActivityReport
+              ? _buildActivityReportForm()
+              : _buildRefillReportForm(customerData),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _fetchReportData,
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: Text('Generate Report'),
+              child: const Text('Generate Report'),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRefillReportForm(List<Map<String, dynamic>>? customerData) {
+    final List<Map<String, dynamic>> completeCustomerData = [
+      {'id': 'null', 'Name': 'Select Customer'},
+      {'id': 'all', 'Name': 'All Customers'},
+      ...?customerData,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Customer', style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 4),
+        DropdownSearch<Map<String, dynamic>>(
+          popupProps: PopupProps.menu(
+            showSearchBox: true,
+            fit: FlexFit.tight,
+            searchFieldProps: TextFieldProps(
+              decoration: InputDecoration(hintText: 'Pick Customer'),
+            ),
+          ),
+          items: (filter, infiniteScrollProps) => completeCustomerData ?? [],
+          itemAsString: (item) => item['Name'] ?? '',
+          compareFn:
+              (item1, item2) =>
+                  item1['id'].toString() == item2['id'].toString(),
+          onChanged: (Map<String, dynamic>? newValue) async {
+            if (newValue != null) {
+              setState(() {
+                _selectedCustomerId = newValue['id'].toString();
+              });
+            }
+          },
+          selectedItem:
+              _selectedCustomerId != null
+                  ? completeCustomerData.firstWhere(
+                    (customer) =>
+                        customer['id'].toString() == _selectedCustomerId,
+                    orElse: () => {'id': null, 'Name': 'Select Customer'},
+                  )
+                  : {'id': null, 'Name': 'Select Customer'},
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a Customer Name';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityReportForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Action Type', style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 4),
+        DropdownButtonFormField<String>(
+          value: _selectedAction,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+          ),
+          items: const [
+            DropdownMenuItem<String>(value: null, child: Text('Select Action')),
+            DropdownMenuItem<String>(value: 'all', child: Text('All')),
+            DropdownMenuItem<String>(value: 'update', child: Text('Update')),
+            DropdownMenuItem<String>(value: 'delete', child: Text('Delete')),
+          ],
+          onChanged: (value) {
+            setState(() {
+              _selectedAction = value;
+            });
+          },
+          hint: const Text('Select Activity'),
+        ),
+      ],
     );
   }
 }

@@ -298,6 +298,14 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Field("fromDate") String? fromDate,
     @Field("toDate") String? toDate,
-    @Field("customer_id") int? customerId,
+    @Field("customer_id") String? customerId,
+  });
+
+  @POST('/ActivityReport')
+  Future<dynamic> postActivityReportsData({
+    @Header("Authorization") String? token,
+    @Field("fromDate") String? fromDate,
+    @Field("toDate") String? toDate,
+    @Field("action") String? action,
   });
 }
