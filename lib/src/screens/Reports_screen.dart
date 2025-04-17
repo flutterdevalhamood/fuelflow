@@ -405,7 +405,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Widget _buildRefillReportForm(List<Map<String, dynamic>>? customerData) {
     final List<Map<String, dynamic>> completeCustomerData = [
-      {'id': 'null', 'Name': 'Select Customer'},
       {'id': 'all', 'Name': 'All Customers'},
       ...?customerData,
     ];
