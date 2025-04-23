@@ -33,7 +33,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   @override
   void initState() {
     super.initState();
-    // Load customers when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupScrollController();
       _customerController = Provider.of<CustomerController>(

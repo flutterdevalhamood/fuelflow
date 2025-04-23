@@ -265,7 +265,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                     width: 50,
                     decoration: BoxDecoration(
                       color: Colors.red.shade900,
-                      // Replace with the actual color variable or use Colors.red
                       borderRadius: BorderRadius.circular(23.0),
                     ),
                     child: Center(
