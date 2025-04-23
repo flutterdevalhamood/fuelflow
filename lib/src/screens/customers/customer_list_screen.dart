@@ -130,7 +130,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     });
   }
 
-  void _navigateTocustomerDetails(Map<String, dynamic> customer) async {
+  void _navigateToCustomerDetails(Map<String, dynamic> customer) async {
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerDetail,
       arguments: customer,
@@ -251,7 +251,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                         children: [
                                           GestureDetector(
                                             onTap: () {
-                                              _navigateTocustomerDetails(
+                                              _navigateToCustomerDetails(
                                                 customers[index],
                                               );
                                             },

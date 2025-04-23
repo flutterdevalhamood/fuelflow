@@ -310,6 +310,8 @@ class _FuelRefillDetailScreenState extends State<FuelRefillDetailScreen>
               fontWeight: FontWeight.bold,
               color: Appcolors.textWhiteColor(context),
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
