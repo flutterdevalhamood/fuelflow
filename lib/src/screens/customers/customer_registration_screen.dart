@@ -25,6 +25,7 @@ class _CustomerRegistrationScreenState
   final TextEditingController _secondaryMobileController =
       TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  int? _IsAdmin = 0;
 
   @override
   void initState() {
@@ -71,6 +72,44 @@ class _CustomerRegistrationScreenState
                       ).textTheme.displayMedium, // Use displayMedium
                 ),
                 SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Is Admin',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                    Radio(
+                      value: 0,
+                      groupValue: _IsAdmin,
+                      onChanged: (int? value) {
+                        if (mounted) {
+                          setState(() {
+                            _IsAdmin = value;
+                          });
+                        }
+                      },
+                    ),
+                    Text('No'),
+                    Radio(
+                      value: 1,
+                      groupValue: _IsAdmin,
+                      onChanged: (int? value) {
+                        if (mounted) {
+                          setState(() {
+                            _IsAdmin = value;
+                          });
+                        }
+                      },
+                    ),
+                    Text('Yes'),
+                  ],
+                ),
                 _buildTextField(
                   controller: _nameController,
                   label: 'Company Name*',
@@ -145,6 +184,7 @@ class _CustomerRegistrationScreenState
                             _mobileController.text,
                             _secondaryMobileController.text,
                             _emailController.text,
+                            _IsAdmin,
                           );
                       if (isSuccess) {
                         showSuccessSnack("Customer registered successfully!");

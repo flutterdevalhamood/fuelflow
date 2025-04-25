@@ -65,6 +65,7 @@ class _RefillingUnitRegistrationScreenState
         listen: false,
       );
       _refillingUnitController.getRefillUnitDropDown();
+      _refillingUnitController.getRefillingUnitSerialNumber();
     });
     super.initState();
   }
@@ -160,7 +161,8 @@ class _RefillingUnitRegistrationScreenState
     try {
       if (mounted) setState(() => _isLoading = true);
       if ((_vehicleImageFiles == null || _vehicleImageFiles!.isEmpty) &&
-          (_driverImageFiles == null || _driverImageFiles!.isEmpty)) {
+          (_driverImageFiles == null || _driverImageFiles!.isEmpty) &&
+          _selectedType == 0) {
         setState(() => _isLoading = false);
         showErrorSnack("Please select at least one image");
         return;
@@ -178,8 +180,8 @@ class _RefillingUnitRegistrationScreenState
       final apiCall = await _refillingUnitController.postRefillUnitData(
         type: _selectedType,
         serialNo: _serialNumberController.text.trim(),
-        vehicleId: _selectedVehicleId,
-        driverId: _selectedDriverId,
+        vehicleId: _selectedVehicleId ?? 0,
+        driverId: _selectedDriverId ?? 0,
         productId: _selectedProductId,
         capacity: _capacityController.text.trim(),
         capacityUnitId: _selectedCapacityUnitId,
@@ -464,6 +466,8 @@ class _RefillingUnitRegistrationScreenState
         final driverData = refillUnitController.driverData;
         final productData = refillUnitController.productData;
         final vehicleData = refillUnitController.vehicleData;
+        final serialNumber = refillUnitController.serialNumber;
+        print('serial number $serialNumber');
 
         return Scaffold(
           appBar: AppBar(
@@ -507,30 +511,53 @@ class _RefillingUnitRegistrationScreenState
                                   Radio(
                                     value: 1,
                                     groupValue: _selectedType,
-                                    onChanged: (int? value) {
+                                    onChanged: (int? value) async {
                                       if (mounted) {
                                         setState(() {
                                           _selectedType = value;
                                         });
+                                        if (value == 1) {
+                                          await _refillingUnitController
+                                              .getRefillingUnitSerialNumber();
+                                          if (_refillingUnitController
+                                                  .serialNumber !=
+                                              null) {
+                                            _serialNumberController.text =
+                                                _refillingUnitController
+                                                    .serialNumber!['serial_no'] ??
+                                                '';
+                                          } else {
+                                            setState(() {
+                                              _serialNumberController.clear();
+                                            });
+                                          }
+                                        }
                                       }
                                     },
                                   ),
                                   Text('Tank'),
                                 ],
                               ),
-                              TextFormField(
-                                controller: _serialNumberController,
-                                decoration: InputDecoration(
-                                  labelText: 'Refilling Unit Serial Number*',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter Serial Number';
-                                  }
-                                  return null;
-                                },
-                              ),
+                              _selectedType == 0
+                                  ? SizedBox.shrink()
+                                  : SizedBox(height: 20),
+                              _selectedType == 1
+                                  ? TextFormField(
+                                    readOnly: true,
+                                    controller: _serialNumberController,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          'Refilling Unit Serial Number*',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter Serial Number';
+                                      }
+                                      return null;
+                                    },
+                                  )
+                                  : SizedBox.shrink(),
                               _selectedType == 1
                                   ? SizedBox.shrink()
                                   : SizedBox(height: 20),

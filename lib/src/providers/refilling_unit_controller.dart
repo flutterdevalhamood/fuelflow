@@ -9,6 +9,7 @@ class RefillingUnitController with ChangeNotifier {
   List<Map<String, dynamic>>? driverData;
   List<Map<String, dynamic>>? productData;
   List<Map<String, dynamic>>? vehicleData;
+  Map<String, dynamic>? serialNumber;
   int? refillUnitId;
   List<Map<String, dynamic>>? refillUnitData;
   bool isLoading = false;
@@ -16,6 +17,8 @@ class RefillingUnitController with ChangeNotifier {
   int currentPage = 1;
   final int totalPages = 10;
   bool hasMore = true;
+  List<Map<String, dynamic>>? customerData;
+  List<Map<String, dynamic>>? refillUnitsData;
 
   Future<void> getRefillUnitData({bool loadMore = false}) async {
     isLoading = true;
@@ -105,6 +108,51 @@ class RefillingUnitController with ChangeNotifier {
         notifyListeners();
       } else {
         print('API call failed: ${RefillUnitdropDownData['Message']}');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+      }
+    }
+  }
+
+  Future<void> getFuelRefillDropdown() async {
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final dropDownData = await restApi.getRefillDropDown('Bearer $token');
+      if (dropDownData['IsSuccess'] == true) {
+        customerData = List<Map<String, dynamic>>.from(
+          dropDownData['Data']['customer'],
+        );
+        refillUnitsData = List<Map<String, dynamic>>.from(
+          dropDownData['Data']['refil_units'],
+        );
+        notifyListeners();
+      } else {
+        print('API call failed: ${dropDownData['Message']}');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+      }
+    }
+  }
+
+  Future<void> getRefillingUnitSerialNumber() async {
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final refillingUnitSerialNumber = await restApi.refillingUnitSerialNumber(
+        token: 'Bearer $token',
+      );
+      if (refillingUnitSerialNumber['IsSuccess'] == true) {
+        serialNumber = refillingUnitSerialNumber['Data'];
+        notifyListeners();
+      } else {
+        print('API call failed: ${refillingUnitSerialNumber['Message']}');
       }
     } catch (e) {
       if (e is DioException) {

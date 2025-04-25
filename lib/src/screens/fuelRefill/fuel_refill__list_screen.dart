@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -280,35 +281,42 @@ class _FuelRefillListScreenState extends State<FuelRefillListScreen> {
                                                   color: Colors.grey,
                                                 ),
                                               ),
-                                              trailing: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                    ),
-                                                    onPressed: () async {
-                                                      await NavigationService()
-                                                          .pushNavigation(
-                                                            Screenroutes
-                                                                .fuelRefillEditScreen,
-                                                            arguments:
-                                                                refillVehicleData[index],
-                                                          );
-                                                    },
-                                                  ),
-                                                  IconButton(
-                                                    icon: Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                    ),
-                                                    onPressed: () async {
-                                                      _deleteRefillData(index);
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
+                                              trailing:
+                                                  AuthRepo.role == "customer"
+                                                      ? SizedBox.shrink()
+                                                      : Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                            onPressed: () async {
+                                                              await NavigationService()
+                                                                  .pushNavigation(
+                                                                    Screenroutes
+                                                                        .fuelRefillEditScreen,
+                                                                    arguments:
+                                                                        refillVehicleData[index],
+                                                                  );
+                                                            },
+                                                          ),
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                            onPressed: () async {
+                                                              _deleteRefillData(
+                                                                index,
+                                                              );
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
                                               onTap:
                                                   () => _refillDetails(
                                                     refillVehicle,

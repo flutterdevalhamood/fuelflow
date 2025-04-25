@@ -65,7 +65,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
             (item) =>
                 item['title'] == 'Vehicles' ||
                 item['title'] == 'Drivers' ||
-                item['title'] == 'Fuel Refill',
+                item['title'] == 'Fuel Refill' ||
+                item['title'] == 'Reports',
           )
           .toList();
     } else if (widget.userRole == "superadmin") {

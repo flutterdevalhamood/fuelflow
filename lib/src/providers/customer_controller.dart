@@ -70,6 +70,7 @@ class CustomerController with ChangeNotifier {
     String? mobile,
     String? secondaryMobile,
     String? email,
+    int? isAdmin,
   ) async {
     try {
       if (token == null) {
@@ -82,6 +83,7 @@ class CustomerController with ChangeNotifier {
         mobile: mobile,
         secondaryMobile: secondaryMobile,
         email: email,
+        isAdmin: isAdmin,
       );
       await getCustomerData();
       return true;

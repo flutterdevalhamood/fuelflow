@@ -233,6 +233,7 @@ class _RestClient implements RestClient {
     String? mobile,
     String? secondaryMobile,
     String? email,
+    int? isAdmin,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -245,6 +246,7 @@ class _RestClient implements RestClient {
       'mobile': mobile,
       'secondary_mobile': secondaryMobile,
       'email': email,
+      'is_admin': isAdmin,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
@@ -1212,6 +1214,29 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/ActivityReport',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> refillingUnitSerialNumber({String? token}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/getRefilingUnitSerialNo',
             queryParameters: queryParameters,
             data: _data,
           )

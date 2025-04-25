@@ -75,6 +75,7 @@ abstract class RestClient {
     @Field("mobile") String? mobile,
     @Field("secondary_mobile") String? secondaryMobile,
     @Field("email") String? email,
+    @Field("is_admin") int? isAdmin,
   });
 
   @POST('/CustomerDelete')
@@ -307,5 +308,10 @@ abstract class RestClient {
     @Field("fromDate") String? fromDate,
     @Field("toDate") String? toDate,
     @Field("action") String? action,
+  });
+
+  @GET('/getRefilingUnitSerialNo')
+  Future<dynamic> refillingUnitSerialNumber({
+    @Header("Authorization") String? token,
   });
 }

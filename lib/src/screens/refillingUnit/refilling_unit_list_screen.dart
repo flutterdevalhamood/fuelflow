@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/refilling_unit_controller.dart';
@@ -27,6 +28,8 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
   late RefillingUnitController _fuelRefillingUnitController;
   final ScrollController _scrollController = ScrollController();
   bool isInitialLoad = true;
+  int? _selectedCustomerId;
+  final TextEditingController _customerController = TextEditingController();
 
   @override
   void initState() {
@@ -43,6 +46,7 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
           isInitialLoad = false;
         });
       });
+      _fuelRefillingUnitController.getFuelRefillDropdown();
     });
   }
 
@@ -147,9 +151,111 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
     }
   }
 
+  void _assignCustomer(
+    Map<String, dynamic> refillUnit,
+    List<Map<String, dynamic>>? customerData,
+  ) {
+    // List<Map<String, dynamic>> customerData =
+    //     _fuelRefillingUnitController.customerData ?? [];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text("Assign Customer"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Select a customer to assign to this refilling unit:"),
+                  SizedBox(height: 16),
+                  DropdownSearch<Map<String, dynamic>>(
+                    popupProps: PopupProps.menu(
+                      showSearchBox: true,
+                      fit: FlexFit.tight,
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          hintText: 'Search Customer Name...',
+                        ),
+                      ),
+                    ),
+                    items: (filter, infiniteScrollProps) => customerData ?? [],
+                    itemAsString: (item) => item['Name'] ?? '',
+                    compareFn: (
+                      Map<String, dynamic> item1,
+                      Map<String, dynamic> item2,
+                    ) {
+                      return item1['id'] ==
+                          item2['id']; // Compare items by their ID
+                    },
+                    onChanged: (Map<String, dynamic>? newValue) async {
+                      if (newValue != null) {
+                        setState(() {
+                          _selectedCustomerId = newValue['id'];
+                          _customerController.text = newValue['Name'];
+                        });
+                      }
+                    },
+                    selectedItem:
+                        _selectedCustomerId != null
+                            ? customerData?.firstWhere(
+                              (customer) =>
+                                  customer['id'] == _selectedCustomerId,
+                              orElse: () => <String, dynamic>{},
+                            )
+                            : null,
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a Customer Name';
+                      }
+                      return null;
+                    },
+                    decoratorProps: DropDownDecoratorProps(
+                      decoration: InputDecoration(
+                        labelText: 'Customer *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Cancel"),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (_selectedCustomerId != null) {
+                      // Call your controller method to assign the customer
+                      // await _fuelRefillingUnitController
+                      //     .assignCustomerToRefillUnit(
+                      //       refillUnit['id'],
+                      //       _selectedCustomerId!,
+                      //     );
+                      Navigator.pop(context);
+                      showSuccessSnack('Customer assigned successfully');
+                      // Refresh the list
+                      _fuelRefillingUnitController.getRefillUnitData();
+                    } else {
+                      showErrorSnack('Please select a customer');
+                    }
+                  },
+                  child: Text("Assign", style: TextStyle(color: Colors.blue)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final watch = context.watch<RefillingUnitController>();
+
     final refillUnitData =
         watch.refillUnitData != null
             ? (watch.refillUnitData ?? [])
@@ -163,6 +269,8 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
     print('refillUnitData $refillUnitData');
     return Consumer<RefillingUnitController>(
       builder: (context, refillUnitController, child) {
+        final customerData = refillUnitController.customerData;
+        print('customerdata $customerData');
         return Scaffold(
           appBar: AppBar(title: Text('Refilling Unit List')),
           body:
@@ -245,16 +353,45 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            subtitle: Text(
-                                              refillUnit['code'] ?? 'No Driver',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
+                                            // subtitle: Row(
+                                            //   children: [
+                                            //     Icon(
+                                            //       Icons.person,
+                                            //       size: 16,
+                                            //       color: Colors.blue,
+                                            //     ),
+                                            //     SizedBox(width: 4),
+                                            //     Expanded(
+                                            //       child: Text(
+                                            //         "Customer: ${refillUnit['customer_name']}",
+                                            //         style: TextStyle(
+                                            //           fontSize: 14,
+                                            //           color:
+                                            //               Colors.green.shade700,
+                                            //           fontWeight:
+                                            //               FontWeight.w500,
+                                            //         ),
+                                            //         overflow:
+                                            //             TextOverflow.ellipsis,
+                                            //       ),
+                                            //     ),
+                                            //   ],
+                                            // ),
                                             trailing: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
+                                                IconButton(
+                                                  icon: Icon(
+                                                    Icons.assignment_add,
+                                                    color: Colors.green,
+                                                  ),
+                                                  tooltip: 'Assign Customer',
+                                                  onPressed:
+                                                      () => _assignCustomer(
+                                                        refillUnit,
+                                                        customerData,
+                                                      ),
+                                                ),
                                                 IconButton(
                                                   icon: Icon(
                                                     Icons.edit,

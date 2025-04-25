@@ -43,6 +43,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   bool _isRegistrationComplete = false; // Track registration completion
   String? _vehicleId;
   bool _isSubmitClicked = false;
+  bool _isUploading = false;
+  int? _selectedUserType = 0;
 
   @override
   void initState() {
@@ -97,34 +99,56 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   }
 
   Future<void> _uploadImages() async {
+    if (_isUploading) return;
+    setState(() {
+      _isUploading = true;
+    });
     final _vehicleId = _vehicleController.vehicleData?[0]['id'];
     print('aaaaa $_vehicleId');
     if (_imageFiles == null || _imageFiles!.isEmpty) {
       print('No images selected');
+      setState(() {
+        _isUploading = false;
+      });
+      showErrorSnack('Please select at least one image');
       return;
     }
-
-    List<MultipartFile> multipartFiles = [];
-    for (var file in _imageFiles!) {
-      multipartFiles.add(await MultipartFile.fromFile(file.path));
-    }
-
-    if (_vehicleId != null) {
-      bool isSuccess = await _vehicleController.uploadVehiclePictures(
-        multipartFiles,
-        _vehicleId.toString(),
-      );
-      if (isSuccess) {
-        showSuccessSnack('Image uploaded successfully');
-        NavigationService().pushAndRemoveUntilNavigation(
-          Screenroutes.vehicleList,
-          removeUntilPageName: Screenroutes.vehicleList,
-        );
-      } else {
-        showErrorSnack('Error uploading image');
+    try {
+      List<MultipartFile> multipartFiles = [];
+      for (var file in _imageFiles!) {
+        multipartFiles.add(await MultipartFile.fromFile(file.path));
       }
-    } else {
-      print('Vehicle ID is null');
+
+      if (_vehicleId != null) {
+        bool isSuccess = await _vehicleController.uploadVehiclePictures(
+          multipartFiles,
+          _vehicleId.toString(),
+        );
+        setState(() {
+          _isUploading = false;
+        });
+        if (isSuccess) {
+          showSuccessSnack('Image uploaded successfully');
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.vehicleList,
+            removeUntilPageName: Screenroutes.vehicleList,
+          );
+        } else {
+          showErrorSnack('Error uploading image');
+        }
+      } else {
+        setState(() {
+          _isUploading = false;
+        });
+        print('Vehicle ID is null');
+        showErrorSnack('Vehicle ID not found');
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      print('Error uploading images: $e');
+      showErrorSnack('Error uploading images');
     }
   }
 
@@ -576,7 +600,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                           padding: EdgeInsets.all(16.0),
                           child: ElevatedButton(
                             onPressed:
-                                _isSubmitClicked
+                                _isSubmitClicked || _isUploading
                                     ? null
                                     : () async {
                                       !_isRegistrationComplete
@@ -593,15 +617,31 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               ),
                               minimumSize: Size(double.infinity, 50),
                             ),
-                            child: Text(
-                              !_isRegistrationComplete ? 'Save' : 'Save',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge!.copyWith(
-                                color: Appcolors.textWhiteColor(context),
-                                fontSize: AppWidgetSizes.fontSize18,
-                              ),
-                            ),
+                            child:
+                                _isSubmitClicked || _isUploading
+                                    ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : Text(
+                                      !_isRegistrationComplete
+                                          ? 'Save'
+                                          : 'Save',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge!.copyWith(
+                                        color: Appcolors.textWhiteColor(
+                                          context,
+                                        ),
+                                        fontSize: AppWidgetSizes.fontSize18,
+                                      ),
+                                    ),
                           ),
                         ),
                       ),
