@@ -71,6 +71,17 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           .toList();
     } else if (widget.userRole == "superadmin") {
       return allGridItems;
+    } else if (widget.userRole == "operator") {
+      return allGridItems
+          .where(
+            (item) =>
+                item['title'] == 'Vehicles' ||
+                item['title'] == 'Drivers' ||
+                item['title'] == 'Fuel Refill' ||
+                item['title'] == 'Refilling Unit' ||
+                item['title'] == 'Reports',
+          )
+          .toList();
     }
     return [];
   }
