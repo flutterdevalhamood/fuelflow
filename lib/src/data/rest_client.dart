@@ -314,4 +314,18 @@ abstract class RestClient {
   Future<dynamic> refillingUnitSerialNumber({
     @Header("Authorization") String? token,
   });
+
+  @POST('/SaveAssignedRefilingUnit')
+  Future<dynamic> assignRefillingUnit({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("customer_id") int? customerId,
+  });
+
+  @POST('/ReleaseRefilingUnit')
+  Future<dynamic> releaseRefillingUnit({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("releaseDescription") String? releaseDescription,
+  });
 }

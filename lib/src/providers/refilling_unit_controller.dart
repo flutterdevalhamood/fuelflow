@@ -256,7 +256,6 @@ class RefillingUnitController with ChangeNotifier {
         id: id,
         deleteDescription: descriptionText,
       );
-      await getRefillUnitData();
     } catch (e) {
       if (e is DioException) {
         print('Dio Exception $e');
@@ -309,5 +308,78 @@ class RefillingUnitController with ChangeNotifier {
         print('Dio Exception $e');
       }
     }
+  }
+
+  Future<bool> assignRefillingUnit(int? id, int? customerId) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final response = await restApi.assignRefillingUnit(
+        token: 'Bearer $token',
+        id: id,
+        customerId: customerId,
+      );
+      if (response is Map<String, dynamic>) {
+        if (response['IsSuccess'] == true) {
+          print('Assigned successfully');
+          getRefillUnitData();
+          return true;
+        } else {
+          print('Assignment failed: ${response['Message']}');
+          return false;
+        }
+      } else {
+        print('Unexpected API response format');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print("Dio Exception $e");
+      }
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+    return false;
+  }
+
+  Future<bool> releaseRefillingUnit(int? id, String? description) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      if (token == null) {
+        throw Exception("No token found");
+      }
+      final response = await restApi.releaseRefillingUnit(
+        token: 'Bearer $token',
+        id: id,
+        releaseDescription: description,
+      );
+
+      if (response is Map<String, dynamic>) {
+        if (response['IsSuccess'] == true) {
+          print('Released successfully');
+          getRefillUnitData();
+          return true;
+        } else {
+          print('Release failed: ${response['Message']}');
+          return false;
+        }
+      } else {
+        print('Unexpected API response format');
+      }
+    } catch (e) {
+      if (e is DioException) {
+        print("Dio Exception $e");
+      }
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+    return false;
   }
 }

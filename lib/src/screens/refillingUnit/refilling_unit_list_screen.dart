@@ -156,9 +156,6 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
     Map<String, dynamic> refillUnit,
     List<Map<String, dynamic>>? customerData,
   ) {
-    // List<Map<String, dynamic>> customerData =
-    //     _fuelRefillingUnitController.customerData ?? [];
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -229,16 +226,17 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                 TextButton(
                   onPressed: () async {
                     if (_selectedCustomerId != null) {
-                      // Call your controller method to assign the customer
-                      // await _fuelRefillingUnitController
-                      //     .assignCustomerToRefillUnit(
-                      //       refillUnit['id'],
-                      //       _selectedCustomerId!,
-                      //     );
+                      bool isSuccess = await _fuelRefillingUnitController
+                          .assignRefillingUnit(
+                            refillUnit['id'],
+                            _selectedCustomerId!,
+                          );
                       Navigator.pop(context);
-                      showSuccessSnack('Customer assigned successfully');
-                      // Refresh the list
-                      _fuelRefillingUnitController.getRefillUnitData();
+                      if (isSuccess) {
+                        showSuccessSnack('Customer assigned successfully');
+                      } else {
+                        showErrorSnack('Error Assigning Customer');
+                      }
                     } else {
                       showErrorSnack('Please select a customer');
                     }
@@ -248,6 +246,74 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _releaseCustomer(Map<String, dynamic> refillUnit) {
+    final TextEditingController _descriptionController =
+        TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Release Customer"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Are you sure you want to release ${refillUnit['assigned_customer']?['Name']} from this refilling unit?",
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Reason for Release',
+                  hintText: 'Enter the reason for releasing this customer',
+                  hintStyle: TextStyle(color: Appcolors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (_descriptionController.text.trim().isEmpty) {
+                  showErrorSnack('Please enter a reason for release');
+                  return;
+                }
+
+                // Call the controller method to release the customer with description
+                bool isSuccess = await _fuelRefillingUnitController
+                    .releaseRefillingUnit(
+                      refillUnit['id'],
+                      _descriptionController.text.trim(),
+                    );
+                Navigator.pop(context);
+                if (isSuccess) {
+                  showSuccessSnack('Customer released successfully');
+                } else {
+                  showErrorSnack('Error releasing Customer');
+                }
+              },
+              child: Text("Release", style: TextStyle(color: Colors.red)),
+            ),
+          ],
         );
       },
     );
@@ -339,96 +405,180 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                               10,
                                             ),
                                           ),
-                                          child: ListTile(
-                                            contentPadding: EdgeInsets.all(16),
-                                            leading: Icon(
-                                              Icons.local_gas_station,
-                                              size: 30,
-                                              color: Colors.blue,
-                                            ),
-                                            title: Text(
-                                              refillUnit['serial_no'] ??
-                                                  'Unknown',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            // subtitle: Row(
-                                            //   children: [
-                                            //     Icon(
-                                            //       Icons.person,
-                                            //       size: 16,
-                                            //       color: Colors.blue,
-                                            //     ),
-                                            //     SizedBox(width: 4),
-                                            //     Expanded(
-                                            //       child: Text(
-                                            //         "Customer: ${refillUnit['customer_name']}",
-                                            //         style: TextStyle(
-                                            //           fontSize: 14,
-                                            //           color:
-                                            //               Colors.green.shade700,
-                                            //           fontWeight:
-                                            //               FontWeight.w500,
-                                            //         ),
-                                            //         overflow:
-                                            //             TextOverflow.ellipsis,
-                                            //       ),
-                                            //     ),
-                                            //   ],
-                                            // ),
-                                            trailing: Row(
-                                              mainAxisSize: MainAxisSize.min,
+                                          // Replace the existing ListTile with this updated version
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(12.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                AuthRepo.role == "operator" ||
-                                                        AuthRepo.role ==
-                                                            "customer"
-                                                    ? SizedBox.shrink()
-                                                    : IconButton(
-                                                      icon: Icon(
-                                                        Icons.assignment_add,
-                                                        color: Colors.green,
-                                                      ),
-                                                      tooltip:
-                                                          'Assign Customer',
-                                                      onPressed:
-                                                          () => _assignCustomer(
-                                                            refillUnit,
-                                                            customerData,
-                                                          ),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.local_gas_station,
+                                                      size: 30,
+                                                      color: Colors.blue,
                                                     ),
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.edit,
-                                                    color: Colors.blue,
-                                                  ),
-                                                  onPressed: () async {
-                                                    await NavigationService()
-                                                        .pushNavigation(
-                                                          Screenroutes
-                                                              .refillingUnitUpdateScreen,
-                                                          arguments:
-                                                              refillUnitData[index],
-                                                        );
-                                                  },
+                                                    SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Text(
+                                                        refillUnit['serial_no'] ??
+                                                            'Unknown',
+                                                        style: TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        // Show either Assign or Release icon based on assignment status
+                                                        if (AuthRepo.role !=
+                                                                "operator" &&
+                                                            AuthRepo.role !=
+                                                                "customer")
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              refillUnit['assigned_customer'] !=
+                                                                      null
+                                                                  ? Icons
+                                                                      .link_off
+                                                                  : Icons
+                                                                      .assignment_add,
+                                                              color:
+                                                                  refillUnit['assigned_customer'] !=
+                                                                          null
+                                                                      ? Colors
+                                                                          .red
+                                                                      : Colors
+                                                                          .green,
+                                                            ),
+                                                            tooltip:
+                                                                refillUnit['assigned_customer'] !=
+                                                                        null
+                                                                    ? 'Release Customer'
+                                                                    : 'Assign Customer',
+                                                            onPressed: () {
+                                                              if (refillUnit['assigned_customer'] !=
+                                                                  null) {
+                                                                // Handle releasing customer
+                                                                _releaseCustomer(
+                                                                  refillUnit,
+                                                                );
+                                                              } else {
+                                                                // Handle assigning customer
+                                                                _assignCustomer(
+                                                                  refillUnit,
+                                                                  customerData,
+                                                                );
+                                                              }
+                                                            },
+                                                          ),
+                                                        IconButton(
+                                                          icon: Icon(
+                                                            Icons.edit,
+                                                            color: Colors.blue,
+                                                          ),
+                                                          onPressed: () async {
+                                                            await NavigationService()
+                                                                .pushNavigation(
+                                                                  Screenroutes
+                                                                      .refillingUnitUpdateScreen,
+                                                                  arguments:
+                                                                      refillUnitData[index],
+                                                                );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
                                                 ),
-                                                // IconButton(
-                                                //   icon: Icon(
-                                                //     Icons.delete,
-                                                //     color: Colors.red,
-                                                //   ),
-                                                //   onPressed: () async {
-                                                //     _deleteRefillUnitData(
-                                                //       index,
-                                                //     );
-                                                //   },
-                                                // ),
+                                                SizedBox(height: 12),
+                                                // Assignment information in a styled container
+                                                Container(
+                                                  width: double.infinity,
+                                                  padding: EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                    horizontal: 12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        refillUnit['assigned_customer'] !=
+                                                                null
+                                                            ? Colors.green
+                                                                .withOpacity(
+                                                                  0.1,
+                                                                )
+                                                            : Colors.grey
+                                                                .withOpacity(
+                                                                  0.1,
+                                                                ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    border: Border.all(
+                                                      color:
+                                                          refillUnit['assigned_customer'] !=
+                                                                  null
+                                                              ? Colors
+                                                                  .green
+                                                                  .shade200
+                                                              : Colors
+                                                                  .grey
+                                                                  .shade300,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.person,
+                                                        size: 16,
+                                                        color:
+                                                            refillUnit['assigned_customer'] !=
+                                                                    null
+                                                                ? Colors
+                                                                    .green
+                                                                    .shade700
+                                                                : Colors
+                                                                    .grey
+                                                                    .shade600,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          refillUnit['assigned_customer'] !=
+                                                                  null
+                                                              ? "Assigned To: ${refillUnit['assigned_customer']?['Name']}"
+                                                              : "Not Assigned",
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            color:
+                                                                refillUnit['assigned_customer'] !=
+                                                                        null
+                                                                    ? Colors
+                                                                        .green
+                                                                        .shade700
+                                                                    : Colors
+                                                                        .grey
+                                                                        .shade700,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ],
                                             ),
-                                            onTap:
-                                                () =>
-                                                    _refillDetails(refillUnit),
                                           ),
                                         ),
                                       );
