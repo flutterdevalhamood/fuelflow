@@ -328,4 +328,24 @@ abstract class RestClient {
     @Field("id") int? id,
     @Field("releaseDescription") String? releaseDescription,
   });
+
+  @GET('/StorageRefil/paginate/{page}/{limit}')
+  Future<dynamic> getStorageUnitData(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/StorageRefil')
+  Future<dynamic> postStorageUnitData({
+    @Header("Authorization") String? token,
+    @Part(name: "refiling_unit_id") int? id,
+    @Part(name: "driver_id") int? driverId,
+    @Part(name: "vehicle_id") int? vehicleId,
+    @Part(name: "product_id") int? productId,
+    @Part(name: "qty") int? qty,
+    @Part(name: "unit_id") int? unitId,
+    @Part(name: "description") String? description,
+    @Part(name: 'document[]') List<MultipartFile>? files,
+  });
 }

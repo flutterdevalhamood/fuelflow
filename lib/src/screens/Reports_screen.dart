@@ -486,4 +486,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ],
     );
   }
+
+  Widget _buildInventoryReportForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Inventory Report Options',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        // Add additional inventory-specific fields here if needed
+        const Text(
+          'This report will show the current inventory status across all items.',
+        ),
+      ],
+    );
+  }
 }

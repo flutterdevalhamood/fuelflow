@@ -50,6 +50,12 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'route': Screenroutes.fuelRefillListScreen,
         'color': Colors.green,
       },
+      {
+        'title': 'Storage Unit',
+        'icon': Icons.storage,
+        'route': Screenroutes.storageUnitListScreen,
+        'color': Colors.lime,
+      },
 
       {
         'title': 'Reports',

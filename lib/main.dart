@@ -7,6 +7,7 @@ import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/providers/reports_controller.dart';
+import 'package:sample/src/providers/storage_unit_controller.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/providers/vehicle_provider.dart';
 import 'package:sample/src/util/shared_pref.dart';
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => FuelRefillController()),
         ChangeNotifierProvider(create: (context) => RefillingUnitController()),
         ChangeNotifierProvider(create: (context) => ReportsController()),
+        ChangeNotifierProvider(create: (context) => StorageUnitController()),
       ],
       child: const BaseScreen(),
     ),
