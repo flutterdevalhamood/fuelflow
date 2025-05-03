@@ -257,7 +257,9 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                               ),
                                             ),
                                             trailing:
-                                                AuthRepo.role == "customer"
+                                                AuthRepo.role == "customer" ||
+                                                        AuthRepo.role ==
+                                                            "operator"
                                                     ? SizedBox.shrink()
                                                     : Row(
                                                       mainAxisSize:

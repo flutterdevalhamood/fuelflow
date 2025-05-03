@@ -4,6 +4,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/refilling_unit_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/refillingUnit/refilling_unit_registration_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -380,18 +381,23 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                             trailing: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.assignment_add,
-                                                    color: Colors.green,
-                                                  ),
-                                                  tooltip: 'Assign Customer',
-                                                  onPressed:
-                                                      () => _assignCustomer(
-                                                        refillUnit,
-                                                        customerData,
+                                                AuthRepo.role == "operator" ||
+                                                        AuthRepo.role ==
+                                                            "customer"
+                                                    ? SizedBox.shrink()
+                                                    : IconButton(
+                                                      icon: Icon(
+                                                        Icons.assignment_add,
+                                                        color: Colors.green,
                                                       ),
-                                                ),
+                                                      tooltip:
+                                                          'Assign Customer',
+                                                      onPressed:
+                                                          () => _assignCustomer(
+                                                            refillUnit,
+                                                            customerData,
+                                                          ),
+                                                    ),
                                                 IconButton(
                                                   icon: Icon(
                                                     Icons.edit,

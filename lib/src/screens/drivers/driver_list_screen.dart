@@ -241,7 +241,9 @@ class _DriverListScreenState extends State<DriverListScreen> {
                                                 ),
                                               ),
                                               trailing:
-                                                  AuthRepo.role == "customer"
+                                                  AuthRepo.role == "customer" ||
+                                                          AuthRepo.role ==
+                                                              "operator"
                                                       ? SizedBox.shrink()
                                                       : Row(
                                                         mainAxisSize:
