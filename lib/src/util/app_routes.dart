@@ -24,6 +24,7 @@ import 'package:sample/src/screens/refillingUnit/refilling_unit_registration_scr
 import 'package:sample/src/screens/refillingUnit/refilling_unit_update_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_detail_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_list_screen.dart';
+import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
 
 import '../constants/string_constants.dart';
 import '../screens/customers/customer_edit_screen.dart';
@@ -376,6 +377,17 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return StorageUnitDetailScreen(data: data ?? {});
+          },
+        );
+
+      case Screenroutes.storageUnitDataScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.storageUnitDataScreen,
+          ),
+          builder: (BuildContext context) {
+            return StorageUnitRegistrationScreen(storageUnitData: data ?? {});
           },
         );
 

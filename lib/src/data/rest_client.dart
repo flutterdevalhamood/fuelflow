@@ -310,6 +310,14 @@ abstract class RestClient {
     @Field("action") String? action,
   });
 
+  @POST('/InventoryReport')
+  Future<dynamic> postInventoryReportsData({
+    @Header("Authorization") String? token,
+    @Field("fromDate") String? fromDate,
+    @Field("toDate") String? toDate,
+    @Field("refiling_unit_id") int? refillingUnitId,
+  });
+
   @GET('/getRefilingUnitSerialNo')
   Future<dynamic> refillingUnitSerialNumber({
     @Header("Authorization") String? token,

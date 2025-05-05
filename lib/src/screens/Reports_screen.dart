@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/customer_controller.dart';
+import 'package:sample/src/providers/refilling_unit_controller.dart';
 import 'package:sample/src/providers/reports_controller.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -21,14 +22,16 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   ReportsController? _reportsController;
   CustomerController? _customerController;
+  RefillingUnitController? _refillingUnitController;
   DateTime? _startDate;
   DateTime? _endDate;
   String? _selectedCustomerId;
+  int? _selectedRefillingUnitId;
   bool _isLoading = false;
   bool _showWebView = false;
   late WebViewController _webViewController;
   String? _reportUrl;
-  bool _isActivityReport = false;
+  String _reportType = 'refill'; // 'refill', 'activity', or 'inventory'
   String? _selectedAction;
 
   @override
@@ -88,11 +91,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
       context,
       listen: false,
     );
-    await _loadCustomers();
+    _refillingUnitController = Provider.of<RefillingUnitController>(
+      context,
+      listen: false,
+    );
+    await _loadData();
   }
 
-  Future<void> _loadCustomers() async {
+  Future<void> _loadData() async {
     await _customerController?.getCustomerData();
+    await _refillingUnitController?.refillUnitsData;
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -122,7 +130,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _fetchReportData() async {
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select both start and end dates')),
+        const SnackBar(content: Text('Please select both start and end dates')),
       );
       return;
     }
@@ -137,39 +145,69 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final toDate = DateFormat('yyyy-MM-dd').format(_endDate!);
       bool success = false;
 
-      if (_isActivityReport) {
-        // Fetch activity report
-        success =
-            await _reportsController?.postActivityReportsData(
-              fromDate,
-              toDate,
-              _selectedAction == 'all' ? 'all' : _selectedAction,
-            ) ??
-            false;
+      switch (_reportType) {
+        case 'activity':
+          // Fetch activity report
+          success =
+              await _reportsController?.postActivityReportsData(
+                fromDate,
+                toDate,
+                _selectedAction == 'all' ? 'all' : _selectedAction,
+              ) ??
+              false;
 
-        if (success && _reportsController?.activityReportUrl != null) {
-          _reportUrl = _reportsController!.activityReportUrl!;
-        }
-      } else {
-        // Fetch refill report
-        final customerId =
-            _selectedCustomerId == 'all'
-                ? 'all'
-                : _selectedCustomerId != null
-                ? int.tryParse(_selectedCustomerId!)
-                : null;
+          if (success && _reportsController?.activityReportUrl != null) {
+            _reportUrl = _reportsController!.activityReportUrl!;
+          }
+          break;
 
-        success =
-            await _reportsController?.postReportsData(
-              fromDate,
-              toDate,
-              customerId.toString(),
-            ) ??
-            false;
+        case 'inventory':
+          // Fetch inventory report
+          if (_selectedRefillingUnitId == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please select a refilling unit')),
+            );
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
 
-        if (success && _reportsController?.reportUrl != null) {
-          _reportUrl = _reportsController!.reportUrl!;
-        }
+          success =
+              await _reportsController?.postInventoryReportsData(
+                fromDate,
+                toDate,
+                _selectedRefillingUnitId,
+              ) ??
+              false;
+
+          if (success && _reportsController?.inventoryReportUrl != null) {
+            _reportUrl = _reportsController!.inventoryReportUrl!;
+          }
+          break;
+
+        case 'refill':
+        default:
+          // Fetch refill report
+          final customerId =
+              _selectedCustomerId == 'all'
+                  ? 'all'
+                  : _selectedCustomerId != null
+                  ? int.tryParse(_selectedCustomerId!)
+                  : null;
+
+          success =
+              await _reportsController?.postReportsData(
+                fromDate,
+                toDate,
+                customerId.toString(),
+              ) ??
+              false;
+
+          if (success && _reportsController?.reportUrl != null) {
+            _reportUrl = _reportsController!.reportUrl!;
+          }
+          break;
       }
 
       if (success && _reportUrl != null) {
@@ -193,7 +231,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('No Report Available')));
+        ).showSnackBar(const SnackBar(content: Text('No Report Available')));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -215,44 +253,62 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final customerData = _customerController?.customerData;
+    final refillingUnitData = _refillingUnitController?.refillUnitsData;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isActivityReport ? 'Activity Report' : 'Refill Report'),
+        title: Text(_getReportTitle()),
         actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _fetchReportData),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchReportData,
+          ),
         ],
       ),
       body: Column(
         children: [
           // Filter Section
-          if (!_showWebView) _buildFilterSection(customerData),
+          if (!_showWebView)
+            _buildFilterSection(customerData, refillingUnitData),
           if (_showWebView)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back),
                     onPressed: _hideWebView,
                   ),
-                  Text('Report', style: TextStyle(fontSize: 18)),
+                  Text('Report', style: const TextStyle(fontSize: 18)),
                 ],
               ),
             ),
-          Divider(height: 1),
+          const Divider(height: 1),
 
           // Report Data Section
           Expanded(
             child:
                 _isLoading
-                    ? Center(child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator())
                     : _showWebView
                     ? _buildWebView()
-                    : SizedBox.shrink(),
+                    : const SizedBox.shrink(),
           ),
         ],
       ),
     );
+  }
+
+  String _getReportTitle() {
+    switch (_reportType) {
+      case 'activity':
+        return 'Activity Report';
+      case 'inventory':
+        return 'Inventory Report';
+      case 'refill':
+      default:
+        return 'Refill Report';
+    }
   }
 
   Widget _buildWebView() {
@@ -265,6 +321,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         );
       },
     );
+    // Alternative WebView implementation if needed
     // return Stack(
     //   children: [
     //     WebViewWidget(controller: _webViewController),
@@ -273,29 +330,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
     // );
   }
 
-  Widget _buildFilterSection(List<Map<String, dynamic>>? customerData) {
+  Widget _buildFilterSection(
+    List<Map<String, dynamic>>? customerData,
+    List<Map<String, dynamic>>? refillingUnitData,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Filter Report',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Start Date', style: TextStyle(fontSize: 14)),
-                    SizedBox(height: 4),
+                    const Text('Start Date', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: () => _selectDate(context, true),
                       child: Container(
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 16,
                         ),
@@ -313,7 +373,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   ).format(_startDate!)
                                   : '',
                             ),
-                            Icon(Icons.calendar_today, size: 20),
+                            const Icon(Icons.calendar_today, size: 20),
                           ],
                         ),
                       ),
@@ -321,17 +381,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   ],
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('End Date', style: TextStyle(fontSize: 14)),
-                    SizedBox(height: 4),
+                    const Text('End Date', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 4),
                     InkWell(
                       onTap: () => _selectDate(context, false),
                       child: Container(
-                        padding: EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           vertical: 12,
                           horizontal: 16,
                         ),
@@ -347,7 +407,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   ? DateFormat('dd MMM yyyy').format(_endDate!)
                                   : '',
                             ),
-                            Icon(Icons.calendar_today, size: 20),
+                            const Icon(Icons.calendar_today, size: 20),
                           ],
                         ),
                       ),
@@ -357,39 +417,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
             ],
           ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Refill Report'),
-                  selected: !_isActivityReport,
-                  onSelected: (selected) {
-                    setState(() {
-                      _isActivityReport = !selected;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Activity Report'),
-                  selected: _isActivityReport,
-                  onSelected: (selected) {
-                    setState(() {
-                      _isActivityReport = selected;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 16),
+          _buildReportTypeSelector(),
           const SizedBox(height: 16),
           // Dynamic form based on report type
-          _isActivityReport
-              ? _buildActivityReportForm()
-              : _buildRefillReportForm(customerData),
+          if (_reportType == 'refill')
+            _buildRefillReportForm(customerData)
+          else if (_reportType == 'activity')
+            _buildActivityReportForm()
+          else if (_reportType == 'inventory')
+            _buildInventoryReportForm(refillingUnitData),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -400,6 +437,51 @@ class _ReportsScreenState extends State<ReportsScreen> {
               ),
               child: const Text('Generate Report'),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportTypeSelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: const Text('Refill Report'),
+            selected: _reportType == 'refill',
+            onSelected: (selected) {
+              if (selected) {
+                setState(() {
+                  _reportType = 'refill';
+                });
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: const Text('Activity Report'),
+            selected: _reportType == 'activity',
+            onSelected: (selected) {
+              if (selected) {
+                setState(() {
+                  _reportType = 'activity';
+                });
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: const Text('Inventory Report'),
+            selected: _reportType == 'inventory',
+            onSelected: (selected) {
+              if (selected) {
+                setState(() {
+                  _reportType = 'inventory';
+                });
+              }
+            },
           ),
         ],
       ),
@@ -420,11 +502,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           popupProps: PopupProps.menu(
             showSearchBox: true,
             fit: FlexFit.tight,
-            searchFieldProps: TextFieldProps(
+            searchFieldProps: const TextFieldProps(
               decoration: InputDecoration(hintText: 'Pick Customer'),
             ),
           ),
-          items: (filter, infiniteScrollProps) => completeCustomerData ?? [],
+          items: (filter, infiniteScrollProps) => completeCustomerData,
           itemAsString: (item) => item['Name'] ?? '',
           compareFn:
               (item1, item2) =>
@@ -463,12 +545,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         const SizedBox(height: 4),
         DropdownButtonFormField<String>(
           value: _selectedAction,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           items: const [
             DropdownMenuItem<String>(value: null, child: Text('Select Action')),
@@ -487,18 +566,51 @@ class _ReportsScreenState extends State<ReportsScreen> {
     );
   }
 
-  Widget _buildInventoryReportForm() {
+  Widget _buildInventoryReportForm(
+    List<Map<String, dynamic>>? refillingUnitData,
+  ) {
+    final List<Map<String, dynamic>> completeRefillingUnitData = [
+      ...?refillingUnitData,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Inventory Report Options',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        // Add additional inventory-specific fields here if needed
-        const Text(
-          'This report will show the current inventory status across all items.',
+        const Text('Refilling Unit', style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 4),
+        DropdownSearch<Map<String, dynamic>>(
+          popupProps: PopupProps.menu(
+            showSearchBox: true,
+            fit: FlexFit.tight,
+            searchFieldProps: const TextFieldProps(
+              decoration: InputDecoration(hintText: 'Pick Refilling Unit'),
+            ),
+          ),
+          items: (filter, infiniteScrollProps) => completeRefillingUnitData,
+          itemAsString: (item) => item['serial_no'] ?? '',
+          compareFn:
+              (item1, item2) =>
+                  item1['id'].toString() == item2['id'].toString(),
+          onChanged: (Map<String, dynamic>? newValue) async {
+            if (newValue != null) {
+              setState(() {
+                _selectedRefillingUnitId = newValue['id'] as int;
+              });
+            }
+          },
+          selectedItem:
+              _selectedRefillingUnitId != null
+                  ? completeRefillingUnitData.firstWhere(
+                    (unit) => unit['id'] == _selectedRefillingUnitId,
+                    orElse: () => {'id': null, 'Name': 'Select Refilling Unit'},
+                  )
+                  : {'id': null, 'Name': 'Select Refilling Unit'},
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a Refilling Unit';
+            }
+            return null;
+          },
         ),
       ],
     );

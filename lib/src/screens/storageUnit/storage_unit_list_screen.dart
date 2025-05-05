@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/storage_unit_controller.dart';
-import 'package:sample/src/screens/refillingUnit/refilling_unit_registration_screen.dart';
+import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/snack.dart';
@@ -144,7 +144,7 @@ class _StorageUnitListScreenState extends State<StorageUnitListScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const RefillingUnitRegistrationScreen(),
+                  builder: (context) => const StorageUnitRegistrationScreen(),
                 ),
               ).then((_) => _storageUnitController.getStorageUnitData());
             },

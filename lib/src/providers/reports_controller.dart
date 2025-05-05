@@ -8,6 +8,7 @@ class ReportsController with ChangeNotifier {
   final token = AuthRepo.token;
   String? reportUrl;
   String? activityReportUrl;
+  String? inventoryReportUrl;
 
   Future<bool> postReportsData(
     String? fromDate,
@@ -65,6 +66,40 @@ class ReportsController with ChangeNotifier {
         return true;
       } else {
         print('Fetch reports data failed: ${activityReportsData['Message']}');
+        return false;
+      }
+    } catch (e) {
+      print('Exception: $e');
+      if (e is DioException) {
+        // Handle Dio-specific errors
+        print('Dio error: ${e.message}');
+      }
+      return false;
+    }
+  }
+
+  Future<bool> postInventoryReportsData(
+    String? fromDate,
+    String? toDate,
+    int? refillingUnitId,
+  ) async {
+    try {
+      if (token == null) {
+        throw Exception("No Token Found");
+      }
+      final inventoryReportsData = await restApi.postInventoryReportsData(
+        token: 'Bearer $token',
+        fromDate: fromDate,
+        toDate: toDate,
+        refillingUnitId: refillingUnitId,
+      );
+      if (inventoryReportsData['IsSuccess'] == true) {
+        inventoryReportUrl = inventoryReportsData['Data']?['url'];
+        notifyListeners();
+        print('inventoryReportUrl $inventoryReportUrl');
+        return true;
+      } else {
+        print('Fetch reports data failed: ${inventoryReportsData['Message']}');
         return false;
       }
     } catch (e) {
