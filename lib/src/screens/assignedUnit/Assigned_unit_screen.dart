@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/assigned_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
+import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
+import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/util/app_routes.dart';
 
 class AssignedRefillingUnitScreen extends StatefulWidget {
   const AssignedRefillingUnitScreen({super.key});
@@ -55,18 +58,59 @@ class _AssignedRefillingUnitScreenState
                 colors: [Colors.blue.shade50, Colors.white],
               ),
             ),
-            child: RefreshIndicator(
-              onRefresh: () async {
-                await controller.getAssignedForCustomer();
-              },
-              child: ListView.builder(
-                padding: EdgeInsets.all(16),
-                itemCount: controller.assignedUnits!.length,
-                itemBuilder: (context, index) {
-                  final unit = controller.assignedUnits![index];
-                  return _buildUnitCard(unit);
-                },
-              ),
+            child: Stack(
+              children: [
+                RefreshIndicator(
+                  onRefresh: () async {
+                    await controller.getAssignedForCustomer();
+                  },
+                  child: ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    // Add padding at the bottom to ensure content is not hidden by the button
+                    itemCount: controller.assignedUnits!.length,
+                    itemBuilder: (context, index) {
+                      final unit = controller.assignedUnits![index];
+                      return _buildUnitCard(context, unit);
+                    },
+                  ),
+                ),
+                // Position the "View Refill Report" button at the bottom
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: Offset(0, -3),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: Icon(Icons.history),
+                      label: Text('View Refill Report'),
+                      onPressed: () {
+                        NavigationService().pushNavigation(
+                          Screenroutes.reportsScreen,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -113,7 +157,7 @@ class _AssignedRefillingUnitScreenState
     );
   }
 
-  Widget _buildUnitCard(Map<String, dynamic> unit) {
+  Widget _buildUnitCard(BuildContext context, Map<String, dynamic> unit) {
     final productName = unit['product']?['Name'] ?? 'N/A';
     final serialNo = unit['serial_no'] ?? 'Unknown';
     final capacityValue = unit['capacity'] ?? '0';
@@ -228,11 +272,18 @@ class _AssignedRefillingUnitScreenState
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    icon: Icon(Icons.history),
-                    label: Text('View Refill History'),
+                    icon: Icon(Icons.visibility),
+                    label: Text('View Unit Details'),
                     onPressed: () {
-                      // Navigate to refill history screen
-                      // TODO: Implement navigation to refill history filtered by this unit
+                      // Navigate to the detail screen with the specific unit data
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  AssignedUnitDetailScreen(unitData: unit),
+                        ),
+                      );
                     },
                   ),
                 ),

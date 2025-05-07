@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
 import 'package:sample/src/screens/Reports_screen.dart';
-import 'package:sample/src/screens/assignedUnit/Assigned_unit_screen.dart';
+import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
+import 'package:sample/src/screens/assignedUnit/assigned_unit_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -403,6 +404,17 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return AssignedRefillingUnitScreen();
+          },
+        );
+
+      case Screenroutes.assignRefillDetailScreen:
+        final data = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.assignRefillDetailScreen,
+          ),
+          builder: (BuildContext context) {
+            return AssignedUnitDetailScreen(unitData: data ?? {});
           },
         );
 

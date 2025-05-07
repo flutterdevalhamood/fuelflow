@@ -295,7 +295,9 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           )
           .toList();
     } else if (widget.userRole == "superadmin") {
-      return allGridItems;
+      return allGridItems
+          .where((item) => item['title'] != 'My Refilling Units')
+          .toList();
     } else if (widget.userRole == "operator") {
       return allGridItems
           .where(
