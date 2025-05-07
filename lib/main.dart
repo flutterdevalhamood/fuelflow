@@ -13,6 +13,7 @@ import 'package:sample/src/providers/vehicle_provider.dart';
 import 'package:sample/src/util/shared_pref.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'src/providers/assigned_controller.dart';
 import 'src/providers/refilling_unit_controller.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
@@ -34,6 +35,9 @@ void main() async {
         ChangeNotifierProvider(create: (context) => RefillingUnitController()),
         ChangeNotifierProvider(create: (context) => ReportsController()),
         ChangeNotifierProvider(create: (context) => StorageUnitController()),
+        ChangeNotifierProvider(
+          create: (context) => AssignedRefillingUnitController(),
+        ),
       ],
       child: const BaseScreen(),
     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
 import 'package:sample/src/screens/Reports_screen.dart';
+import 'package:sample/src/screens/assignedUnit/Assigned_unit_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -80,6 +81,10 @@ class Screenroutes {
   static const String storageUnitListScreen = "storageUnitListScreen";
   static const String storageUnitDataScreen = "storageUnitDataScreen";
   static const String storageUnitDetailScreen = 'storageUnitDetailScreen';
+
+  static const String assignedRefillingUnitScreen =
+      'assignedRefillingUnitScreen';
+  static const String assignRefillDetailScreen = "assignRefillDetailScreen";
 
   //reports
   static const String reportsScreen = "reportsScreen";
@@ -388,6 +393,16 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return StorageUnitRegistrationScreen(storageUnitData: data ?? {});
+          },
+        );
+
+      case Screenroutes.assignedRefillingUnitScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.assignedRefillingUnitScreen,
+          ),
+          builder: (BuildContext context) {
+            return AssignedRefillingUnitScreen();
           },
         );
 

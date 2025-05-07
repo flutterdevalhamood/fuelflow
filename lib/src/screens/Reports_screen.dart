@@ -587,7 +587,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           items: (filter, infiniteScrollProps) => completeRefillingUnitData,
-          itemAsString: (item) => item['serial_no'] ?? '',
+          itemAsString: (item) => item['code'] ?? '',
           compareFn:
               (item1, item2) =>
                   item1['id'].toString() == item2['id'].toString(),

@@ -356,4 +356,10 @@ abstract class RestClient {
     @Part(name: "description") String? description,
     @Part(name: 'document[]') List<MultipartFile>? files,
   });
+
+  @GET('/RefilingUnitByCustomer/{customerId}')
+  Future<dynamic> getAssignedUnitForCustomer({
+    @Path("customerId") int? customerId,
+    @Header("Authorization") String? token,
+  });
 }

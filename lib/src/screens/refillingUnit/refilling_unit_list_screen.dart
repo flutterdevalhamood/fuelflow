@@ -422,7 +422,7 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                     SizedBox(width: 12),
                                                     Expanded(
                                                       child: Text(
-                                                        refillUnit['serial_no'] ??
+                                                        refillUnit['code'] ??
                                                             'Unknown',
                                                         style: TextStyle(
                                                           fontSize: 18,
