@@ -176,7 +176,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       case 'customer':
         return AuthRepo.user;
       case 'operator':
-        return 'Operator';
+        return AuthRepo.user;
       default:
         return AuthRepo.user;
     }
