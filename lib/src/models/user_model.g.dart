@@ -31,10 +31,10 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
 _UserData _$UserDataFromJson(Map<String, dynamic> json) => _UserData(
   id: (json['id'] as num?)?.toInt(),
   name: json['name'] as String?,
-  role_id: (json['role_id'] as num?)?.toInt(),
+  role_id: json['role_id'] as String?,
   email: json['email'] as String?,
   imageUrl: json['imageUrl'] as String?,
-  isActive: (json['isActive'] as num?)?.toInt(),
+  isActive: json['isActive'] as String?,
   roles:
       json['roles'] == null
           ? null

@@ -188,7 +188,7 @@ $UserDataCopyWith<$Res>? get Data {
 /// @nodoc
 mixin _$UserData {
 
- int? get id; String? get name; int? get role_id; String? get email; String? get imageUrl; int? get isActive; Roles? get roles; Customer? get customer;
+ int? get id; String? get name; String? get role_id; String? get email; String? get imageUrl; String? get isActive; Roles? get roles; Customer? get customer;
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -221,7 +221,7 @@ abstract mixin class $UserDataCopyWith<$Res>  {
   factory $UserDataCopyWith(UserData value, $Res Function(UserData) _then) = _$UserDataCopyWithImpl;
 @useResult
 $Res call({
- int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles, Customer? customer
+ int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, Roles? roles, Customer? customer
 });
 
 
@@ -243,10 +243,10 @@ class _$UserDataCopyWithImpl<$Res>
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,role_id: freezed == role_id ? _self.role_id : role_id // ignore: cast_nullable_to_non_nullable
-as int?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as int?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
+as String?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
 as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
 as Customer?,
   ));
@@ -288,10 +288,10 @@ class _UserData implements UserData {
 
 @override final  int? id;
 @override final  String? name;
-@override final  int? role_id;
+@override final  String? role_id;
 @override final  String? email;
 @override final  String? imageUrl;
-@override final  int? isActive;
+@override final  String? isActive;
 @override final  Roles? roles;
 @override final  Customer? customer;
 
@@ -328,7 +328,7 @@ abstract mixin class _$UserDataCopyWith<$Res> implements $UserDataCopyWith<$Res>
   factory _$UserDataCopyWith(_UserData value, $Res Function(_UserData) _then) = __$UserDataCopyWithImpl;
 @override @useResult
 $Res call({
- int? id, String? name, int? role_id, String? email, String? imageUrl, int? isActive, Roles? roles, Customer? customer
+ int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, Roles? roles, Customer? customer
 });
 
 
@@ -350,10 +350,10 @@ class __$UserDataCopyWithImpl<$Res>
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,role_id: freezed == role_id ? _self.role_id : role_id // ignore: cast_nullable_to_non_nullable
-as int?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
-as int?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
+as String?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
 as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
 as Customer?,
   ));
