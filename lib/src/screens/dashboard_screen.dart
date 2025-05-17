@@ -72,7 +72,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'Monitor fuel refill activity',
       },
       {
-        'title': 'Storage Unit',
+        'title': 'Storage Refill',
         'icon': Icons.storage,
         'route': Screenroutes.storageUnitListScreen,
         'color': Colors.lime,
