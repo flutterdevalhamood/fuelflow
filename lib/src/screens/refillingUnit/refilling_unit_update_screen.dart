@@ -42,13 +42,12 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
   int? _selectedDriverId;
   int? _selectedTypeId;
   int? _selectedCapacityUnitId;
+  int? id;
   bool _isAddImagesClicked = false;
-  List<XFile>? _imageFiles;
+  List<XFile>? _imageFiles = [];
 
   // Image picker
   final ImagePicker _picker = ImagePicker();
-  List<File> _selectedImages = [];
-  late RefillingUnitController _refillingUnitController;
   int? index;
 
   @override
@@ -79,24 +78,39 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
       text: widget.data['vehicle_capacity_unit']?['Name'] ?? '',
     );
 
-    // _selectedType = widget.data['type']?['Name'];
     _selectedCapacityUnit = widget.data['capacity_unit']?['Name'];
     _selectedVehicle = widget.data['vehicle']?['plate_no'];
     _selectedDriver = widget.data['driver']?['Name'];
     _selectedProduct = widget.data['product']?['Name'];
     _selectedType = widget.data['type'];
 
-    // _selectedTypeId = widget.data['type']?['id'];
-    _selectedCapacityUnitId = widget.data['capacity_unit']?['id'];
-    _selectedVehicleId = widget.data['vehicle_id'];
-    _selectedDriverId = widget.data['driver_id'];
-    _selectedProductId = widget.data['product']?['id'];
-    _selectedTypeId = int.tryParse(widget.data['type'] ?? '');
+    // Parse IDs safely
+    _selectedCapacityUnitId = _parseId(widget.data['capacity_unit']?['id']);
+    _selectedVehicleId = _parseId(widget.data['vehicle_id']);
+    _selectedDriverId = _parseId(widget.data['driver_id']);
+    _selectedProductId = _parseId(widget.data['product']?['id']);
+    id = widget.data['id'];
 
-    print('_selectedType $_selectedType');
-    print('_selectedCapacityUnit $_selectedCapacityUnit');
-    // _loadImages();
+    // Parse type ID specifically - could be an int directly or a string representation
+    if (widget.data['type'] is int) {
+      _selectedTypeId = widget.data['type'];
+    } else if (widget.data['type'] is String) {
+      _selectedTypeId = int.tryParse(widget.data['type']) ?? null;
+    }
+
+    // Should match above
+    id = widget.data['id'];
   }
+
+  // Helper method to safely parse IDs that might be various types
+  int? _parseId(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  late RefillingUnitController _refillingUnitController;
 
   @override
   void dispose() {
@@ -104,17 +118,18 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
     _capacityController.dispose();
     _capacityUnitController.dispose();
     _vehicleController.dispose();
+    _driverController.dispose();
     super.dispose();
   }
 
   Future<void> saveEditedData() async {
-    final id = widget.data['id'];
     final serialNumber = _serialNumberController.text.trim();
     final capacity = _capacityController.text.trim();
 
     if (id != null) {
       await _refillingUnitController.editRefillUnitData(
         id,
+        _selectedTypeId,
         serialNumber,
         _selectedVehicleId,
         _selectedDriverId,
@@ -246,22 +261,22 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Radio(
+                                  Radio<int>(
                                     value: 0,
                                     groupValue: _selectedTypeId,
                                     onChanged: (int? value) {
                                       setState(() {
-                                        _selectedTypeId = value!;
+                                        _selectedTypeId = value;
                                       });
                                     },
                                   ),
                                   Text('Vehicle'),
-                                  Radio(
+                                  Radio<int>(
                                     value: 1,
                                     groupValue: _selectedTypeId,
                                     onChanged: (int? value) {
                                       setState(() {
-                                        _selectedTypeId = value!;
+                                        _selectedTypeId = value;
                                       });
                                     },
                                   ),
@@ -285,85 +300,98 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
                                 ),
                               ),
                               SizedBox(height: 20),
-                              DropdownButtonFormField<int>(
-                                decoration: InputDecoration(
-                                  labelText: 'Vehicle',
-                                  border: OutlineInputBorder(),
+
+                              // Vehicle Dropdown
+                              if (vehicleData != null)
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Vehicle',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _findValidDropdownValue(
+                                    _selectedVehicleId,
+                                    vehicleData,
+                                  ),
+                                  hint: Text('Select Vehicle'),
+                                  items:
+                                      vehicleData.map<DropdownMenuItem<int>>((
+                                        item,
+                                      ) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(
+                                            item['plate_no'] ?? 'Unknown',
+                                          ),
+                                        );
+                                      }).toList(),
+                                  onChanged: (newValue) {
+                                    setState(() {
+                                      _selectedVehicleId = newValue;
+                                    });
+                                  },
                                 ),
-                                value: _selectedVehicleId,
-                                items:
-                                    (vehicleData ?? []).map((item) {
-                                      return DropdownMenuItem<int>(
-                                        value: item['id'],
-                                        child: Text(item['plate_no']),
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedVehicleId = item['id'];
-                                          });
-                                        },
-                                      );
-                                    }).toList(),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    _selectedVehicleId = newValue;
-                                    // _vehicleController.text =
-                                    //     newValue ?? '';
-                                  });
-                                },
-                              ),
                               SizedBox(height: 20),
-                              DropdownButtonFormField<int>(
-                                decoration: InputDecoration(
-                                  labelText: 'Driver',
-                                  border: OutlineInputBorder(),
+
+                              // Driver Dropdown
+                              if (driverData != null)
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Driver',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _findValidDropdownValue(
+                                    _selectedDriverId,
+                                    driverData,
+                                  ),
+                                  hint: Text('Select Driver'),
+                                  items:
+                                      driverData.map<DropdownMenuItem<int>>((
+                                        item,
+                                      ) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(
+                                            item['Name'] ?? 'Unknown',
+                                          ),
+                                        );
+                                      }).toList(),
+                                  onChanged: (newValue) {
+                                    setState(() {
+                                      _selectedDriverId = newValue;
+                                    });
+                                  },
                                 ),
-                                value: _selectedDriverId,
-                                items:
-                                    (driverData ?? []).map((item) {
-                                      return DropdownMenuItem<int>(
-                                        value: item['id'],
-                                        child: Text(item['Name']),
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedDriverId = item['id'];
-                                          });
-                                        },
-                                      );
-                                    }).toList(),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    _selectedDriverId = newValue;
-                                    // _driverController.text = newValue ?? '';
-                                  });
-                                },
-                              ),
                               SizedBox(height: 20),
-                              DropdownButtonFormField<int>(
-                                decoration: InputDecoration(
-                                  labelText: 'Product',
-                                  border: OutlineInputBorder(),
+
+                              // Product Dropdown
+                              if (productData != null)
+                                DropdownButtonFormField<int>(
+                                  decoration: InputDecoration(
+                                    labelText: 'Product',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  value: _findValidDropdownValue(
+                                    _selectedProductId,
+                                    productData,
+                                  ),
+                                  hint: Text('Select Product'),
+                                  items:
+                                      productData.map<DropdownMenuItem<int>>((
+                                        item,
+                                      ) {
+                                        return DropdownMenuItem<int>(
+                                          value: item['id'],
+                                          child: Text(
+                                            item['Name'] ?? 'Unknown',
+                                          ),
+                                        );
+                                      }).toList(),
+                                  onChanged: (newValue) {
+                                    setState(() {
+                                      _selectedProductId = newValue;
+                                    });
+                                  },
                                 ),
-                                value: _selectedProductId,
-                                items:
-                                    (productData ?? []).map((item) {
-                                      return DropdownMenuItem<int>(
-                                        value: item['id'],
-                                        child: Text(item['Name']),
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedProductId = item['id'];
-                                          });
-                                        },
-                                      );
-                                    }).toList(),
-                                onChanged: (newValue) {
-                                  setState(() {
-                                    _selectedProductId = newValue;
-                                    // _customerNameController.text =
-                                    //     newValue ?? '';
-                                  });
-                                },
-                              ),
                               SizedBox(height: 20),
 
                               Row(
@@ -393,25 +421,25 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
                                         labelText: 'Unit',
                                         border: OutlineInputBorder(),
                                       ),
-                                      value: _selectedCapacityUnitId,
+                                      value: _findValidDropdownValue(
+                                        _selectedCapacityUnitId,
+                                        unitData,
+                                      ),
+                                      hint: Text('Unit'),
                                       items:
-                                          (unitData ?? []).map((item) {
+                                          unitData.map<DropdownMenuItem<int>>((
+                                            item,
+                                          ) {
                                             return DropdownMenuItem<int>(
                                               value: item['id'],
-                                              child: Text(item['Name']),
-                                              onTap: () {
-                                                setState(() {
-                                                  _selectedCapacityUnitId =
-                                                      item['id'];
-                                                });
-                                              },
+                                              child: Text(
+                                                item['Name'] ?? 'Unknown',
+                                              ),
                                             );
                                           }).toList(),
                                       onChanged: (newValue) {
                                         setState(() {
                                           _selectedCapacityUnitId = newValue;
-                                          // _capacityUnitController.text =
-                                          //     newValue ?? '';
                                         });
                                       },
                                     ),
@@ -784,7 +812,19 @@ class _RefillingUnitUpdateScreenState extends State<RefillingUnitUpdateScreen> {
       },
     );
   }
-  // Save updated data
+
+  // Helper method to find a valid dropdown value
+  int? _findValidDropdownValue(int? currentValue, List<dynamic> items) {
+    // If the current value exists in the items, return it
+    if (currentValue != null) {
+      bool valueExists = items.any((item) => item['id'] == currentValue);
+      if (valueExists) {
+        return currentValue;
+      }
+    }
+    // Otherwise return null (dropdown will show hint)
+    return null;
+  }
 
   // Remove image from selected images
   void _removeImage(int index) {

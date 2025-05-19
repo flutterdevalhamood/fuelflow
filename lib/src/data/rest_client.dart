@@ -268,6 +268,7 @@ abstract class RestClient {
     @Field("capacity") String? capacity,
     @Field("capacity_unit_id") int? capacityUnitId,
     @Field("default_product_id") int? defaultProductId,
+    @Field("id") int? id,
   });
 
   @GET('/getRefilingUnitBaseList')

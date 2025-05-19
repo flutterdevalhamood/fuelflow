@@ -1026,6 +1026,7 @@ class _RestClient implements RestClient {
     String? capacity,
     int? capacityUnitId,
     int? defaultProductId,
+    int? id,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1040,6 +1041,7 @@ class _RestClient implements RestClient {
       'capacity': capacity,
       'capacity_unit_id': capacityUnitId,
       'default_product_id': defaultProductId,
+      'id': id,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(

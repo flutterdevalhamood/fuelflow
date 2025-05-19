@@ -264,6 +264,7 @@ class RefillingUnitController with ChangeNotifier {
   }
 
   Future<void> editRefillUnitData(
+    int? id,
     int? type,
     String? serialNumber,
     int? vehicleId,
@@ -278,6 +279,7 @@ class RefillingUnitController with ChangeNotifier {
       }
       await restApi.refillingUnitUpdate(
         token: 'Bearer $token',
+        id: id,
         type: type,
         serialNumber: serialNumber,
         vehicleId: vehicleId,
@@ -286,6 +288,7 @@ class RefillingUnitController with ChangeNotifier {
         capacityUnitId: capacityUnitId,
         defaultProductId: defaultProductId,
       );
+      await getRefillUnitData();
     } catch (e) {
       if (e is DioException) {
         print('Dio Exception $e');

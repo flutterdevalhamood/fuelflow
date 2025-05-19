@@ -488,7 +488,7 @@ class _RefillingUnitListScreenState extends State<RefillingUnitListScreen> {
                                                                   Screenroutes
                                                                       .refillingUnitUpdateScreen,
                                                                   arguments:
-                                                                      refillUnitData[index],
+                                                                      refillUnit,
                                                                 );
                                                           },
                                                         ),
