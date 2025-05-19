@@ -157,13 +157,13 @@ class _CustomerRegistrationScreenState
                 _buildTextField(
                   controller: _emailController,
 
-                  label: 'Email*',
+                  label: 'Email',
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
                   inputFormatters: [EmailInputFormatter()],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter email';
+                      return null;
                     }
                     if (!RegExp(
                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
