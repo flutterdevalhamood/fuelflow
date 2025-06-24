@@ -17,15 +17,25 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
   Widget build(BuildContext context) {
     final serialNo = widget.unitData['serial_no'] ?? 'Unknown';
     final code = widget.unitData['code'] ?? 'N/A';
+    final type = widget.unitData['type'] ?? 'N/A';
     final productName = widget.unitData['product']?['Name'] ?? 'N/A';
     final capacityValue = widget.unitData['capacity'] ?? '0';
     final capacityUnit = widget.unitData['capacity_unit']?['Name'] ?? '';
     final currentStock = widget.unitData['current_stock'] ?? 0;
     final refillingUnitImages = widget.unitData['refiling_unit_images'] ?? '';
 
+    // Additional fields from API
+    final vehiclePlateNo = widget.unitData['vehicle']?['plate_no'] ?? 'N/A';
+    final driverName = widget.unitData['driver']?['Name'] ?? 'N/A';
+    final assignedCustomerName =
+        widget.unitData['assigned_customer']?['Name'] ?? 'N/A';
+
     // Calculate stock percentage
     final capacity = double.tryParse(capacityValue) ?? 1;
-    final stockPercentage = (currentStock / capacity).clamp(0.0, 1.0);
+    final stockPercentage =
+        currentStock >= 0
+            ? (currentStock / capacity).clamp(0.0, 1.0)
+            : 0.0; // Handle negative stock
 
     return Scaffold(
       appBar: AppBar(title: Text('Refilling Unit Details'), elevation: 0),
@@ -86,10 +96,58 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                                       color: Colors.grey.shade700,
                                     ),
                                   ),
+                                  Text(
+                                    'Type: $type',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16),
+
+                // Vehicle & Driver Information Card
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.local_shipping,
+                              color: Colors.blue,
+                              size: 24,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Vehicle & Driver Info',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        _buildInfoRow('Vehicle Plate No', vehiclePlateNo),
+                        _buildInfoRow('Driver Name', driverName),
+                        _buildInfoRow(
+                          'Assigned Customer',
+                          assignedCustomerName,
                         ),
                       ],
                     ),
@@ -109,14 +167,57 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Current Stock Level',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.water_drop,
+                              color: Colors.blue,
+                              size: 24,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Current Stock Level',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 16),
+
+                        // Show warning for negative stock
+                        if (currentStock < 0)
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(12),
+                            margin: EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning,
+                                  color: Colors.red.shade700,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Warning: Negative stock detected!',
+                                    style: TextStyle(
+                                      color: Colors.red.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         Stack(
                           alignment: Alignment.center,
                           children: [
@@ -128,36 +229,45 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                                 strokeWidth: 15,
                                 backgroundColor: Colors.grey.shade200,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  _getColorForPercentage(stockPercentage),
+                                  _getColorForStock(
+                                    currentStock,
+                                    stockPercentage,
+                                  ),
                                 ),
                               ),
                             ),
                             Column(
                               children: [
                                 Text(
-                                  '${(stockPercentage * 100).toStringAsFixed(1)}%',
+                                  currentStock < 0
+                                      ? '${currentStock.abs()}'
+                                      : '${(stockPercentage * 100).toStringAsFixed(1)}%',
                                   style: TextStyle(
                                     fontSize: 28,
                                     fontWeight: FontWeight.bold,
-                                    color: _getColorForPercentage(
+                                    color: _getColorForStock(
+                                      currentStock,
                                       stockPercentage,
                                     ),
                                   ),
                                 ),
                                 Text(
-                                  '$currentStock $capacityUnit',
+                                  currentStock < 0
+                                      ? 'Overdraft'
+                                      : '$currentStock $capacityUnit',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey.shade700,
                                   ),
                                 ),
-                                Text(
-                                  'of $capacityValue $capacityUnit',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade600,
+                                if (currentStock >= 0)
+                                  Text(
+                                    'of $capacityValue $capacityUnit',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade600,
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ],
@@ -168,13 +278,23 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                           'Capacity',
                           '$capacityValue $capacityUnit',
                         ),
-                        // Add more details as needed
+                        _buildInfoRow(
+                          'Current Stock',
+                          '$currentStock $capacityUnit',
+                        ),
+                        if (currentStock < 0)
+                          _buildInfoRow(
+                            'Stock Status',
+                            'Overdraft by ${currentStock.abs()} $capacityUnit',
+                            valueColor: Colors.red.shade700,
+                          ),
                       ],
                     ),
                   ),
                 ),
 
                 SizedBox(height: 16),
+
                 if (refillingUnitImages != null &&
                     refillingUnitImages.isNotEmpty)
                   Card(
@@ -190,12 +310,22 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Unit Images',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.photo_library,
+                                    color: Colors.blue,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Unit Images',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                               if (refillingUnitImages.length > 1)
                                 Text(
@@ -437,50 +567,6 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
                   ),
 
                 SizedBox(height: 10),
-                // Action Buttons
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Actions',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: Icon(Icons.history),
-                                label: Text('View Refill History'),
-                                onPressed: () {
-                                  // Navigate to refill history
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -489,26 +575,33 @@ class _AssignedUnitDetailScreenState extends State<AssignedUnitDetailScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
           Text('$label:', style: TextStyle(color: Colors.grey.shade600)),
           SizedBox(width: 8),
-          Text(value, style: TextStyle(fontWeight: FontWeight.w500)),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontWeight: FontWeight.w500, color: valueColor),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Color _getColorForPercentage(double percentage) {
-    if (percentage < 0.25) {
-      return Colors.red;
-    } else if (percentage < 0.5) {
-      return Colors.orange;
+  Color _getColorForStock(int currentStock, double stockPercentage) {
+    if (currentStock < 0) {
+      return Colors.red; // Negative stock
+    } else if (stockPercentage < 0.25) {
+      return Colors.red; // Low stock
+    } else if (stockPercentage < 0.5) {
+      return Colors.orange; // Medium stock
     } else {
-      return Colors.green;
+      return Colors.green; // Good stock
     }
   }
 }
