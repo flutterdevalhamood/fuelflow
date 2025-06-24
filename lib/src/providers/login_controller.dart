@@ -23,10 +23,6 @@ class AuthController with ChangeNotifier {
   }
 
   Future<void> login(String email, String password) async {
-    print('login');
-    print('email $email');
-    print('password $password');
-
     showCircle();
 
     try {
@@ -44,10 +40,11 @@ class AuthController with ChangeNotifier {
         AuthRepo.token = loginResponse.Token;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
-        AuthRepo.customerId = loginResponse.Data?.customer?.id ?? 0;
+        AuthRepo.customerId = loginResponse.Data?.customer?.id;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
 
         print('customeriddddd ${AuthRepo.customerId}');
+        print('logintypeee ${AuthRepo.loginType}');
 
         NavigationService().pushNavigation(
           Screenroutes.dashboard,

@@ -59,10 +59,31 @@ class _HomeScreenState extends State<VehicleListScreen> {
     });
   }
 
+  // Pull-to-refresh handler
+  Future<void> _onRefresh() async {
+    try {
+      await _vehicleController.getVehicleData();
+      // Clear search when refreshing
+      if (_searchController.text.isNotEmpty) {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      }
+    } catch (e) {
+      print('Error during refresh: $e');
+      if (mounted) {
+        showInfoSnack('Failed to refresh data');
+      }
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _reasonController.dispose();
     _debounceTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -106,6 +127,7 @@ class _HomeScreenState extends State<VehicleListScreen> {
                   print("Deleting vehicle with reason: $reason");
                   Navigator.pop(context);
                   showSuccessSnack('Vehicle Deleted Successfully');
+                  _reasonController.clear(); // Clear the reason controller
                 } else {
                   // Show an error or prompt the user to enter a reason
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -181,142 +203,155 @@ class _HomeScreenState extends State<VehicleListScreen> {
                         colors: [Colors.blue.shade50, Colors.white],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search by type or vehicle number',
-                              hintStyle: TextStyle(
-                                color: Appcolors.textLightGrayColor(context),
+                    child: RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      color: Colors.blue,
+                      backgroundColor: Colors.white,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search by type or vehicle number',
+                                hintStyle: TextStyle(
+                                  color: Appcolors.textLightGrayColor(context),
+                                ),
+                                prefixIcon: Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
                               ),
-                              prefixIcon: Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              ),
+                              onChanged: _onSearchChanged,
                             ),
-                            onChanged: _onSearchChanged,
                           ),
-                        ),
-                        Expanded(
-                          child:
-                              vehicles.isEmpty
-                                  ? Center(
-                                    child: Text(
-                                      _searchQuery.isEmpty
-                                          ? 'No vehicles registered yet.'
-                                          : 'No results found.',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                  )
-                                  : ListView.builder(
-                                    controller: _scrollController,
-                                    itemCount: vehicles.length,
-                                    itemBuilder: (context, index) {
-                                      if (index == vehicles.length) {
-                                        return Center(
-                                          child: CircularProgressIndicator(),
-                                        );
-                                      }
-                                      final vehicle = vehicles[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 4,
-                                        ),
-                                        child: Card(
-                                          elevation: 4,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              10,
+                          Expanded(
+                            child:
+                                vehicles.isEmpty
+                                    ? RefreshIndicator(
+                                      onRefresh: _onRefresh,
+                                      child: SingleChildScrollView(
+                                        physics:
+                                            AlwaysScrollableScrollPhysics(),
+                                        child: Container(
+                                          height:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.height *
+                                              0.6,
+                                          child: Center(
+                                            child: Text(
+                                              _searchQuery.isEmpty
+                                                  ? 'No vehicles registered yet.\nPull down to refresh.'
+                                                  : 'No results found.\nPull down to refresh.',
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge,
                                             ),
                                           ),
-                                          child: ListTile(
-                                            contentPadding: EdgeInsets.all(16),
-                                            leading: Icon(
-                                              Icons.directions_car,
-                                              size: 30,
-                                              color: Colors.blue,
+                                        ),
+                                      ),
+                                    )
+                                    : ListView.builder(
+                                      controller: _scrollController,
+                                      physics: AlwaysScrollableScrollPhysics(),
+                                      itemCount: vehicles.length,
+                                      itemBuilder: (context, index) {
+                                        if (index == vehicles.length) {
+                                          return Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        }
+                                        final vehicle = vehicles[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 4,
+                                          ),
+                                          child: Card(
+                                            elevation: 4,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
-                                            title: Text(
-                                              vehicle['plate_no'] ?? 'Unknown',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
+                                            child: ListTile(
+                                              contentPadding: EdgeInsets.all(
+                                                16,
                                               ),
-                                            ),
-                                            subtitle: Text(
-                                              vehicle['type']?['Name'] ??
-                                                  'No Type',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.grey,
+                                              leading: Icon(
+                                                Icons.directions_car,
+                                                size: 30,
+                                                color: Colors.blue,
                                               ),
-                                            ),
-                                            trailing:
-                                                AuthRepo.role == "customer" ||
-                                                        AuthRepo.role ==
-                                                            "operator"
-                                                    ? SizedBox.shrink()
-                                                    : Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        // IconButton(
-                                                        //   onPressed: () async {
-                                                        //     await NavigationService()
-                                                        //         .pushNavigation(
-                                                        //           Screenroutes
-                                                        //               .vehicleRefill,
-                                                        //           arguments: vehicle,
-                                                        //         );
-                                                        //   },
-                                                        //   icon: Icon(
-                                                        //     Icons.local_gas_station,
-                                                        //   ),
-                                                        // ),
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            Icons.edit,
-                                                            color: Colors.blue,
-                                                          ),
-                                                          onPressed: () async {
-                                                            await NavigationService()
-                                                                .pushNavigation(
-                                                                  Screenroutes
-                                                                      .editDetail,
-                                                                  arguments:
-                                                                      vehicles[index],
-                                                                );
-                                                          },
-                                                        ),
-                                                        IconButton(
-                                                          icon: Icon(
-                                                            Icons.delete,
-                                                            color: Colors.red,
-                                                          ),
-                                                          onPressed: () async {
-                                                            _deleteVehicle(
-                                                              index,
-                                                            );
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
-                                            onTap:
-                                                () => _vehicleDetails(
-                                                  vehicles[index],
+                                              title: Text(
+                                                vehicle['plate_no'] ??
+                                                    'Unknown',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
+                                              ),
+                                              subtitle: Text(
+                                                vehicle['type']?['Name'] ??
+                                                    'No Type',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                              trailing:
+                                                  AuthRepo.role == "customer" ||
+                                                          AuthRepo.role ==
+                                                              "operator"
+                                                      ? SizedBox.shrink()
+                                                      : Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.edit,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                            onPressed: () async {
+                                                              await NavigationService()
+                                                                  .pushNavigation(
+                                                                    Screenroutes
+                                                                        .editDetail,
+                                                                    arguments:
+                                                                        vehicles[index],
+                                                                  );
+                                                            },
+                                                          ),
+                                                          IconButton(
+                                                            icon: Icon(
+                                                              Icons.delete,
+                                                              color: Colors.red,
+                                                            ),
+                                                            onPressed: () async {
+                                                              _deleteVehicle(
+                                                                index,
+                                                              );
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
+                                              onTap:
+                                                  () => _vehicleDetails(
+                                                    vehicles[index],
+                                                  ),
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                        ),
-                      ],
+                                        );
+                                      },
+                                    ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                   : SizedBox.shrink(),

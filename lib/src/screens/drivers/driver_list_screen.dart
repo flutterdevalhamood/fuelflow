@@ -31,7 +31,7 @@ class _DriverListScreenState extends State<DriverListScreen> {
   @override
   void initState() {
     super.initState();
-    // Load customers when the screen is initialized
+    // Load drivers when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupScrollController();
       _driverController = Provider.of<DriverController>(context, listen: false);
@@ -48,6 +48,7 @@ class _DriverListScreenState extends State<DriverListScreen> {
     _searchController.dispose();
     _reasonController.dispose();
     _debounceTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -64,6 +65,25 @@ class _DriverListScreenState extends State<DriverListScreen> {
     });
   }
 
+  // Pull-to-refresh handler
+  Future<void> _onRefresh() async {
+    try {
+      await _driverController.getDriverData();
+      // Clear search when refreshing
+      if (_searchController.text.isNotEmpty) {
+        _searchController.clear();
+        setState(() {
+          _searchQuery = '';
+        });
+      }
+    } catch (e) {
+      print('Error during refresh: $e');
+      if (mounted) {
+        showInfoSnack('Failed to refresh data');
+      }
+    }
+  }
+
   void _deleteDriver(int index) {
     final driverId = _driverController.driverData?[index]['id'];
     print('driverid $driverId');
@@ -76,7 +96,6 @@ class _DriverListScreenState extends State<DriverListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text("Are you sure you want to delete this driver?"),
-
               SizedBox(height: 16),
               TextField(
                 controller: _reasonController,
@@ -93,7 +112,6 @@ class _DriverListScreenState extends State<DriverListScreen> {
               onPressed: () => Navigator.pop(context), // Cancel
               child: Text("Cancel"),
             ),
-
             TextButton(
               onPressed: () async {
                 String reason = _reasonController.text.trim();
@@ -102,7 +120,8 @@ class _DriverListScreenState extends State<DriverListScreen> {
                     await _driverController.deleteDriver(driverId, reason);
                   }
                   Navigator.pop(context);
-                  showSuccessSnack("Customer Deleted successfully");
+                  showSuccessSnack("Driver Deleted successfully");
+                  _reasonController.clear(); // Clear the reason controller
                 } else {
                   showErrorSnack("Please enter a reason for deletion");
                 }
@@ -169,136 +188,155 @@ class _DriverListScreenState extends State<DriverListScreen> {
                         colors: [Colors.blue.shade50, Colors.white],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        // Search Box
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search by name...',
-                              hintStyle: TextStyle(
-                                color: Appcolors.textLightGrayColor(context),
+                    child: RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      color: Colors.blue,
+                      backgroundColor: Colors.white,
+                      child: Column(
+                        children: [
+                          // Search Box
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search by name...',
+                                hintStyle: TextStyle(
+                                  color: Appcolors.textLightGrayColor(context),
+                                ),
+                                prefixIcon: Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
                               ),
-                              prefixIcon: Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              ),
+                              onChanged: _onSearchChanged,
                             ),
-
-                            onChanged: _onSearchChanged,
                           ),
-                        ),
-                        // Customer List
-                        Expanded(
-                          child:
-                              drivers.isEmpty
-                                  ? Center(
-                                    child: Text(
-                                      _searchQuery.isEmpty
-                                          ? 'No drivers registered yet.'
-                                          : 'No results found.',
-                                      style:
-                                          Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                  )
-                                  : ListView.builder(
-                                    controller: _scrollController,
-                                    // padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                    itemCount: drivers.length,
-                                    itemBuilder: (context, index) {
-                                      final driver = drivers[index];
-                                      return GestureDetector(
-                                        onTap: () {
-                                          _navigateTodriverDetails(
-                                            drivers[index],
-                                          );
-                                        },
-                                        child: Column(
-                                          children: [
-                                            ListTile(
-                                              // contentPadding: EdgeInsets.all(
-                                              //   8.0,
-                                              // ),
-                                              leading: Icon(
-                                                Icons.person,
-                                                size: 30,
-                                              ),
-                                              title: Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 2,
-                                                ),
-                                                child: Text(
-                                                  driver['Name'] ?? '',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyLarge!
-                                                      .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                ),
-                                              ),
-                                              trailing:
-                                                  AuthRepo.role == "customer" ||
-                                                          AuthRepo.role ==
-                                                              "operator"
-                                                      ? SizedBox.shrink()
-                                                      : Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          IconButton(
-                                                            onPressed: () {
-                                                              NavigationService()
-                                                                  .pushNavigation(
-                                                                    Screenroutes
-                                                                        .driverEdit,
-                                                                    arguments:
-                                                                        driver,
-                                                                  );
-                                                            },
-
-                                                            icon: Icon(
-                                                              Icons.edit,
-                                                              color:
-                                                                  Colors.blue,
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 8),
-                                                          IconButton(
-                                                            onPressed:
-                                                                () async {
-                                                                  _deleteDriver(
-                                                                    index,
-                                                                  );
-                                                                },
-                                                            icon: Icon(
-                                                              Icons.delete,
-                                                              color: Colors.red,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
+                          // Driver List
+                          Expanded(
+                            child:
+                                drivers.isEmpty
+                                    ? RefreshIndicator(
+                                      onRefresh: _onRefresh,
+                                      child: SingleChildScrollView(
+                                        physics:
+                                            AlwaysScrollableScrollPhysics(),
+                                        child: Container(
+                                          height:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.height *
+                                              0.6,
+                                          child: Center(
+                                            child: Text(
+                                              _searchQuery.isEmpty
+                                                  ? 'No drivers registered yet.\nPull down to refresh.'
+                                                  : 'No results found.\nPull down to refresh.',
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge,
                                             ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 20,
-                                                  ),
-                                              child: Divider(
-                                                color: Colors.grey,
-                                                thickness: .5,
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                        ),
-                      ],
+                                      ),
+                                    )
+                                    : ListView.builder(
+                                      controller: _scrollController,
+                                      physics: AlwaysScrollableScrollPhysics(),
+                                      itemCount: drivers.length,
+                                      itemBuilder: (context, index) {
+                                        final driver = drivers[index];
+                                        return GestureDetector(
+                                          onTap: () {
+                                            _navigateTodriverDetails(
+                                              drivers[index],
+                                            );
+                                          },
+                                          child: Column(
+                                            children: [
+                                              ListTile(
+                                                leading: Icon(
+                                                  Icons.person,
+                                                  size: 30,
+                                                ),
+                                                title: Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 2,
+                                                  ),
+                                                  child: Text(
+                                                    driver['Name'] ?? '',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyLarge!
+                                                        .copyWith(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                  ),
+                                                ),
+                                                trailing:
+                                                    AuthRepo.role ==
+                                                                "customer" ||
+                                                            AuthRepo.role ==
+                                                                "operator"
+                                                        ? SizedBox.shrink()
+                                                        : Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            IconButton(
+                                                              onPressed: () {
+                                                                NavigationService()
+                                                                    .pushNavigation(
+                                                                      Screenroutes
+                                                                          .driverEdit,
+                                                                      arguments:
+                                                                          driver,
+                                                                    );
+                                                              },
+                                                              icon: Icon(
+                                                                Icons.edit,
+                                                                color:
+                                                                    Colors.blue,
+                                                              ),
+                                                            ),
+                                                            SizedBox(width: 8),
+                                                            // IconButton(
+                                                            //   onPressed:
+                                                            //       () async {
+                                                            //         _deleteDriver(
+                                                            //           index,
+                                                            //         );
+                                                            //       },
+                                                            //   icon: Icon(
+                                                            //     Icons.delete,
+                                                            //     color:
+                                                            //         Colors.red,
+                                                            //   ),
+                                                            // ),
+                                                          ],
+                                                        ),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                    ),
+                                                child: Divider(
+                                                  color: Colors.grey,
+                                                  thickness: .5,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                   : SizedBox.shrink(),

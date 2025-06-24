@@ -227,7 +227,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         _capacityController.text.trim(),
         _noteController.text.trim(),
         _selectedTypeId,
-        _selectedCapacityUnitId,
+        _selectedCapacityUnitId ?? 0,
         _selectedCustomerId,
       );
       _isSubmitClicked = false;
@@ -405,15 +405,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                           labelText: 'Capacity *',
                                           border: OutlineInputBorder(),
                                         ),
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter Capacity';
-                                          }
-                                          if (double.tryParse(value) == null) {
-                                            return 'Please enter a valid number';
-                                          }
-                                          return null;
-                                        },
+                                        // validator: (value) {
+                                        //   if (value == null || value.isEmpty) {
+                                        //     return 'Please enter Capacity';
+                                        //   }
+                                        //   if (double.tryParse(value) == null) {
+                                        //     return 'Please enter a valid number';
+                                        //   }
+                                        //   return null;
+                                        // },
                                         inputFormatters: [
                                           QuantityInputFormatter(),
                                         ],
@@ -447,12 +447,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                             // _capacityUnitController.text =
                                             //     newValue ?? '';
                                           });
-                                        },
-                                        validator: (value) {
-                                          if (value == null) {
-                                            return 'Enter Unit';
-                                          }
-                                          return null;
                                         },
                                       ),
                                     ),

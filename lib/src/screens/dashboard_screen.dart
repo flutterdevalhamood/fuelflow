@@ -182,6 +182,19 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     }
   }
 
+  String _getFormattedRole() {
+    switch (widget.userRole) {
+      case 'superadmin':
+        return 'Super Admin';
+      case 'customer':
+        return 'Customer';
+      case 'operator':
+        return 'Operator';
+      default:
+        return 'User';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final gridItems = getGridItems();
@@ -221,9 +234,33 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${_getGreeting()},',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${_getGreeting()},',
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                        SizedBox(width: 4),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _getFormattedRole(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 4),
                     Text(
