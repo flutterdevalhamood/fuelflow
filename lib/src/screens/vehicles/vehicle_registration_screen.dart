@@ -7,12 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
-import 'package:sample/src/util/app_colors.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/quantity_input_formatter.dart';
 
-import '../../util/app_sizes.dart';
 import '../../util/snack.dart';
 
 class VehicleRegistrationScreen extends StatefulWidget {
@@ -40,11 +39,12 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   int? _selectedCustomerId;
   late VehicleController _vehicleController;
   List<XFile>? _imageFiles;
-  bool _isRegistrationComplete = false; // Track registration completion
+  bool _isRegistrationComplete = false;
   String? _vehicleId;
   bool _isSubmitClicked = false;
   bool _isUploading = false;
-  int? _selectedUserType = 0;
+  bool _isRegisteringForCustomer = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -68,8 +68,17 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     super.dispose();
   }
 
-  // Image picker
-  final ImagePicker _picker = ImagePicker();
+  void _resetForm() {
+    _plateNumberController.clear();
+    _capacityController.clear();
+    _noteController.clear();
+    _typeController.clear();
+    _customerController.clear();
+    _capacityUnitController.clear();
+    _selectedTypeId = null;
+    _selectedCapacityUnitId = null;
+    _selectedCustomerId = null;
+  }
 
   Future<void> _pickImages() async {
     final List<XFile>? pickedFiles = await _picker.pickMultiImage();
@@ -104,9 +113,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       _isUploading = true;
     });
     final _vehicleId = _vehicleController.vehicleData?[0]['id'];
-    print('aaaaa $_vehicleId');
     if (_imageFiles == null || _imageFiles!.isEmpty) {
-      print('No images selected');
       setState(() {
         _isUploading = false;
       });
@@ -140,14 +147,12 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         setState(() {
           _isUploading = false;
         });
-        print('Vehicle ID is null');
         showErrorSnack('Vehicle ID not found');
       }
     } catch (e) {
       setState(() {
         _isUploading = false;
       });
-      print('Error uploading images: $e');
       showErrorSnack('Error uploading images');
     }
   }
@@ -175,7 +180,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.file(
-                          imageFiles[currentIndex] as File,
+                          File(imageFiles[currentIndex].path),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -222,21 +227,42 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       setState(() {
         _isSubmitClicked = true;
       });
-      bool isSuccess = await _vehicleController.registerVehicle(
-        _plateNumberController.text.trim(),
-        _capacityController.text.trim(),
-        _noteController.text.trim(),
-        _selectedTypeId,
-        _selectedCapacityUnitId ?? 0,
-        _selectedCustomerId,
-      );
-      _isSubmitClicked = false;
-      if (isSuccess) {
-        showSuccessSnack("Customer registered successfully!");
-        _vehicleController.getVehicleData();
-        // Navigator.pop(context, true);
+
+      bool isSuccess;
+
+      if (_isRegisteringForCustomer) {
+        isSuccess = await _vehicleController.registerVehicleForCustomer(
+          _plateNumberController.text.trim(),
+          _selectedTypeId,
+          _capacityController.text.trim(),
+          _noteController.text.trim(),
+          _selectedCapacityUnitId ?? 0,
+          _selectedCustomerId,
+        );
       } else {
-        showErrorSnack("Error registering customer");
+        isSuccess = await _vehicleController.registerVehicle(
+          _plateNumberController.text.trim(),
+          _capacityController.text.trim(),
+          _noteController.text.trim(),
+          _selectedTypeId,
+          _selectedCapacityUnitId ?? 0,
+          AuthRepo.customerId, // No customer ID for self registration
+        );
+      }
+
+      setState(() {
+        _isSubmitClicked = false;
+      });
+
+      if (isSuccess) {
+        showSuccessSnack(
+          _isRegisteringForCustomer
+              ? "Vehicle registered for customer successfully!"
+              : "Vehicle registered successfully!",
+        );
+        _vehicleController.getVehicleData();
+      } else {
+        showErrorSnack("Error registering vehicle");
       }
       setState(() {
         _isRegistrationComplete = true;
@@ -270,61 +296,186 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                           key: _formKey,
                           child: Column(
                             children: [
+                              SizedBox(height: 20),
+                              Text(
+                                'Register a New Vehicle',
+                                style:
+                                    Theme.of(context).textTheme.displayMedium,
+                              ),
+                              SizedBox(height: 20),
+
+                              // Registration Type Toggle
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Text(
+                                        'Registration Type',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _isRegisteringForCustomer =
+                                                    false;
+                                                _resetForm();
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    !_isRegisteringForCustomer
+                                                        ? Colors.blue.shade900
+                                                        : Colors.transparent,
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(8),
+                                                  bottomLeft: Radius.circular(
+                                                    8,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'Register for Myself',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color:
+                                                      !_isRegisteringForCustomer
+                                                          ? Colors.white
+                                                          : Colors
+                                                              .blue
+                                                              .shade900,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _isRegisteringForCustomer =
+                                                    true;
+                                                _resetForm();
+                                              });
+                                            },
+                                            child: Container(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    _isRegisteringForCustomer
+                                                        ? Colors.blue.shade900
+                                                        : Colors.transparent,
+                                                borderRadius: BorderRadius.only(
+                                                  topRight: Radius.circular(8),
+                                                  bottomRight: Radius.circular(
+                                                    8,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'Register for Customer',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color:
+                                                      _isRegisteringForCustomer
+                                                          ? Colors.white
+                                                          : Colors
+                                                              .blue
+                                                              .shade900,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 20),
+
                               if (!_isRegistrationComplete) ...[
-                                DropdownSearch<Map<String, dynamic>>(
-                                  popupProps: PopupProps.menu(
-                                    showSearchBox: true,
-                                    fit: FlexFit.tight,
-                                    searchFieldProps: TextFieldProps(
+                                // Customer Dropdown (only shown when registering for customer)
+                                if (_isRegisteringForCustomer) ...[
+                                  DropdownSearch<Map<String, dynamic>>(
+                                    popupProps: PopupProps.menu(
+                                      showSearchBox: true,
+                                      fit: FlexFit.tight,
+                                      searchFieldProps: TextFieldProps(
+                                        decoration: InputDecoration(
+                                          hintText: 'Search Customer Name...',
+                                        ),
+                                      ),
+                                    ),
+                                    items:
+                                        (filter, infiniteScrollProps) =>
+                                            customerData,
+                                    itemAsString: (item) => item['Name'] ?? '',
+                                    compareFn:
+                                        (item1, item2) =>
+                                            item1['id'] == item2['id'],
+                                    onChanged: (newValue) async {
+                                      if (newValue != null) {
+                                        setState(() {
+                                          _selectedCustomerId = newValue['id'];
+                                          _customerController.text =
+                                              newValue['serial_no'];
+                                        });
+                                      }
+                                    },
+                                    selectedItem:
+                                        _selectedCustomerId != null
+                                            ? customerData.firstWhere(
+                                              (refill) =>
+                                                  refill['id'] ==
+                                                  _selectedCustomerId,
+                                            )
+                                            : null,
+                                    validator:
+                                        _isRegisteringForCustomer
+                                            ? (value) {
+                                              if (value == null) {
+                                                return 'Please select a Customer Name';
+                                              }
+                                              return null;
+                                            }
+                                            : null,
+                                    decoratorProps: DropDownDecoratorProps(
                                       decoration: InputDecoration(
-                                        hintText: 'Search Customer Name...',
+                                        labelText: 'Customer *',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(
+                                          Icons.person,
+                                          color: Colors.blue.shade900,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  items:
-                                      (filter, infiniteScrollProps) =>
-                                          customerData,
-                                  itemAsString: (item) => item['Name'] ?? '',
-                                  compareFn: (
-                                    Map<String, dynamic> item1,
-                                    Map<String, dynamic> item2,
-                                  ) {
-                                    return item1['id'] ==
-                                        item2['id']; // Compare items by their ID
-                                  },
-                                  onChanged: (
-                                    Map<String, dynamic>? newValue,
-                                  ) async {
-                                    if (newValue != null) {
-                                      setState(() {
-                                        _selectedCustomerId = newValue['id'];
-                                        _customerController.text =
-                                            newValue['serial_no'];
-                                      });
-                                    }
-                                  },
-                                  selectedItem:
-                                      _selectedCustomerId != null
-                                          ? customerData.firstWhere(
-                                            (refill) =>
-                                                refill['id'] ==
-                                                _selectedCustomerId,
-                                          )
-                                          : null,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a Customer Name';
-                                    }
-                                    return null;
-                                  },
-                                  decoratorProps: DropDownDecoratorProps(
-                                    decoration: InputDecoration(
-                                      labelText: 'Customer *',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
+                                  SizedBox(height: 20),
+                                ],
+
                                 DropdownSearch<Map<String, dynamic>>(
                                   popupProps: PopupProps.menu(
                                     showSearchBox: true,
@@ -339,16 +490,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                       (filter, infiniteScrollProps) =>
                                           vehicleTypeData,
                                   itemAsString: (item) => item['Name'] ?? '',
-                                  compareFn: (
-                                    Map<String, dynamic> item1,
-                                    Map<String, dynamic> item2,
-                                  ) {
-                                    return item1['id'] ==
-                                        item2['id']; // Compare items by their ID
-                                  },
-                                  onChanged: (
-                                    Map<String, dynamic>? newValue,
-                                  ) async {
+                                  compareFn:
+                                      (item1, item2) =>
+                                          item1['id'] == item2['id'],
+                                  onChanged: (newValue) async {
                                     if (newValue != null) {
                                       setState(() {
                                         _selectedTypeId = newValue['id'];
@@ -374,6 +519,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                     decoration: InputDecoration(
                                       labelText: 'Type *',
                                       border: OutlineInputBorder(),
+                                      prefixIcon: Icon(
+                                        Icons.directions_car,
+                                        color: Colors.blue.shade900,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -381,10 +530,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
 
                                 TextFormField(
                                   controller: _plateNumberController,
-
                                   decoration: InputDecoration(
                                     labelText: 'Plate Number *',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(
+                                      Icons.confirmation_number,
+                                      color: Colors.blue.shade900,
+                                    ),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -404,28 +556,35 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                         decoration: InputDecoration(
                                           labelText: 'Capacity *',
                                           border: OutlineInputBorder(),
+                                          prefixIcon: Icon(
+                                            Icons.straighten,
+                                            color: Colors.blue.shade900,
+                                          ),
                                         ),
-                                        // validator: (value) {
-                                        //   if (value == null || value.isEmpty) {
-                                        //     return 'Please enter Capacity';
-                                        //   }
-                                        //   if (double.tryParse(value) == null) {
-                                        //     return 'Please enter a valid number';
-                                        //   }
-                                        //   return null;
-                                        // },
                                         inputFormatters: [
                                           QuantityInputFormatter(),
                                         ],
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter Capacity';
+                                          }
+                                          return null;
+                                        },
                                       ),
                                     ),
                                     SizedBox(width: 10),
-                                    Expanded(
-                                      flex: 1,
+                                    SizedBox(
+                                      width:
+                                          MediaQuery.of(context).size.width *
+                                          0.4,
                                       child: DropdownButtonFormField<int>(
                                         decoration: InputDecoration(
                                           labelText: 'Unit *',
                                           border: OutlineInputBorder(),
+                                          prefixIcon: Icon(
+                                            Icons.scale,
+                                            color: Colors.blue.shade900,
+                                          ),
                                         ),
                                         value: _selectedCapacityUnitId,
                                         items:
@@ -444,9 +603,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                         onChanged: (int? newValue) {
                                           setState(() {
                                             _selectedCapacityUnitId = newValue;
-                                            // _capacityUnitController.text =
-                                            //     newValue ?? '';
                                           });
+                                        },
+                                        validator: (value) {
+                                          if (value == null) {
+                                            return 'Please select a Unit';
+                                          }
+                                          return null;
                                         },
                                       ),
                                     ),
@@ -459,6 +622,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                   decoration: InputDecoration(
                                     labelText: 'Note',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(
+                                      Icons.note,
+                                      color: Colors.blue.shade900,
+                                    ),
                                   ),
                                   maxLines: 3,
                                 ),
@@ -532,47 +699,31 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                       MainAxisAlignment.spaceEvenly,
                                   children: [
                                     ElevatedButton.icon(
-                                      onPressed: () {
-                                        _pickImages();
-                                      },
+                                      onPressed: _pickImages,
                                       icon: Icon(
                                         Icons.photo_library,
-                                        color: Appcolors.textWhiteColor(
-                                          context,
-                                        ),
+                                        color: Colors.white,
                                       ),
                                       label: Text(
                                         'Gallery',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium!.copyWith(
-                                          color: Appcolors.textWhiteColor(
-                                            context,
-                                          ),
-                                        ),
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade900,
                                       ),
                                     ),
                                     ElevatedButton.icon(
-                                      onPressed: () {
-                                        _takePicture();
-                                      },
+                                      onPressed: _takePicture,
                                       icon: Icon(
                                         Icons.camera_alt,
-                                        color: Appcolors.textWhiteColor(
-                                          context,
-                                        ),
+                                        color: Colors.white,
                                       ),
-                                      label: Center(
-                                        child: Text(
-                                          'Camera',
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium!.copyWith(
-                                            color: Appcolors.textWhiteColor(
-                                              context,
-                                            ),
-                                          ),
-                                        ),
+                                      label: Text(
+                                        'Camera',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade900,
                                       ),
                                     ),
                                   ],
@@ -584,7 +735,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                         ),
                       ),
 
-                      // Save Button at the bottom, placed inside Stack
                       Positioned(
                         left: 0,
                         right: 0,
@@ -610,6 +760,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               minimumSize: Size(double.infinity, 50),
+                              backgroundColor: Colors.blue.shade900,
+                              disabledBackgroundColor: Colors.grey.shade400,
                             ),
                             child:
                                 _isSubmitClicked || _isUploading
@@ -617,23 +769,19 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
-                                        color: Appcolors.textWhiteColor(
-                                          context,
-                                        ),
+                                        color: Colors.white,
                                         strokeWidth: 2,
                                       ),
                                     )
                                     : Text(
                                       !_isRegistrationComplete
-                                          ? 'Save'
+                                          ? _isRegisteringForCustomer
+                                              ? 'Register for Customer'
+                                              : 'Register for Myself'
                                           : 'Save',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge!.copyWith(
-                                        color: Appcolors.textWhiteColor(
-                                          context,
-                                        ),
-                                        fontSize: AppWidgetSizes.fontSize18,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
                                       ),
                                     ),
                           ),

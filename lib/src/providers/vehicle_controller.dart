@@ -23,13 +23,14 @@ class VehicleController with ChangeNotifier {
       hasMore = true;
     }
     try {
-      if (token == null) {
+      final token = AuthRepo.token;
+      if (token == null || token.isEmpty) {
         throw Exception("No token found");
       }
       final vehicle = await restApi.getVehicleData(
         currentPage,
         totalPages,
-        'Bearer $token',
+        token.startsWith('Bearer') ? token : 'Bearer $token',
       );
       print('API Response: ${vehicle}');
 
@@ -50,13 +51,19 @@ class VehicleController with ChangeNotifier {
             }
             hasMore = data.length == totalPages;
           } else {
+            if (!loadMore) {
+              vehicleData = []; // Set empty list instead of null
+            }
             hasMore = false;
           }
         } else {
+          if (!loadMore) {
+            vehicleData = []; // Set empty list on failure
+          }
+          hasMore = false;
+
           print('API call failed: ${vehicle['Message']}');
         }
-      } else {
-        print('Unexpected API response format');
       }
     } catch (e) {
       print('Exception: $e');
@@ -64,6 +71,10 @@ class VehicleController with ChangeNotifier {
         // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
+      if (!loadMore) {
+        vehicleData = []; // Set empty list on error
+      }
+      hasMore = false;
     } finally {
       isLoading = false;
       notifyListeners();
