@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
-import '../BaseScreen.dart';
 import '../providers/login_controller.dart';
 import '../util/shared_pref.dart';
 
@@ -22,7 +22,7 @@ class AuthRepo {
   }
 
   static String? get token {
-    return prefs?.getString(_prefTokenKey); // Retrieve token
+    return prefs?.getString(_prefTokenKey);
   }
 
   static set role(String? role) {
@@ -64,6 +64,7 @@ class AuthRepo {
 
   static LoginType? get loginType {
     final type = prefs?.getString(_prefLoginType);
+    if (type == null) return null;
 
     return LoginType.values.firstWhere(
       (element) => element.name == type,
@@ -87,13 +88,30 @@ class AuthRepo {
     return customerIdJson;
   }
 
+  // Fixed logout method - clear individual keys instead of clearing all prefs
   static logOut() {
-    prefs?.clear();
-    loginType = null;
+    // Clear all auth-related data individually
+    token = null;
+    role = null;
     user = null;
-    navigatorKey?.currentState?.pushNamedAndRemoveUntil(
-      Screenroutes.login,
-      (route) => false,
-    );
+    loginType = null;
+    customerId = null;
+
+    // Navigate to login screen
+    NavigationService().pushNavigation(Screenroutes.login);
+  }
+
+  // Helper method to check if user is authenticated
+  static bool get isAuthenticated {
+    return token != null && token!.isNotEmpty;
+  }
+
+  // Helper method to clear all auth data (alternative to logOut if you want to keep navigation separate)
+  static void clearAuthData() {
+    token = null;
+    role = null;
+    user = null;
+    loginType = null;
+    customerId = null;
   }
 }

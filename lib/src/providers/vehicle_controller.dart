@@ -198,6 +198,42 @@ class VehicleController with ChangeNotifier {
     }
   }
 
+  Future<bool> registerVehicleForCustomer(
+    String? plateNumber,
+    int? vehicleTypeId,
+    String? capacity,
+    String? description,
+    int? capacityUnitId,
+    int? customerId,
+  ) async {
+    try {
+      final token = AuthRepo.token;
+      if (token == null || token.isEmpty) {
+        throw Exception("No Token Found");
+      }
+
+      await restApi.superAdminCreateVehicle(
+        token: token.startsWith('Bearer') ? token : 'Bearer $token',
+        platNumber: plateNumber,
+        vehicleTypeId: vehicleTypeId,
+        capacity: capacity,
+        description: description,
+        capacityUnitId: capacityUnitId,
+        customerId: customerId,
+      );
+
+      // Refresh the driver list
+      await getVehicleData();
+      return true;
+    } catch (e) {
+      print("Error in registerDriverForCustomer: $e");
+      if (e is DioException) {
+        print("Dio Exception: ${e.response?.data}");
+      }
+      return false;
+    }
+  }
+
   Future<bool> uploadVehiclePictures(
     List<MultipartFile>? files,
     String? id,

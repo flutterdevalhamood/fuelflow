@@ -26,43 +26,81 @@ class AuthController with ChangeNotifier {
     showCircle();
 
     try {
-      print('try');
+      print('Attempting login...');
+
+      // Clear any existing auth data before new login
+      AuthRepo.clearAuthData();
+
       final loginResponse = await restApi.login(
         email: email,
         password: password,
       );
 
       if (loginResponse.IsSuccess == true) {
-        log(JsonEncoder.withIndent("\t").convert(loginResponse));
+        log(
+          'Login successful: ${JsonEncoder.withIndent("\t").convert(loginResponse)}',
+        );
 
-        final data = loginResponse.Data;
+        // Set new auth data with the response
         AuthRepo.loginType = loginType;
-        AuthRepo.token = loginResponse.Token;
+        AuthRepo.token = loginResponse.Token; // Set the new token first
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
-        AuthRepo.role = loginResponse.Data?.roles?.Name;
 
-        print('customeriddddd ${AuthRepo.customerId}');
-        print('logintypeee ${AuthRepo.loginType}');
+        print('New token set: ${AuthRepo.token}');
+        print('Customer ID: ${AuthRepo.customerId}');
+        print('Login type: ${AuthRepo.loginType}');
+        print('Role: ${AuthRepo.role}');
 
-        NavigationService().pushNavigation(
-          Screenroutes.dashboard,
-          arguments: {'role': loginResponse.Data?.roles?.Name},
-        );
+        // Verify token is properly set
+        if (AuthRepo.token != null && AuthRepo.token!.isNotEmpty) {
+          NavigationService().pushNavigation(
+            Screenroutes.dashboard,
+            arguments: {'role': loginResponse.Data?.roles?.Name},
+          );
+        } else {
+          showErrorSnack('Failed to set authentication token');
+        }
       } else {
         showErrorSnack(Messages.authenticationFailure);
       }
     } catch (e) {
-      if (e is TypeError) {
-        if (e is DioException) {
-          log("TypeError", stackTrace: e.stackTrace);
+      log('Login error: $e');
+      if (e is DioException) {
+        log("DioException: ${e.message}", stackTrace: e.stackTrace);
+        // Handle specific HTTP errors if needed
+        if (e.response?.statusCode == 401) {
+          showErrorSnack('Invalid credentials');
+        } else {
+          showErrorSnack('Network error occurred');
         }
-        log("TypeError", stackTrace: e.stackTrace);
+      } else {
+        log("General error: $e", stackTrace: e is Error ? e.stackTrace : null);
+        showErrorSnack(Messages.authenticationFailure);
       }
-      showErrorSnack(Messages.authenticationFailure);
     }
 
     removeCircle();
+  }
+
+  // Method to handle logout
+  Future<void> logout() async {
+    try {
+      // You might want to call a logout API here if your backend requires it
+      // await restApi.logout();
+
+      AuthRepo.logOut();
+      showSuccessSnack('Logged out successfully');
+    } catch (e) {
+      log('Logout error: $e');
+      // Even if logout API fails, clear local data
+      AuthRepo.logOut();
+    }
+  }
+
+  // Method to check if user is currently authenticated
+  bool get isAuthenticated {
+    return AuthRepo.isAuthenticated;
   }
 }

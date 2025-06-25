@@ -363,4 +363,35 @@ abstract class RestClient {
     @Path("customerId") int? customerId,
     @Header("Authorization") String? token,
   });
+
+  @GET('/ToggleDriverStatus/{Id}')
+  Future<dynamic> toggleDriverStatus({
+    @Path("id") int? id,
+    @Header("Authorization") String? token,
+  });
+
+  @GET('/ToggleVehicleStatus/{Id}')
+  Future<dynamic> toggleVehicleStatus({
+    @Path("id") int? id,
+    @Header("Authorization") String? token,
+  });
+
+  @POST('/SuperAdminCreateDriver')
+  Future<dynamic> superAdminCreateDriver({
+    @Header("Authorization") String? token,
+    @Field("Name") String? name,
+    @Field("Mobile") String? mobile,
+    @Field("customer_id") int? customerId,
+  });
+
+  @POST('/SuperAdminCreateVehicle')
+  Future<dynamic> superAdminCreateVehicle({
+    @Header("Authorization") String? token,
+    @Field("plate_no") String? platNumber,
+    @Field("vehicle_type_id") int? vehicleTypeId,
+    @Field("capacity") String? capacity,
+    @Field("description") String? description,
+    @Field("capacity_unit_id") int? capacityUnitId,
+    @Field("customer_id") int? customerId,
+  });
 }

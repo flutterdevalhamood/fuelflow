@@ -16,7 +16,7 @@ class DrawerWidget extends StatefulWidget {
 class _DrawerWidgetState extends State<DrawerWidget> {
   @override
   void _logout() async {
-    // Show a confirmation dialog before deleting
+    // Show a confirmation dialog before logging out
     bool confirmLogout =
         await showDialog<bool>(
           context: context,
@@ -40,12 +40,42 @@ class _DrawerWidgetState extends State<DrawerWidget> {
         false;
 
     if (confirmLogout) {
+      // CRITICAL: Clear all authentication data before logout
+      await _clearAuthData();
+
+      // Navigate to login screen
       NavigationService().pushAndRemoveUntilNavigation(Screenroutes.login);
+
+      // Show success message
       Future.delayed(Duration(milliseconds: 500), () {
         scaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(content: Text('User Logged out successfully!')),
+          SnackBar(content: Text('User logged out successfully!')),
         );
       });
+    }
+  }
+
+  // Clear all stored authentication data
+  Future<void> _clearAuthData() async {
+    try {
+      // Clear all AuthRepo data
+      AuthRepo.token = null;
+      AuthRepo.user = null;
+      AuthRepo.role = null;
+      AuthRepo.customerId = null;
+      AuthRepo.loginType = null;
+
+      // If you're using SharedPreferences, clear them too
+      // final prefs = await SharedPreferences.getInstance();
+      // await prefs.clear(); // Or remove specific keys
+      // await prefs.remove('token');
+      // await prefs.remove('user');
+      // await prefs.remove('role');
+      // await prefs.remove('customerId');
+
+      print('All authentication data cleared successfully');
+    } catch (e) {
+      print('Error clearing auth data: $e');
     }
   }
 
