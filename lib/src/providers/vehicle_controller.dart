@@ -287,4 +287,25 @@ class VehicleController with ChangeNotifier {
     }
     return false;
   }
+
+  Future<void> toggleVehicleStatus(int? id) async {
+    try {
+      final token = AuthRepo.token;
+      if (token == null || token.isEmpty) {
+        throw Exception("No Token Found");
+      }
+
+      await restApi.toggleVehicleStatus(
+        token: token.startsWith('Bearer') ? token : 'Bearer $token',
+        id: id,
+      );
+
+      await getVehicleData();
+    } catch (e) {
+      print("Error in vehicle: $e");
+      if (e is DioException) {
+        print("Dio Exception: ${e.response?.data}");
+      }
+    }
+  }
 }

@@ -294,13 +294,35 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
-                                              subtitle: Text(
-                                                vehicle['type']?['Name'] ??
-                                                    'No Type',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.grey,
-                                                ),
+                                              subtitle: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    vehicle['type']?['Name'] ??
+                                                        'No Type',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4),
+                                                  Text(
+                                                    vehicle['is_active'] == "1"
+                                                        ? 'Active'
+                                                        : 'Inactive',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color:
+                                                          vehicle['is_active'] ==
+                                                                  "1"
+                                                              ? Colors.green
+                                                              : Colors.red,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                               trailing:
                                                   AuthRepo.role == "customer" ||
@@ -327,17 +349,43 @@ class _HomeScreenState extends State<VehicleListScreen> {
                                                                   );
                                                             },
                                                           ),
-                                                          IconButton(
-                                                            icon: Icon(
-                                                              Icons.delete,
-                                                              color: Colors.red,
-                                                            ),
-                                                            onPressed: () async {
-                                                              _deleteVehicle(
-                                                                index,
+                                                          SizedBox(width: 8),
+                                                          Switch(
+                                                            value:
+                                                                vehicle['is_active'] ==
+                                                                "1",
+                                                            onChanged: (
+                                                              bool newValue,
+                                                            ) async {
+                                                              await _vehicleController
+                                                                  .toggleVehicleStatus(
+                                                                    vehicle['id'],
+                                                                  );
+                                                              final status =
+                                                                  newValue
+                                                                      ? 'Active'
+                                                                      : 'Inactive';
+                                                              showSuccessSnack(
+                                                                'Vehicle status set to $status',
                                                               );
                                                             },
+                                                            activeColor:
+                                                                Colors.green,
+                                                            inactiveThumbColor:
+                                                                Colors.red,
                                                           ),
+                                                          // Commented out delete button as it's replaced by toggle
+                                                          // IconButton(
+                                                          //   icon: Icon(
+                                                          //     Icons.delete,
+                                                          //     color: Colors.red,
+                                                          //   ),
+                                                          //   onPressed: () async {
+                                                          //     _deleteVehicle(
+                                                          //       index,
+                                                          //     );
+                                                          //   },
+                                                          // ),
                                                         ],
                                                       ),
                                               onTap:

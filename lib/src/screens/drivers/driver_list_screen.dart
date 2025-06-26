@@ -276,6 +276,27 @@ class _DriverListScreenState extends State<DriverListScreen> {
                                                         ),
                                                   ),
                                                 ),
+                                                subtitle: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      driver['is_active'] == "1"
+                                                          ? 'Active'
+                                                          : 'Inactive',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color:
+                                                            driver['is_active'] ==
+                                                                    "1"
+                                                                ? Colors.green
+                                                                : Colors.red,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                                 trailing:
                                                     AuthRepo.role ==
                                                                 "customer" ||
@@ -303,6 +324,30 @@ class _DriverListScreenState extends State<DriverListScreen> {
                                                               ),
                                                             ),
                                                             SizedBox(width: 8),
+                                                            Switch(
+                                                              value:
+                                                                  driver['is_active'] ==
+                                                                  "1",
+                                                              onChanged: (
+                                                                bool newValue,
+                                                              ) async {
+                                                                await _driverController
+                                                                    .toggleDriverStatus(
+                                                                      driver['id'],
+                                                                    );
+                                                                final status =
+                                                                    newValue
+                                                                        ? 'Active'
+                                                                        : 'Inactive';
+                                                                showSuccessSnack(
+                                                                  'Driver status set to $status',
+                                                                );
+                                                              },
+                                                              activeColor:
+                                                                  Colors.green,
+                                                              inactiveThumbColor:
+                                                                  Colors.red,
+                                                            ),
                                                             // IconButton(
                                                             //   onPressed:
                                                             //       () async {

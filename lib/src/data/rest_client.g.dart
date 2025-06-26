@@ -1456,7 +1456,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/ToggleDriverStatus/{Id}',
+            '/ToggleDriverStatus/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -1479,7 +1479,7 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/ToggleVehicleStatus/{Id}',
+            '/ToggleVehicleStatus/${id}',
             queryParameters: queryParameters,
             data: _data,
           )

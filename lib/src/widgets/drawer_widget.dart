@@ -88,12 +88,7 @@ class _DrawerWidgetState extends State<DrawerWidget> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primaryContainer,
-                  Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withOpacity(0.8),
-                ],
+                colors: [Color(0xFF232526), Color(0xFF92FE9D)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

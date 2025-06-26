@@ -364,13 +364,13 @@ abstract class RestClient {
     @Header("Authorization") String? token,
   });
 
-  @GET('/ToggleDriverStatus/{Id}')
+  @GET('/ToggleDriverStatus/{id}')
   Future<dynamic> toggleDriverStatus({
     @Path("id") int? id,
     @Header("Authorization") String? token,
   });
 
-  @GET('/ToggleVehicleStatus/{Id}')
+  @GET('/ToggleVehicleStatus/{id}')
   Future<dynamic> toggleVehicleStatus({
     @Path("id") int? id,
     @Header("Authorization") String? token,
