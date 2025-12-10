@@ -4,10 +4,13 @@ import 'package:sample/src/BaseScreen.dart';
 import 'package:sample/src/providers/Product_controller.dart';
 import 'package:sample/src/providers/customer_controller.dart';
 import 'package:sample/src/providers/driver_controller.dart';
+import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
+import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/providers/reports_controller.dart';
 import 'package:sample/src/providers/storage_unit_controller.dart';
+import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/providers/vehicle_provider.dart';
 import 'package:sample/src/util/shared_pref.dart';
@@ -38,6 +41,11 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => AssignedRefillingUnitController(),
         ),
+        ChangeNotifierProvider(create: (context) => FuelTripController()),
+        ChangeNotifierProvider(
+          create: (context) => FuelRefillBeforeTripControllerController(),
+        ),
+        ChangeNotifierProvider(create: (context) => TripTrackingController()),
       ],
       child: const BaseScreen(),
     ),

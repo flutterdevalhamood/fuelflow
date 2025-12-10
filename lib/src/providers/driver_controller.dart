@@ -208,4 +208,25 @@ class DriverController with ChangeNotifier {
       }
     }
   }
+
+  Future<void> toggleDriverStatus(int? id) async {
+    try {
+      final token = AuthRepo.token;
+      if (token == null || token.isEmpty) {
+        throw Exception("No Token Found");
+      }
+
+      await restApi.toggleDriverStatus(
+        token: token.startsWith('Bearer') ? token : 'Bearer $token',
+        id: id,
+      );
+
+      await getDriverData();
+    } catch (e) {
+      print("Error in deleteDriver: $e");
+      if (e is DioException) {
+        print("Dio Exception: ${e.response?.data}");
+      }
+    }
+  }
 }

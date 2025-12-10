@@ -330,11 +330,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController userIdTextField = TextEditingController(
-    text: "gautam@fuelflow.com",
+    text: "adnan@fuelflow.com",
   );
 
   final TextEditingController pwdTextField = TextEditingController(
-    text: "gautam@9999",
+    text: "123456",
   );
 
   final FocusNode _userIdFocusNode = FocusNode();

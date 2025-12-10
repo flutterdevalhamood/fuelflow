@@ -1,1 +1,1 @@
-const apiEndPoint = "https://fuelflow.alnedal.com/api";
+const apiEndPoint = "https://fuelflow.wahidgoc.com/api";

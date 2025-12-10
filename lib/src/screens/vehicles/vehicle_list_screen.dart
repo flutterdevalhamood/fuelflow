@@ -186,7 +186,7 @@ class _HomeScreenState extends State<VehicleListScreen> {
                 )
                 .toList()
             : [];
-    print('vehiclesss $vehicles');
+
     return Consumer<VehicleController>(
       builder: (context, VehicleController, child) {
         return Scaffold(

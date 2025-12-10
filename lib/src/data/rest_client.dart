@@ -2,10 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:sample/src/constants/api_constants.dart';
 import 'package:sample/src/models/user_model.dart';
+import 'package:sample/src/util/dio_config.dart';
 
 part 'rest_client.g.dart';
 
-var dio = Dio();
+var dio = createDio();
 var restApi = RestClient(dio, baseUrl: apiEndPoint);
 
 @RestApi(baseUrl: apiEndPoint)
@@ -393,5 +394,69 @@ abstract class RestClient {
     @Field("description") String? description,
     @Field("capacity_unit_id") int? capacityUnitId,
     @Field("customer_id") int? customerId,
+  });
+
+  @GET('/Driver/GetAssignedTrips/{page}/{limit}')
+  Future<dynamic> getAssignedTrips(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/Driver/SubmitDriverResponse')
+  @FormUrlEncoded()
+  Future<dynamic> postSubmitDriverResponse({
+    @Header("Authorization") String? token,
+    @Field("assignment_id") int? assignmentId,
+    @Field("driver_id") int? driverId,
+    @Field("response") String? response,
+    @Field("reason") String? reason,
+  });
+
+  @GET('/Driver/GetAcceptedAssignments/{page}/{limit}')
+  Future<dynamic> getAcceptedAssignments(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/Driver/FuelVehicle')
+  Future<dynamic> postFuelVehicle({
+    @Header("Authorization") String? token,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("trip_id") String? tripId,
+    @Field("trip_stop_id") int? tripStopId,
+    @Field("type") String? inFlow,
+    @Field("quantity") String? quantity,
+    @Field("before_quantity") String? beforeQuantity,
+    @Field("after_quantity") String? afterQuantity,
+    @Field("note") String? note,
+  });
+
+  @POST('/Driver/StoreMeterReadingEvent')
+  @MultiPart()
+  Future<dynamic> postStoreMeterReading({
+    @Header("Authorization") String? token,
+    @Part(name: "stock_event_id") int? stockEventId,
+    @Part(name: "reading_type") String? readingType,
+    @Part(name: "trip_stop_id") int? tripStopId,
+    @Part(name: "vehicle_id") int? vehicleId,
+    @Part(name: "reading_value") String? readingValue,
+    @Part(name: "note") String? note,
+    @Part(name: 'photo_path') List<MultipartFile>? files,
+  });
+
+  @GET('/Driver/GetTripEvents')
+  Future<dynamic> getDriverTripEvents({@Header("Authorization") String? token});
+
+  @POST('/Driver/LogTripEvent/{tripId}')
+  Future<dynamic> postLogTripEvent({
+    @Path("id") int? tripId,
+    @Header("Authorization") String? token,
+    @Field("trip_stop_id") int? tripStopId,
+    @Field("event_type") String? eventType,
+    @Field("description") String? description,
+    @Field("latitude") String? latitude,
+    @Field("longitude") String? longitude,
   });
 }

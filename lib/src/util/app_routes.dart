@@ -17,6 +17,11 @@ import 'package:sample/src/screens/forgot_password_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
+import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
+import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
+import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
+import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
+import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
 import 'package:sample/src/screens/products/product_list_screen.dart';
 import 'package:sample/src/screens/products/product_registration_screen.dart';
@@ -27,6 +32,7 @@ import 'package:sample/src/screens/refillingUnit/refilling_unit_update_screen.da
 import 'package:sample/src/screens/storageUnit/storage_unit_detail_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_list_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
+import 'package:sample/src/screens/vehicles/vehicle_list_screen.dart';
 
 import '../constants/string_constants.dart';
 import '../screens/customers/customer_edit_screen.dart';
@@ -36,7 +42,6 @@ import '../screens/login_screen.dart';
 import '../screens/vehicles/edit_vehicle_screen.dart';
 import '../screens/vehicles/vehicle_detail_screen.dart';
 import '../screens/vehicles/vehicle_fuel_refill_screen.dart';
-import '../screens/vehicles/vehicle_list_screen.dart';
 import '../screens/vehicles/vehicle_registration_screen.dart';
 
 class Screenroutes {
@@ -87,8 +92,18 @@ class Screenroutes {
       'assignedRefillingUnitScreen';
   static const String assignRefillDetailScreen = "assignRefillDetailScreen";
 
+  static const String fuelTripScreen = "fuelTripScreen";
+
+  static const String fuelRefillBeforeTripScreen = "fuelRefillBeforeTripScreen";
+
   //reports
   static const String reportsScreen = "reportsScreen";
+
+  static const String notificationScreen = "notificationScreen";
+
+  static const String acceptedAssignmentScreen = "acceptedAssignmentScreen";
+
+  static const String tripStartedScreen = "tripStartedScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -418,11 +433,74 @@ class Screenroutes {
           },
         );
 
+      case Screenroutes.fuelTripScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.reportsScreen),
+          builder: (BuildContext context) {
+            return FuelTripScreen();
+          },
+        );
+
+      case Screenroutes.fuelRefillBeforeTripScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.fuelRefillBeforeTripScreen,
+          ),
+          builder: (BuildContext context) {
+            return FuelRefillBeforeTripScreen(
+              assignmentId: args?['assignmentId'] as int? ?? 0,
+              vehicleId: args?['vehicleId'] as int? ?? 0,
+              tripId: args?['tripId'] as String? ?? '',
+              tripStopId: args?['tripStopId'] as int? ?? 0,
+              requiredQty: args?['requiredQty'] as double? ?? 0.0,
+              availableQty: args?['availableQty'] as double? ?? 0.0,
+              vehicleName: args?['vehicleName'] as String? ?? 'Unknown Vehicle',
+              stopOrder: args?['stopOrder'] as String? ?? '1',
+              customerName: args?['customerName'] as String? ?? '',
+            );
+          },
+        );
+
       case Screenroutes.reportsScreen:
         return MaterialPageRoute(
           settings: const RouteSettings(name: Screenroutes.reportsScreen),
           builder: (BuildContext context) {
             return ReportsScreen();
+          },
+        );
+
+      case Screenroutes.notificationScreen:
+        final data = settings.arguments as int?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.notificationScreen),
+          builder: (BuildContext context) {
+            return NotificationScreen(driverId: data ?? 1);
+          },
+        );
+
+      case Screenroutes.acceptedAssignmentScreen:
+        final data = settings.arguments as int?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.acceptedAssignmentScreen,
+          ),
+          builder: (BuildContext context) {
+            return AcceptedAssignmentScreen(driverId: data ?? 1);
+          },
+        );
+
+      case Screenroutes.tripStartedScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.tripStartedScreen),
+          builder: (BuildContext context) {
+            return TripStartedScreen(
+              tripId: args?['tripId'] as int? ?? 0,
+              tripStopId: args?['tripStopId'] as int? ?? 0,
+              customerName: args?['customerName'] as String? ?? '',
+              arrivalTime: args?['arrivalTime'] as String? ?? '',
+            );
           },
         );
     }

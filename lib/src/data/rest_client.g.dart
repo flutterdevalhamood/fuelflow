@@ -10,7 +10,7 @@ part of 'rest_client.dart';
 
 class _RestClient implements RestClient {
   _RestClient(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://fuelflow.alnedal.com/api';
+    baseUrl ??= 'https://fuelflow.wahidgoc.com/api';
   }
 
   final Dio _dio;
@@ -1548,6 +1548,258 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/SuperAdminCreateVehicle',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getAssignedTrips(int page, int limit, String? token) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/GetAssignedTrips/${page}/${limit}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postSubmitDriverResponse({
+    String? token,
+    int? assignmentId,
+    int? driverId,
+    String? response,
+    String? reason,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {
+      'assignment_id': assignmentId,
+      'driver_id': driverId,
+      'response': response,
+      'reason': reason,
+    };
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
+          .compose(
+            _dio.options,
+            '/Driver/SubmitDriverResponse',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getAcceptedAssignments(
+    int page,
+    int limit,
+    String? token,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/GetAcceptedAssignments/${page}/${limit}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postFuelVehicle({
+    String? token,
+    int? vehicleId,
+    String? tripId,
+    int? tripStopId,
+    String? inFlow,
+    String? quantity,
+    String? beforeQuantity,
+    String? afterQuantity,
+    String? note,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {
+      'vehicle_id': vehicleId,
+      'trip_id': tripId,
+      'trip_stop_id': tripStopId,
+      'type': inFlow,
+      'quantity': quantity,
+      'before_quantity': beforeQuantity,
+      'after_quantity': afterQuantity,
+      'note': note,
+    };
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/FuelVehicle',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postStoreMeterReading({
+    String? token,
+    int? stockEventId,
+    String? readingType,
+    int? tripStopId,
+    int? vehicleId,
+    String? readingValue,
+    String? note,
+    List<MultipartFile>? files,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (stockEventId != null) {
+      _data.fields.add(MapEntry('stock_event_id', stockEventId.toString()));
+    }
+    if (readingType != null) {
+      _data.fields.add(MapEntry('reading_type', readingType));
+    }
+    if (tripStopId != null) {
+      _data.fields.add(MapEntry('trip_stop_id', tripStopId.toString()));
+    }
+    if (vehicleId != null) {
+      _data.fields.add(MapEntry('vehicle_id', vehicleId.toString()));
+    }
+    if (readingValue != null) {
+      _data.fields.add(MapEntry('reading_value', readingValue));
+    }
+    if (note != null) {
+      _data.fields.add(MapEntry('note', note));
+    }
+    if (files != null) {
+      _data.files.addAll(files.map((i) => MapEntry('photo_path', i)));
+    }
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/Driver/StoreMeterReadingEvent',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getDriverTripEvents({String? token}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/GetTripEvents',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postLogTripEvent({
+    int? tripId,
+    String? token,
+    int? tripStopId,
+    String? eventType,
+    String? description,
+    String? latitude,
+    String? longitude,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {
+      'trip_stop_id': tripStopId,
+      'event_type': eventType,
+      'description': description,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/LogTripEvent/{tripId}',
             queryParameters: queryParameters,
             data: _data,
           )

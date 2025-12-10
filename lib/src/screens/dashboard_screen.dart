@@ -17,74 +17,105 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     final allGridItems = [
       {
         'title': 'Customers',
-        'icon': Icons.people,
+        'icon': Icons.people_rounded,
         'route': Screenroutes.customerList,
         'color': Colors.purple,
-        'gradient': [Colors.purple, Colors.purple.shade200],
+        'gradient': [Color(0xFF667eea), Color(0xFF764ba2)],
         'description': 'Manage all customer profiles',
       },
       {
         'title': 'Vehicles',
-        'icon': Icons.directions_car,
+        'icon': Icons.directions_car_rounded,
         'route': Screenroutes.vehicleList,
         'color': Colors.orange,
-        'gradient': [Colors.orange, Colors.orange.shade200],
+        'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
         'description': 'View and track fleet vehicles',
       },
       {
         'title': 'Drivers',
-        'icon': Icons.badge,
+        'icon': Icons.badge_rounded,
         'route': Screenroutes.driverList,
         'color': Colors.red,
-        'gradient': [Colors.red, Colors.red.shade200],
+        'gradient': [Color(0xFFfa709a), Color(0xFFfee140)],
         'description': 'Manage driver information',
       },
       {
         'title': 'Products',
-        'icon': Icons.production_quantity_limits,
+        'icon': Icons.inventory_2_rounded,
         'route': Screenroutes.productList,
         'color': Colors.blue,
-        'gradient': [Colors.blue, Colors.blue.shade200],
+        'gradient': [Color(0xFF4facfe), Color(0xFF00f2fe)],
         'description': 'View and manage products',
       },
       {
         'title': 'Refilling Unit',
-        'icon': Icons.gas_meter_outlined,
+        'icon': Icons.gas_meter_rounded,
         'route': Screenroutes.refillingUnitListScreen,
         'color': Colors.brown,
-        'gradient': [Colors.brown, Colors.brown.shade200],
+        'gradient': [Color(0xFF43e97b), Color(0xFF38f9d7)],
         'description': 'Track refilling stations',
       },
       {
         'title': 'My Refilling Units',
-        'icon': Icons.gas_meter_outlined,
+        'icon': Icons.gas_meter_rounded,
         'route': Screenroutes.assignedRefillingUnitScreen,
         'color': Colors.indigo,
-        'gradient': [Color(0xFF3F51B5), Color(0xFFC5CAE9)],
+        'gradient': [Color(0xFF6a11cb), Color(0xFF2575fc)],
         'description': 'View your assigned refilling units',
       },
       {
         'title': 'Fuel Refill',
-        'icon': Icons.local_gas_station,
+        'icon': Icons.local_gas_station_rounded,
         'route': Screenroutes.fuelRefillListScreen,
         'color': Colors.green,
-        'gradient': [Colors.green, Colors.green.shade200],
+        'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
         'description': 'Monitor fuel refill activity',
       },
       {
         'title': 'Storage Refill',
-        'icon': Icons.storage,
+        'icon': Icons.storage_rounded,
         'route': Screenroutes.storageUnitListScreen,
         'color': Colors.lime,
-        'gradient': [Colors.lime, Colors.lime.shade200],
+        'gradient': [Color(0xFFee0979), Color(0xFFff6a00)],
         'description': 'Manage storage facilities',
       },
       {
+        'title': 'Fuel Trip',
+        'icon': Icons.local_shipping_rounded,
+        'route':
+            Screenroutes
+                .fuelTripScreen, // Add this route to your app_routes.dart
+        'color': Colors.deepOrange,
+        'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
+        'description': 'Manage fuel delivery trips',
+      },
+      {
+        'title': 'Fuel Refill For Trip',
+        'icon': Icons.local_shipping_rounded,
+        'route':
+            Screenroutes
+                .fuelRefillBeforeTripScreen, // Add this route to your app_routes.dart
+        'color': Colors.deepPurpleAccent,
+        'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
+        'description': 'Manage fuel refill before trip',
+      },
+
+      {
+        'title': 'Accepted Assignments',
+        'icon': Icons.local_shipping_rounded,
+        'route':
+            Screenroutes
+                .acceptedAssignmentScreen, // Add this route to your app_routes.dart
+        'color': Colors.green,
+        'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
+        'description': 'View active accepted assignments',
+      },
+      {
         'title': 'Reports',
-        'icon': Icons.insert_chart,
+        'icon': Icons.insert_chart_rounded,
         'route': Screenroutes.reportsScreen,
         'color': Colors.teal,
-        'gradient': [Colors.teal, Colors.teal.shade200],
+        'gradient': [Color(0xFF3f5efb), Color(0xFFfc466b)],
         'description': 'View system analytics',
       },
     ];
@@ -97,6 +128,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 item['title'] == 'Drivers' ||
                 item['title'] == 'Fuel Refill' ||
                 item['title'] == 'My Refilling Units' ||
+                item['title'] == 'Fuel Trip' ||
+                item['title'] == 'Fuel Refill For Trip' ||
                 item['title'] == 'Reports',
           )
           .toList();
@@ -111,7 +144,22 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 item['title'] == 'Vehicles' ||
                 item['title'] == 'Drivers' ||
                 item['title'] == 'Fuel Refill' ||
+                item['title'] == 'Fuel Refill For Trip' ||
                 item['title'] == 'Refilling Unit',
+          )
+          .toList();
+    } else if (widget.userRole == "driver") {
+      return allGridItems
+          .where(
+            (item) =>
+                item['title'] == 'Vehicles' ||
+                item['title'] == 'Drivers' ||
+                item['title'] == 'Fuel Refill' ||
+                item['title'] == 'My Refilling Units' ||
+                item['title'] == 'Fuel Trip' ||
+                item['title'] == 'Fuel Refill For Trip' ||
+                item['title'] == 'Accepted Assignments' ||
+                item['title'] == 'Reports',
           )
           .toList();
     }
@@ -121,31 +169,63 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   Future<bool> _onWillPop() async {
     bool? shouldLogout = await showDialog(
       context: context,
+      barrierDismissible: false,
       builder:
           (context) => AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
             ),
-            title: const Text(
-              'Logout',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.logout_rounded,
+                    color: Colors.red,
+                    size: 24,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Logout',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+              ],
             ),
-            content: const Text('Are you sure you want to logout?'),
+            content: Text(
+              'Are you sure you want to logout?',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  elevation: 0,
                 ),
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Logout'),
+                child: Text(
+                  'Logout',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -170,16 +250,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   }
 
   String? _getRoleName() {
-    switch (widget.userRole) {
-      case 'superadmin':
-        return AuthRepo.user;
-      case 'customer':
-        return AuthRepo.user;
-      case 'operator':
-        return AuthRepo.user;
-      default:
-        return AuthRepo.user;
-    }
+    return AuthRepo.user;
   }
 
   String _getFormattedRole() {
@@ -195,133 +266,203 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     }
   }
 
+  IconData _getGreetingIcon() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return Icons.wb_sunny_rounded;
+    } else if (hour < 17) {
+      return Icons.wb_cloudy_rounded;
+    } else {
+      return Icons.nightlight_round;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final gridItems = getGridItems();
 
     return WillPopScope(
       onWillPop: _onWillPop,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF232526), Color(0xFF92FE9D)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-
-          drawer: DrawerWidget(),
-          appBar: AppBar(
-            elevation: 0,
-            title: Text(
-              'Dashboard',
-              style: TextStyle(fontWeight: FontWeight.bold),
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        drawer: DrawerWidget(),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          iconTheme: IconThemeData(color: Colors.grey[800]),
+          title: Text(
+            'Dashboard',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+              fontSize: 20,
             ),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-            ],
           ),
-          body: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome section
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.fromLTRB(20, 20, 20, 30),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
+          actions: [
+            Container(
+              margin: EdgeInsets.only(right: 8),
+              child: Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      NavigationService().pushNavigation(
+                        Screenroutes.notificationScreen,
+                      );
+                    },
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${_getGreeting()},',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome section with gradient
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.all(16),
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFF667eea).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(_getGreetingIcon(), color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          '${_getGreeting()}!',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
-                          SizedBox(width: 4),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              _getFormattedRole(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      _getRoleName().toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.verified_user_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            _getFormattedRole(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        _getRoleName().toString(),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Text(
-                        'Welcome to your dashboard',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-                // Dashboard items section
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Quick Actions',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                // Grid items
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: GridView.builder(
-                      physics: BouncingScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.1,
-                      ),
-                      itemCount: gridItems.length,
-                      itemBuilder: (context, index) {
-                        final item = gridItems[index];
-                        return _buildGridItem(item);
-                      },
                     ),
+                  ],
+                ),
+              ),
+              // Section header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Color(0xFF667eea),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Quick Actions',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Grid items
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.builder(
+                    physics: BouncingScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.95,
+                    ),
+                    itemCount: gridItems.length,
+                    itemBuilder: (context, index) {
+                      final item = gridItems[index];
+                      return _buildGridItem(item);
+                    },
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 16),
+            ],
           ),
         ),
       ),
@@ -329,69 +470,76 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   }
 
   Widget _buildGridItem(Map<String, dynamic> item) {
-    return Card(
-      elevation: 3,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          NavigationService().pushNavigation(item['route']);
-        },
-        child: Stack(
-          children: [
-            // Background with gradient
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [item['gradient'][0], item['gradient'][1]],
-                  ),
-                ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (item['gradient'][0] as Color).withOpacity(0.2),
+            blurRadius: 15,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            NavigationService().pushNavigation(item['route']);
+          },
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [item['gradient'][0], item['gradient'][1]],
               ),
             ),
-            // Content
-            Padding(
-              padding: EdgeInsets.all(16),
+            child: Padding(
+              padding: EdgeInsets.all(20),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: EdgeInsets.all(10),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(item['icon'], size: 30, color: Colors.white),
+                    child: Icon(item['icon'], size: 32, color: Colors.white),
                   ),
-                  SizedBox(height: 12),
-                  Text(
-                    item['title'],
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    item['description'],
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['title'],
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        item['description'],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.85),
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
