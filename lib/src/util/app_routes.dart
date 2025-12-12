@@ -18,6 +18,7 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
+import 'package:sample/src/screens/fuelTrip/customer_fuel_delivery_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
@@ -104,6 +105,8 @@ class Screenroutes {
   static const String acceptedAssignmentScreen = "acceptedAssignmentScreen";
 
   static const String tripStartedScreen = "tripStartedScreen";
+
+  static const String customerFuelDeliveryScreen = "customerFuelDeliveryScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -497,9 +500,40 @@ class Screenroutes {
           builder: (BuildContext context) {
             return TripStartedScreen(
               tripId: args?['tripId'] as int? ?? 0,
-              tripStopId: args?['tripStopId'] as int? ?? 0,
+              tripStopId: args?['tripStopId'] as int?,
               customerName: args?['customerName'] as String? ?? '',
               arrivalTime: args?['arrivalTime'] as String? ?? '',
+              assignmentId: args?['assignmentId'] as int? ?? 0,
+              vehicleId: args?['vehicleId'] as int? ?? 0,
+              requiredQty: args?['requiredQty'] as double? ?? 0.0,
+              availableQty: args?['availableQty'] as double? ?? 0.0,
+              vehicleName: args?['vehicleName'] as String? ?? 'Unknown Vehicle',
+              stopOrder: args?['stopOrder'] as String? ?? '1',
+              currentStopIndex: args?['currentStopIndex'] as int? ?? 0,
+              totalStops: args?['totalStops'] as int? ?? 1,
+            );
+          },
+        );
+
+      case Screenroutes.customerFuelDeliveryScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.customerFuelDeliveryScreen,
+          ),
+          builder: (BuildContext context) {
+            return CustomerFuelDeliveryScreen(
+              assignmentId: args?['assignmentId'] as int? ?? 0,
+              vehicleId: args?['vehicleId'] as int? ?? 0,
+              tripId: args?['tripId'] as String? ?? '',
+              tripStopId: args?['tripStopId'] as int? ?? 0,
+              requiredQty: args?['requiredQty'] as double? ?? 0.0,
+              availableQty: args?['availableQty'] as double? ?? 0.0,
+              vehicleName: args?['vehicleName'] as String? ?? 'Unknown Vehicle',
+              customerName: args?['customerName'] as String? ?? '',
+              stopOrder: args?['stopOrder'] as String? ?? '1',
+              currentStopIndex: args?['currentStopIndex'] as int? ?? 0,
+              totalStops: args?['totalStops'] as int? ?? 1,
             );
           },
         );

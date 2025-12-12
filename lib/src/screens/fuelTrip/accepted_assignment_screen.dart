@@ -19,28 +19,42 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
   @override
   void initState() {
     super.initState();
+    // ✅ FIXED: Clear data first, then fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FuelTripController>().getAcceptedAssignments();
+      final controller = context.read<FuelTripController>();
+      // Clear old data immediately
+      controller.clearAcceptedAssignment();
+      // Then fetch new data
+      controller.getAcceptedAssignments();
     });
   }
+
+  // ... rest of your methods remain the same ...
 
   void _handleStopSelection(
     BuildContext context,
     Map<String, dynamic> assignment,
     Map<String, dynamic> stop,
+    int stopIndex,
   ) {
     final requiredQty = double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
-    final availableQty =
-        (assignment['available_qty'] is int)
-            ? (assignment['available_qty'] as int).toDouble()
-            : (assignment['available_qty'] as double? ?? 0.0);
+    final availableQty = _toDouble(assignment['available_qty']);
+
+    final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
+    final totalStops = tripStops.length;
 
     if (availableQty < requiredQty) {
-      // Navigate to Fuel Refill Screen
-      _showRefillDialog(context, assignment, stop, requiredQty, availableQty);
+      _showRefillDialog(
+        context,
+        assignment,
+        stop,
+        requiredQty,
+        availableQty,
+        stopIndex,
+        totalStops,
+      );
     } else {
-      // Navigate to Trip Start Screen
-      _showStartTripDialog(context, assignment, stop);
+      _showStartTripDialog(context, assignment, stop, stopIndex, totalStops);
     }
   }
 
@@ -50,6 +64,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
     Map<String, dynamic> stop,
     double requiredQty,
     double availableQty,
+    int stopIndex,
+    int totalStops,
   ) {
     showDialog(
       context: context,
@@ -139,8 +155,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
-
-                  // Pass parameters to fuel refill screen
                   NavigationService().pushNavigation(
                     Screenroutes.fuelRefillBeforeTripScreen,
                     arguments: {
@@ -176,6 +190,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
     BuildContext context,
     Map<String, dynamic> assignment,
     Map<String, dynamic> stop,
+    int stopIndex,
+    int totalStops,
   ) {
     showDialog(
       context: context,
@@ -255,6 +271,11 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
+                  'Stop ${stopIndex + 1} of $totalStops',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 4),
+                Text(
                   'Arrival Time: ${stop['arrival_time']}',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
@@ -283,6 +304,21 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             ),
                             customerName: stop['customer_name'] ?? 'Unknown',
                             arrivalTime: stop['arrival_time'] ?? 'N/A',
+                            assignmentId: assignment['assignment_id'] ?? 0,
+                            vehicleId: assignment['vehicle_id'] ?? 0,
+                            requiredQty:
+                                double.tryParse(
+                                  stop['expected_qty'].toString(),
+                                ) ??
+                                0.0,
+                            availableQty: _toDouble(
+                              assignment['available_qty'],
+                            ),
+                            vehicleName:
+                                assignment['vehicle'] ?? 'Unknown Vehicle',
+                            stopOrder: stop['stop_order'] ?? '1',
+                            currentStopIndex: stopIndex,
+                            totalStops: totalStops,
                           ),
                     ),
                   );
@@ -336,8 +372,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
       appBar: AppBar(title: const Text('Accepted Assignments'), elevation: 0),
       body: Consumer<FuelTripController>(
         builder: (context, controller, child) {
-          if (controller.isLoading &&
-              controller.acceptedAssignmentData == null) {
+          // ✅ FIXED: Show loading ALWAYS when loading, even if old data exists
+          if (controller.isLoading) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -353,6 +389,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
             );
           }
 
+          // Show empty state only when not loading and no data
           if (controller.acceptedAssignmentData == null) {
             return Center(
               child: Column(
@@ -479,13 +516,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             ),
                             const SizedBox(height: 16),
                             _buildDetailRow(
-                              Icons.business,
-                              'Customer',
-                              assignment['customer_name'],
-                              Colors.blue,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildDetailRow(
                               Icons.directions_car,
                               'Vehicle',
                               assignment['vehicle'],
@@ -502,7 +532,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             const Divider(),
                             const SizedBox(height: 16),
                             const Text(
-                              'Fuel Status',
+                              'Current Fuel Status',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -512,82 +542,26 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color:
-                                    assignment['is_enough'] == true
-                                        ? Colors.green.shade50
-                                        : Colors.red.shade50,
+                                color: Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color:
-                                      assignment['is_enough'] == true
-                                          ? Colors.green.shade200
-                                          : Colors.red.shade200,
-                                ),
+                                border: Border.all(color: Colors.blue.shade200),
                               ),
-                              child: Column(
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Required Quantity:'),
-                                      Text(
-                                        '${(assignment['required_qty'] is int ? (assignment['required_qty'] as int).toDouble() : assignment['required_qty'])} L',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  const Text(
+                                    'Available in Vehicle:',
+                                    style: TextStyle(fontSize: 15),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Available Quantity:'),
-                                      Text(
-                                        '${(assignment['available_qty'] is int ? (assignment['available_qty'] as int).toDouble() : assignment['available_qty'])} L',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color:
-                                              assignment['is_enough'] == true
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (assignment['is_enough'] != true) ...[
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.shade100,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.warning_amber_rounded,
-                                            color: Colors.orange,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              assignment['action'] ==
-                                                      'refill_required'
-                                                  ? 'Refill Required'
-                                                  : 'Action Required',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.orange,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  Text(
+                                    '${_toDouble(assignment['available_qty']).toStringAsFixed(2)} L',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Colors.blue,
                                     ),
-                                  ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -608,7 +582,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             const Icon(Icons.location_on, color: Colors.blue),
                             const SizedBox(width: 8),
                             Text(
-                              'Trip Stops (${tripStops.length})',
+                              'Delivery Stops (${tripStops.length})',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -642,6 +616,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                                 assignment,
                                 stop,
                                 index,
+                                tripStops.length,
                               );
                             },
                           ),
@@ -703,20 +678,35 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
     Map<String, dynamic> assignment,
     Map<String, dynamic> stop,
     int index,
+    int totalStops,
   ) {
     final expectedQty = double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
-    final availableQty =
-        (assignment['available_qty'] is int)
-            ? (assignment['available_qty'] as int).toDouble()
-            : (assignment['available_qty'] as double? ?? 0.0);
+    final availableQty = _toDouble(assignment['available_qty']);
     final hasEnoughFuel = availableQty >= expectedQty;
+
+    final isCompleted =
+        stop['status'] == 'completed' || stop['is_completed'] == true;
+
+    bool isPreviousCompleted = true;
+    if (index > 0) {
+      final tripStops = assignment['trip_stops'] as List<dynamic>;
+      final previousStop = tripStops[index - 1];
+      isPreviousCompleted =
+          previousStop['status'] == 'completed' ||
+          previousStop['is_completed'] == true;
+    }
+
+    final isEnabled = isPreviousCompleted && !isCompleted;
 
     return Card(
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => _handleStopSelection(context, assignment, stop),
+        onTap:
+            isEnabled
+                ? () => _handleStopSelection(context, assignment, stop, index)
+                : null,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -732,7 +722,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Stop ${stop['stop_order']}',
+                      'Stop ${index + 1}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -741,38 +731,100 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          hasEnoughFuel
-                              ? Colors.green.shade100
-                              : Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          hasEnoughFuel ? Icons.check_circle : Icons.warning,
-                          size: 16,
-                          color: hasEnoughFuel ? Colors.green : Colors.orange,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          hasEnoughFuel ? 'Ready' : 'Refill',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                  if (isCompleted)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Completed',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (!isEnabled)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.lock,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Locked',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            hasEnoughFuel
+                                ? Colors.green.shade100
+                                : Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            hasEnoughFuel ? Icons.check_circle : Icons.warning,
+                            size: 16,
                             color: hasEnoughFuel ? Colors.green : Colors.orange,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            hasEnoughFuel ? 'Ready' : 'Refill',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  hasEnoughFuel ? Colors.green : Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -801,7 +853,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Expected: ${expectedQty.toStringAsFixed(2)} L',
+                    'Required: ${expectedQty.toStringAsFixed(2)} L',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                   ),
                 ],
@@ -827,22 +879,49 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed:
-                          () => _handleStopSelection(context, assignment, stop),
+                          isEnabled
+                              ? () => _handleStopSelection(
+                                context,
+                                assignment,
+                                stop,
+                                index,
+                              )
+                              : null,
                       icon: Icon(
-                        hasEnoughFuel
+                        isCompleted
+                            ? Icons.check_circle
+                            : !isEnabled
+                            ? Icons.lock
+                            : hasEnoughFuel
                             ? Icons.play_arrow
                             : Icons.local_gas_station,
                         size: 18,
                       ),
-                      label: Text(hasEnoughFuel ? 'Start Trip' : 'Refill Fuel'),
+                      label: Text(
+                        isCompleted
+                            ? 'Completed'
+                            : !isEnabled
+                            ? 'Complete Previous Stop First'
+                            : hasEnoughFuel
+                            ? 'Start Journey'
+                            : 'Refill First',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
-                            hasEnoughFuel ? Colors.green : Colors.orange,
+                            isCompleted
+                                ? Colors.green
+                                : !isEnabled
+                                ? Colors.grey
+                                : hasEnoughFuel
+                                ? Colors.green
+                                : Colors.orange,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade600,
                       ),
                     ),
                   ),

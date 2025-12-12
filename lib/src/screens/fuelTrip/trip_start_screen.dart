@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -9,6 +10,14 @@ class TripStartedScreen extends StatefulWidget {
   final int? tripStopId;
   final String customerName;
   final String arrivalTime;
+  final int assignmentId;
+  final int vehicleId;
+  final double requiredQty;
+  final double availableQty;
+  final String vehicleName;
+  final String stopOrder;
+  final int currentStopIndex;
+  final int totalStops;
 
   const TripStartedScreen({
     super.key,
@@ -16,6 +25,14 @@ class TripStartedScreen extends StatefulWidget {
     this.tripStopId,
     required this.customerName,
     required this.arrivalTime,
+    required this.assignmentId,
+    required this.vehicleId,
+    required this.requiredQty,
+    required this.availableQty,
+    required this.vehicleName,
+    required this.stopOrder,
+    required this.currentStopIndex,
+    required this.totalStops,
   });
 
   @override
@@ -69,8 +86,10 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           context: context,
           builder:
               (context) => AlertDialog(
-                title: const Text('End Trip?'),
-                content: const Text('Are you sure you want to end this trip?'),
+                title: const Text('Leave Trip?'),
+                content: const Text(
+                  'Are you sure you want to leave this screen?',
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -81,7 +100,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
-                    child: const Text('End Trip'),
+                    child: const Text('Leave'),
                   ),
                 ],
               ),
@@ -112,9 +131,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                             context: context,
                             builder:
                                 (context) => AlertDialog(
-                                  title: const Text('End Trip?'),
+                                  title: const Text('Leave Trip?'),
                                   content: const Text(
-                                    'Are you sure you want to end this trip?',
+                                    'Are you sure you want to leave this screen?',
                                   ),
                                   actions: [
                                     TextButton(
@@ -128,7 +147,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                       ),
-                                      child: const Text('End Trip'),
+                                      child: const Text('Leave'),
                                     ),
                                   ],
                                 ),
@@ -151,7 +170,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                               ),
                             ),
                             Text(
-                              'Trip ID: ${widget.tripId}',
+                              'Stop ${widget.currentStopIndex + 1} of ${widget.totalStops}',
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -238,7 +257,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                   ),
                 ),
 
-                // Trip Details Card (NO TRACKING INFO)
+                // Trip Details Card
                 Container(
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
@@ -292,6 +311,12 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                         label: 'Expected Arrival',
                         value: widget.arrivalTime,
                       ),
+                      const SizedBox(height: 12),
+                      _buildInfoItem(
+                        icon: Icons.local_gas_station,
+                        label: 'Delivery Quantity',
+                        value: '${widget.requiredQty.toStringAsFixed(2)} L',
+                      ),
                     ],
                   ),
                 ),
@@ -307,7 +332,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                         child: ElevatedButton.icon(
                           onPressed: () => _handleArrival(context),
                           icon: const Icon(Icons.check_circle),
-                          label: const Text('Mark Arrival'),
+                          label: const Text('Mark Arrival & Start Delivery'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -319,13 +344,17 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // End Trip Button
+                      // Back to Stops Button
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () => _handleEndTrip(context),
-                          icon: const Icon(Icons.stop_circle),
-                          label: const Text('End Trip'),
+                          onPressed: () {
+                            NavigationService().navigateToUntil(
+                              Screenroutes.acceptedAssignmentScreen,
+                            );
+                          },
+                          icon: const Icon(Icons.list),
+                          label: const Text('View All Stops'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white),
@@ -389,9 +418,35 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 Text('Confirm Arrival'),
               ],
             ),
-            content: const Text(
-              'Have you arrived at the customer location?',
-              style: TextStyle(fontSize: 16),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Have you arrived at the customer location?',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.blue),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'You will proceed to fuel delivery',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             actions: [
               TextButton(
@@ -399,12 +454,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 child: const Text('Not Yet'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                  NavigationService().pushNavigation(
-                    Screenroutes.fuelRefillBeforeTripScreen,
-                  );
-                },
+                onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Yes, Arrived'),
               ),
@@ -418,82 +468,29 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       // Log arrival event silently in background
       await controller.logManualTripEvent(
         eventType: 'arrived_at_stop',
-        description: 'Driver confirmed arrival at customer location',
+        description: 'Driver confirmed arrival at ${widget.customerName}',
       );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Arrival confirmed'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _handleEndTrip(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                SizedBox(width: 12),
-                Text('End Trip'),
-              ],
-            ),
-            content: const Text(
-              'Are you sure you want to end this trip and return to base?',
-              style: TextStyle(fontSize: 16),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('End Trip'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      final controller = context.read<TripTrackingController>();
-
-      // Stop tracking and log final event
-      await controller.stopTripTracking(finalEventType: 'returned_to_base');
+      // Refresh assignment data to get latest fuel quantities
+      await context.read<FuelTripController>().getAcceptedAssignments();
 
       if (context.mounted) {
-        // Navigate back to previous screen
-        Navigator.of(context).pop();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Trip completed successfully'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
+        // Navigate to customer fuel delivery screen
+        NavigationService().pushNavigation(
+          Screenroutes.customerFuelDeliveryScreen,
+          arguments: {
+            'assignmentId': widget.assignmentId,
+            'vehicleId': widget.vehicleId,
+            'tripId': widget.tripId.toString(),
+            'tripStopId': widget.tripStopId ?? 0,
+            'requiredQty': widget.requiredQty,
+            'availableQty': widget.availableQty,
+            'vehicleName': widget.vehicleName,
+            'customerName': widget.customerName,
+            'stopOrder': widget.stopOrder,
+            'currentStopIndex': widget.currentStopIndex,
+            'totalStops': widget.totalStops,
+          },
         );
       }
     }

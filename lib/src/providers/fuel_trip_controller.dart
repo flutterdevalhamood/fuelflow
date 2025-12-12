@@ -7,7 +7,11 @@ import '../repo/auth_repo.dart';
 class FuelTripController with ChangeNotifier {
   bool isLoading = false;
   bool isSubmittingResponse = false;
-  final token = AuthRepo.token;
+
+  // ✅ FIXED: Use getter to always fetch fresh token from AuthRepo
+  // Instead of: final token = AuthRepo.token;
+  String? get token => AuthRepo.token;
+
   int currentPage = 1;
   final int totalPages = 10;
   bool hasMore = true;
@@ -16,26 +20,35 @@ class FuelTripController with ChangeNotifier {
   String? errorMessage;
 
   Future<void> getAssignedTrips({bool loadMore = false}) async {
-    isLoading = true;
-    errorMessage = null;
-    notifyListeners();
-
+    // ✅ FIXED: Clear old data BEFORE making API call (only if not loading more)
     if (!loadMore) {
+      assignedTripsData = null;
       currentPage = 1;
       hasMore = true;
     }
 
+    errorMessage = null;
+    isLoading = true;
+    notifyListeners(); // Notify UI immediately
+
     try {
-      if (token == null) {
-        throw Exception("No token found");
+      // Get fresh token each time
+      final currentToken = token;
+
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found - user not authenticated");
       }
+
+      print(
+        '🔑 Making assigned trips request with token: ${currentToken.substring(0, 20)}...',
+      );
 
       final assignedTrips = await restApi.getAssignedTrips(
         currentPage,
         totalPages,
-        'Bearer $token',
+        'Bearer $currentToken',
       );
-      print('API Response: ${assignedTrips}');
+      print('API Response: $assignedTrips');
 
       if (assignedTrips is Map<String, dynamic>) {
         if (assignedTrips['IsSuccess'] == true) {
@@ -65,9 +78,10 @@ class FuelTripController with ChangeNotifier {
       }
     } catch (e) {
       errorMessage = 'Failed to load assigned trips';
-      print('Exception: $e');
+      print('❌ Exception: $e');
       if (e is DioException) {
         print('Dio error: ${e.message}');
+        print('Response: ${e.response?.data}');
       }
     } finally {
       isLoading = false;
@@ -76,39 +90,55 @@ class FuelTripController with ChangeNotifier {
   }
 
   Future<void> getAcceptedAssignments() async {
-    isLoading = true;
+    // ✅ FIXED: Clear old data BEFORE making API call
+    acceptedAssignmentData = null;
     errorMessage = null;
-    notifyListeners();
+
+    isLoading = true;
+    notifyListeners(); // Notify UI immediately to show loading state
 
     try {
-      if (token == null) {
-        throw Exception("No token found");
+      // Get fresh token each time
+      final currentToken = token;
+
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found - user not authenticated");
       }
+
+      print(
+        '🔑 Fetching accepted assignments with token: ${currentToken.substring(0, 20)}...',
+      );
+      print('Current page: $currentPage, Total pages: $totalPages');
 
       final response = await restApi.getAcceptedAssignments(
         currentPage,
         totalPages,
-        'Bearer $token',
+        'Bearer $currentToken',
       );
       print('Accepted Assignments API Response: $response');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
           acceptedAssignmentData = response['Data'] as Map<String, dynamic>?;
-          print('acceptedAssignmentData: $acceptedAssignmentData');
+          print('✅ acceptedAssignmentData: $acceptedAssignmentData');
         } else {
           errorMessage = response['Message'] ?? 'API call failed';
-          print('API call failed: ${response['Message']}');
+          print('❌ API call failed: ${response['Message']}');
+          acceptedAssignmentData = null;
         }
       } else {
         errorMessage = 'Unexpected API response format';
-        print('Unexpected API response format');
+        print('❌ Unexpected API response format');
+        acceptedAssignmentData = null;
       }
     } catch (e) {
       errorMessage = 'Failed to load accepted assignments';
-      print('Exception: $e');
+      acceptedAssignmentData = null;
+      print('❌ Exception: $e');
       if (e is DioException) {
         print('Dio error: ${e.message}');
+        print('Response: ${e.response?.data}');
+        print('Status code: ${e.response?.statusCode}');
       }
     } finally {
       isLoading = false;
@@ -134,8 +164,15 @@ class FuelTripController with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Get fresh token each time
+      final currentToken = token;
+
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found - user not authenticated");
+      }
+
       final postDriverResponseData = await restApi.postSubmitDriverResponse(
-        token: 'Bearer $token',
+        token: 'Bearer $currentToken',
         assignmentId: assignmentId,
         driverId: driverId,
         response: response,
@@ -182,6 +219,17 @@ class FuelTripController with ChangeNotifier {
 
   void clearAcceptedAssignment() {
     acceptedAssignmentData = null;
+    notifyListeners();
+  }
+
+  void clearAllData() {
+    assignedTripsData = null;
+    acceptedAssignmentData = null;
+    errorMessage = null;
+    currentPage = 1;
+    hasMore = true;
+    isLoading = false;
+    isSubmittingResponse = false;
     notifyListeners();
   }
 }
