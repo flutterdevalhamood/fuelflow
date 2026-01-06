@@ -713,15 +713,15 @@ class _FuelTripScreenState extends State<FuelTripScreen>
                   const Divider(),
                   _buildSummaryRow(
                     'Start Meter Reading',
-                    '${startReading.toStringAsFixed(2)} L',
+                    '${startReading.toStringAsFixed(2)} IG',
                   ),
                   _buildSummaryRow(
                     'End Meter Reading',
-                    '${endReading.toStringAsFixed(2)} L',
+                    '${endReading.toStringAsFixed(2)} IG',
                   ),
                   _buildSummaryRow(
                     'Fuel Delivered',
-                    '${fuelDelivered.toStringAsFixed(2)} L',
+                    '${fuelDelivered.toStringAsFixed(2)} IG',
                     isHighlight: true,
                   ),
                   const Divider(),

@@ -446,17 +446,68 @@ abstract class RestClient {
     @Part(name: 'photo_path') List<MultipartFile>? files,
   });
 
+  @POST('/Driver/FuelVehicleWithMeterReading')
+  @MultiPart()
+  Future<dynamic> postFuelVehicleWithMeterReading({
+    @Header("Authorization") String? token,
+    @Part(name: "vehicle_id") int? vehicleId,
+    @Part(name: "type") String? inFlow,
+    @Part(name: "quantity") String? quantity,
+    @Part(name: "before_quantity") String? beforeQuantity,
+    @Part(name: "after_quantity") String? afterQuantity,
+    @Part(name: "note") String? note,
+    @Part(name: "trip_id") String? tripId,
+    @Part(name: "trip_stop_id") int? tripStopId,
+    @Part(name: "vehicle_tank_start_reading_value")
+    int? vehicleTankStartReadingValue,
+    @Part(name: "vehicle_tank_start")
+    List<MultipartFile>? vehicleStartMeterFiles,
+    @Part(name: "vehicle_tank_end_reading_value")
+    int? vehicleTankEndReadingValue,
+    @Part(name: "vehicle_tank_end") List<MultipartFile>? vehicleEndMeterFiles,
+    @Part(name: "customer_start_meter_reading_value")
+    int? customerStartMeterReadingValue,
+    @Part(name: "customer_start_meter")
+    List<MultipartFile>? customerStartMeterFiles,
+    @Part(name: 'customer_end_meter_reading_value')
+    int? customerEndMeterReadingValue,
+    @Part(name: 'customer_end_meter')
+    List<MultipartFile>? customerEndMeterFiles,
+  });
+
   @GET('/Driver/GetTripEvents')
   Future<dynamic> getDriverTripEvents({@Header("Authorization") String? token});
 
   @POST('/Driver/LogTripEvent/{tripId}')
+  @FormUrlEncoded()
   Future<dynamic> postLogTripEvent({
-    @Path("id") int? tripId,
+    @Path("tripId") int? tripId,
     @Header("Authorization") String? token,
     @Field("trip_stop_id") int? tripStopId,
     @Field("event_type") String? eventType,
     @Field("description") String? description,
     @Field("latitude") String? latitude,
     @Field("longitude") String? longitude,
+  });
+
+  @GET('/getUserBaseList')
+  Future<dynamic> getUsersBaseList({@Header("Authorization") String? token});
+
+  @GET('/AllUsers/{page}/{limit}')
+  Future<dynamic> getAllUsers(
+    @Header("Authorization") String? token,
+    @Path("page") int page,
+    @Path("limit") int limit,
+  );
+
+  @POST('/userRegistration')
+  Future<dynamic> postUserRegistration({
+    @Header("Authorization") String? token,
+    @Field("name") String? name,
+    @Field("email") String? email,
+    @Field("password") String? password,
+    @Field("role_id") int? roleId,
+    @Field("driver_id") int? driverId,
+    @Field("customer_id") int? customerId,
   });
 }

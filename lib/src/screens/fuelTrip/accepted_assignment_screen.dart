@@ -16,20 +16,52 @@ class AcceptedAssignmentScreen extends StatefulWidget {
 }
 
 class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
+  // Track which stop card is expanded
+  int? _expandedStopIndex;
+
   @override
   void initState() {
     super.initState();
-    // ✅ FIXED: Clear data first, then fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = context.read<FuelTripController>();
-      // Clear old data immediately
-      controller.clearAcceptedAssignment();
-      // Then fetch new data
-      controller.getAcceptedAssignments();
+      _refreshAssignments();
     });
   }
 
-  // ... rest of your methods remain the same ...
+  Future<void> _refreshAssignments() async {
+    final controller = context.read<FuelTripController>();
+
+    await controller.getAcceptedAssignments();
+  }
+
+  // Replace the existing method with this:
+  Map<String, dynamic> _calculateTotalRequirements(
+    Map<String, dynamic> assignment,
+    List<dynamic> tripStops,
+  ) {
+    double totalRequired = 0.0;
+    double availableQty = _toDouble(assignment['available_qty']);
+
+    // Sum up required quantities for all incomplete stops
+    for (var stop in tripStops) {
+      final status = stop['status']?.toString().toLowerCase() ?? '';
+      final isCompleted = status == 'delivered' || status == 'completed';
+
+      if (!isCompleted) {
+        totalRequired +=
+            double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
+      }
+    }
+
+    double deficit = totalRequired - availableQty;
+
+    return {
+      'totalRequired': totalRequired,
+      'availableQty': availableQty,
+      'deficit': deficit > 0 ? deficit : 0.0,
+      'hasDeficit':
+          deficit > 0, // This is now allowed because return type is dynamic
+    };
+  }
 
   void _handleStopSelection(
     BuildContext context,
@@ -42,6 +74,17 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
 
     final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
     final totalStops = tripStops.length;
+
+    final status = stop['status']?.toString().toLowerCase() ?? '';
+    if (status == 'delivered' || status == 'completed') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This stop has already been completed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     if (availableQty < requiredQty) {
       _showRefillDialog(
@@ -248,7 +291,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                       ),
                       const SizedBox(height: 12),
                       _buildQuantityRow(
-                        'Required',
+                        'Customer Requirement',
                         double.tryParse(stop['expected_qty'].toString()) ?? 0,
                         Colors.grey,
                       ),
@@ -276,7 +319,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Arrival Time: ${stop['arrival_time']}',
+                  'Arrival Time: ${stop['expected_arrival_time'] ?? 'Not Set'}',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
@@ -348,7 +391,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
           style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
         Text(
-          '${quantity.toStringAsFixed(2)} L',
+          '${quantity.toStringAsFixed(2)} IG',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -369,10 +412,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Accepted Assignments'), elevation: 0),
+      appBar: AppBar(title: const Text('Accepted Trips'), elevation: 0),
       body: Consumer<FuelTripController>(
         builder: (context, controller, child) {
-          // ✅ FIXED: Show loading ALWAYS when loading, even if old data exists
           if (controller.isLoading) {
             return Center(
               child: Column(
@@ -389,7 +431,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
             );
           }
 
-          // Show empty state only when not loading and no data
           if (controller.acceptedAssignmentData == null) {
             return Center(
               child: Column(
@@ -411,14 +452,12 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'You have no active assignments',
+                    'You have no active trips',
                     style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      controller.getAcceptedAssignments();
-                    },
+                    onPressed: _refreshAssignments,
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh'),
                   ),
@@ -430,13 +469,15 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
           final assignment = controller.acceptedAssignmentData!;
           final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
 
+          // Calculate total requirements
+          final totals = _calculateTotalRequirements(assignment, tripStops);
+
           return RefreshIndicator(
-            onRefresh: () => controller.getAcceptedAssignments(),
+            onRefresh: _refreshAssignments,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 children: [
-                  // Header Section
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
@@ -470,7 +511,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Active Assignment',
+                                    'Active Trip',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
@@ -494,7 +535,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                     ),
                   ),
 
-                  // Assignment Details Card
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Card(
@@ -508,7 +548,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Assignment Details',
+                              'Trip Details',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -532,7 +572,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                             const Divider(),
                             const SizedBox(height: 16),
                             const Text(
-                              'Current Fuel Status',
+                              'Current Available Fuel Stock',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -551,11 +591,11 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
-                                    'Available in Vehicle:',
+                                    'Rem. Stock in Vehicle:',
                                     style: TextStyle(fontSize: 15),
                                   ),
                                   Text(
-                                    '${_toDouble(assignment['available_qty']).toStringAsFixed(2)} L',
+                                    '${_toDouble(assignment['available_qty']).toStringAsFixed(2)} IG',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
@@ -571,7 +611,90 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                     ),
                   ),
 
-                  // Trip Stops Section
+                  // Overall Refill Status Card
+                  if (totals['hasDeficit'] == true) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.orange.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.orange.shade700,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Overall Refill Required',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildQuantityRow(
+                                    'Total Required (All Stops)',
+                                    totals['totalRequired']!,
+                                    Colors.grey.shade700,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildQuantityRow(
+                                    'Currently Available',
+                                    totals['availableQty']!,
+                                    Colors.blue,
+                                  ),
+                                  const Divider(height: 20),
+                                  _buildQuantityRow(
+                                    'Total Deficit',
+                                    totals['deficit']!,
+                                    Colors.orange.shade900,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'You need to refill ${totals['deficit']!.toStringAsFixed(2)} IG from the depot to complete all remaining stops.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
@@ -684,253 +807,407 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
     final availableQty = _toDouble(assignment['available_qty']);
     final hasEnoughFuel = availableQty >= expectedQty;
 
-    final isCompleted =
-        stop['status'] == 'completed' || stop['is_completed'] == true;
+    final status = stop['status']?.toString().toLowerCase() ?? '';
+    final isCompleted = status == 'delivered' || status == 'completed';
 
     bool isPreviousCompleted = true;
     if (index > 0) {
       final tripStops = assignment['trip_stops'] as List<dynamic>;
       final previousStop = tripStops[index - 1];
+      final prevStatus = previousStop['status']?.toString().toLowerCase() ?? '';
       isPreviousCompleted =
-          previousStop['status'] == 'completed' ||
-          previousStop['is_completed'] == true;
+          prevStatus == 'delivered' || prevStatus == 'completed';
     }
 
     final isEnabled = isPreviousCompleted && !isCompleted;
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap:
-            isEnabled
-                ? () => _handleStopSelection(context, assignment, stop, index)
-                : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    // Get vehicles list from stop_vehicles
+    final stopVehicles = stop['stop_vehicles'] as List<dynamic>? ?? [];
+    final isExpanded = _expandedStopIndex == index;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Original Card Content
+        Card(
+          elevation: isCompleted ? 4 : 2,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side:
+                isCompleted
+                    ? BorderSide(color: Colors.green.shade300, width: 2)
+                    : BorderSide.none,
+          ),
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Stop ${index + 1}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isCompleted)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Colors.green.shade700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade700,
+              InkWell(
+                onTap:
+                    isEnabled
+                        ? () => _handleStopSelection(
+                          context,
+                          assignment,
+                          stop,
+                          index,
+                        )
+                        : null,
+                borderRadius: BorderRadius.circular(12),
+                child: Opacity(
+                  opacity: isCompleted ? 0.7 : 1.0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    isCompleted
+                                        ? Colors.green.shade100
+                                        : Colors.blue.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Stop ${index + 1}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      isCompleted
+                                          ? Colors.green.shade900
+                                          : Colors.blue.shade900,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (!isEnabled)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.lock,
-                            size: 16,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Locked',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            const Spacer(),
+                            if (stop['status'] != null &&
+                                stop['status'].toString().isNotEmpty &&
+                                !isCompleted)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.blue.shade200,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  stop['status'].toString(),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.business,
+                              size: 16,
                               color: Colors.grey.shade600,
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            hasEnoughFuel
-                                ? Colors.green.shade100
-                                : Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            hasEnoughFuel ? Icons.check_circle : Icons.warning,
-                            size: 16,
-                            color: hasEnoughFuel ? Colors.green : Colors.orange,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            hasEnoughFuel ? 'Ready' : 'Refill',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  hasEnoughFuel ? Colors.green : Colors.orange,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${assignment['customer_name'] ?? 'Unknown Customer'}'
+                                ' - '
+                                '${stop['site_name'] ?? 'Unknown Site'}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.local_gas_station,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Customer Requirement: ${expectedQty.toStringAsFixed(2)} IG',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Arrival: ${stop['expected_arrival_time'] ?? 'Not Set'}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Vehicle Count Section
+                        if (stopVehicles.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _expandedStopIndex = isExpanded ? null : index;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.purple.shade200,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.directions_car,
+                                    size: 20,
+                                    color: Colors.purple.shade700,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Vehicles',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.purple.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.shade700,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${stopVehicles.length}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Icon(
+                                    isExpanded
+                                        ? Icons.keyboard_arrow_up
+                                        : Icons.keyboard_arrow_down,
+                                    color: Colors.purple.shade700,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.business, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      stop['customer_name'],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.local_gas_station,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Required: ${expectedQty.toStringAsFixed(2)} L',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Arrival: ${stop['arrival_time']}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed:
-                          isEnabled
-                              ? () => _handleStopSelection(
-                                context,
-                                assignment,
-                                stop,
-                                index,
-                              )
-                              : null,
-                      icon: Icon(
-                        isCompleted
-                            ? Icons.check_circle
-                            : !isEnabled
-                            ? Icons.lock
-                            : hasEnoughFuel
-                            ? Icons.play_arrow
-                            : Icons.local_gas_station,
-                        size: 18,
-                      ),
-                      label: Text(
-                        isCompleted
-                            ? 'Completed'
-                            : !isEnabled
-                            ? 'Complete Previous Stop First'
-                            : hasEnoughFuel
-                            ? 'Start Journey'
-                            : 'Refill First',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isCompleted
-                                ? Colors.green
-                                : !isEnabled
-                                ? Colors.grey
-                                : hasEnoughFuel
-                                ? Colors.green
-                                : Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+
+                        // Expanded Vehicle List
+                        if (isExpanded && stopVehicles.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Vehicle Plate Numbers:',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ...stopVehicles.map((vehicleData) {
+                                  final vehicle =
+                                      vehicleData['vehicle']
+                                          as Map<String, dynamic>? ??
+                                      {};
+                                  final plateNo = vehicle['plate_no'] ?? 'N/A';
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.directions_car,
+                                            size: 16,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            plateNo,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    isEnabled
+                                        ? () => _handleStopSelection(
+                                          context,
+                                          assignment,
+                                          stop,
+                                          index,
+                                        )
+                                        : null,
+                                icon: Icon(
+                                  isCompleted
+                                      ? Icons.check_circle
+                                      : !isEnabled
+                                      ? Icons.lock
+                                      : hasEnoughFuel
+                                      ? Icons.play_arrow
+                                      : Icons.local_gas_station,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  isCompleted
+                                      ? 'Delivered'
+                                      : !isEnabled
+                                      ? 'Complete Previous Stop First'
+                                      : hasEnoughFuel
+                                      ? 'Start Journey'
+                                      : 'Refill First',
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      isCompleted
+                                          ? Colors.green
+                                          : !isEnabled
+                                          ? Colors.grey
+                                          : hasEnoughFuel
+                                          ? Colors.green
+                                          : Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  disabledBackgroundColor: Colors.grey.shade300,
+                                  disabledForegroundColor: Colors.grey.shade600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        disabledForegroundColor: Colors.grey.shade600,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // ✅ DELIVERED Stamp Overlay
+              if (isCompleted)
+                Positioned.fill(
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: -0.3,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.green.shade700,
+                            width: 4,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.green.withOpacity(0.1),
+                        ),
+                        child: Text(
+                          'DELIVERED',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.green.shade700,
+                            letterSpacing: 2,
+                            shadows: [
+                              Shadow(
+                                color: Colors.white.withOpacity(0.8),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

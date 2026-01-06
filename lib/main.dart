@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/providers/assigned_controller.dart';
 import 'src/providers/refilling_unit_controller.dart';
+import 'src/providers/user_registration_controller.dart';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -46,6 +47,9 @@ void main() async {
           create: (context) => FuelRefillBeforeTripControllerController(),
         ),
         ChangeNotifierProvider(create: (context) => TripTrackingController()),
+        ChangeNotifierProvider(
+          create: (context) => UserRegistrationController(),
+        ),
       ],
       child: const BaseScreen(),
     ),

@@ -33,6 +33,8 @@ import 'package:sample/src/screens/refillingUnit/refilling_unit_update_screen.da
 import 'package:sample/src/screens/storageUnit/storage_unit_detail_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_list_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
+import 'package:sample/src/screens/userRegistration/user_registration_screen.dart';
+import 'package:sample/src/screens/userRegistration/user_view_screen.dart';
 import 'package:sample/src/screens/vehicles/vehicle_list_screen.dart';
 
 import '../constants/string_constants.dart';
@@ -107,6 +109,9 @@ class Screenroutes {
   static const String tripStartedScreen = "tripStartedScreen";
 
   static const String customerFuelDeliveryScreen = "customerFuelDeliveryScreen";
+
+  static const String userViewScreen = "userViewScreen";
+  static const String userRegistrationScreen = "userRegistrationScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -502,7 +507,7 @@ class Screenroutes {
               tripId: args?['tripId'] as int? ?? 0,
               tripStopId: args?['tripStopId'] as int?,
               customerName: args?['customerName'] as String? ?? '',
-              arrivalTime: args?['arrivalTime'] as String? ?? '',
+              arrivalTime: args?['expected_arrival_time'] as String? ?? '',
               assignmentId: args?['assignmentId'] as int? ?? 0,
               vehicleId: args?['vehicleId'] as int? ?? 0,
               requiredQty: args?['requiredQty'] as double? ?? 0.0,
@@ -535,6 +540,24 @@ class Screenroutes {
               currentStopIndex: args?['currentStopIndex'] as int? ?? 0,
               totalStops: args?['totalStops'] as int? ?? 1,
             );
+          },
+        );
+
+      case Screenroutes.userViewScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.userViewScreen),
+          builder: (BuildContext context) {
+            return UserDisplayScreen();
+          },
+        );
+
+      case Screenroutes.userRegistrationScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.userRegistrationScreen,
+          ),
+          builder: (BuildContext context) {
+            return UserRegistrationScreen();
           },
         );
     }

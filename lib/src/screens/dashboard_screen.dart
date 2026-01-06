@@ -80,6 +80,14 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'Manage storage facilities',
       },
       {
+        'title': 'Assigned Trip',
+        'icon': Icons.local_shipping_rounded,
+        'route': Screenroutes.notificationScreen,
+        'color': Colors.deepOrange,
+        'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
+        'description': 'Go to Your Assignment Trip',
+      },
+      {
         'title': 'Fuel Trip',
         'icon': Icons.local_shipping_rounded,
         'route':
@@ -89,17 +97,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
         'description': 'Manage fuel delivery trips',
       },
-      {
-        'title': 'Fuel Refill For Trip',
-        'icon': Icons.local_shipping_rounded,
-        'route':
-            Screenroutes
-                .fuelRefillBeforeTripScreen, // Add this route to your app_routes.dart
-        'color': Colors.deepPurpleAccent,
-        'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
-        'description': 'Manage fuel refill before trip',
-      },
-
       {
         'title': 'Accepted Assignments',
         'icon': Icons.local_shipping_rounded,
@@ -111,12 +108,29 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'View active accepted assignments',
       },
       {
+        'title': 'Completed Trip',
+        'icon': Icons.storage_rounded,
+        'route': '',
+        'color': Colors.lime,
+        'gradient': [Color(0xFFee0979), Color(0xFFff6a00)],
+        'description': 'View Completed Trips',
+      },
+      {
         'title': 'Reports',
         'icon': Icons.insert_chart_rounded,
         'route': Screenroutes.reportsScreen,
         'color': Colors.teal,
         'gradient': [Color(0xFF3f5efb), Color(0xFFfc466b)],
         'description': 'View system analytics',
+      },
+
+      {
+        'title': 'User Registration',
+        'icon': Icons.verified_user,
+        'route': Screenroutes.userViewScreen,
+        'color': Colors.grey,
+        'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
+        'description': 'Register the user',
       },
     ];
 
@@ -152,14 +166,9 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       return allGridItems
           .where(
             (item) =>
-                item['title'] == 'Vehicles' ||
-                item['title'] == 'Drivers' ||
-                item['title'] == 'Fuel Refill' ||
-                item['title'] == 'My Refilling Units' ||
-                item['title'] == 'Fuel Trip' ||
-                item['title'] == 'Fuel Refill For Trip' ||
+                item['title'] == 'Assigned Trip' ||
                 item['title'] == 'Accepted Assignments' ||
-                item['title'] == 'Reports',
+                item['title'] == 'Completed Trip',
           )
           .toList();
     }

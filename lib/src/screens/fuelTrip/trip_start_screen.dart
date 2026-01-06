@@ -315,7 +315,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                       _buildInfoItem(
                         icon: Icons.local_gas_station,
                         label: 'Delivery Quantity',
-                        value: '${widget.requiredQty.toStringAsFixed(2)} L',
+                        value: '${widget.requiredQty.toStringAsFixed(2)} IG',
                       ),
                     ],
                   ),
@@ -332,7 +332,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                         child: ElevatedButton.icon(
                           onPressed: () => _handleArrival(context),
                           icon: const Icon(Icons.check_circle),
-                          label: const Text('Mark Arrival & Start Delivery'),
+                          label: const Text('Arrived at Customer Location'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -345,26 +345,26 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                       ),
                       const SizedBox(height: 12),
                       // Back to Stops Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            NavigationService().navigateToUntil(
-                              Screenroutes.acceptedAssignmentScreen,
-                            );
-                          },
-                          icon: const Icon(Icons.list),
-                          label: const Text('View All Stops'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
+                      // SizedBox(
+                      //   width: double.infinity,
+                      //   child: OutlinedButton.icon(
+                      //     onPressed: () {
+                      //       NavigationService().navigateToUntil(
+                      //         Screenroutes.acceptedAssignmentScreen,
+                      //       );
+                      //     },
+                      //     icon: const Icon(Icons.list),
+                      //     label: const Text('View All Stops'),
+                      //     style: OutlinedButton.styleFrom(
+                      //       foregroundColor: Colors.white,
+                      //       side: const BorderSide(color: Colors.white),
+                      //       padding: const EdgeInsets.symmetric(vertical: 16),
+                      //       shape: RoundedRectangleBorder(
+                      //         borderRadius: BorderRadius.circular(12),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -463,35 +463,78 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     );
 
     if (confirmed == true && context.mounted) {
-      final controller = context.read<TripTrackingController>();
-
-      // Log arrival event silently in background
-      await controller.logManualTripEvent(
-        eventType: 'arrived_at_stop',
-        description: 'Driver confirmed arrival at ${widget.customerName}',
+      // Show second confirmation dialog for starting delivery
+      final startDelivery = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.local_shipping, color: Colors.orange),
+                  SizedBox(width: 12),
+                  Text('Start Delivery'),
+                ],
+              ),
+              content: const Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Do you want to start the fuel delivery now?',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                  child: const Text('Start Delivery'),
+                ),
+              ],
+            ),
       );
 
-      // Refresh assignment data to get latest fuel quantities
-      await context.read<FuelTripController>().getAcceptedAssignments();
+      if (startDelivery == true && context.mounted) {
+        final controller = context.read<TripTrackingController>();
 
-      if (context.mounted) {
-        // Navigate to customer fuel delivery screen
-        NavigationService().pushNavigation(
-          Screenroutes.customerFuelDeliveryScreen,
-          arguments: {
-            'assignmentId': widget.assignmentId,
-            'vehicleId': widget.vehicleId,
-            'tripId': widget.tripId.toString(),
-            'tripStopId': widget.tripStopId ?? 0,
-            'requiredQty': widget.requiredQty,
-            'availableQty': widget.availableQty,
-            'vehicleName': widget.vehicleName,
-            'customerName': widget.customerName,
-            'stopOrder': widget.stopOrder,
-            'currentStopIndex': widget.currentStopIndex,
-            'totalStops': widget.totalStops,
-          },
+        // Log arrival event silently in background
+        await controller.logManualTripEvent(
+          eventType: 'arrived_at_stop',
+          description: 'Driver confirmed arrival at ${widget.customerName}',
         );
+
+        // Refresh assignment data to get latest fuel quantities
+        await context.read<FuelTripController>().getAcceptedAssignments();
+
+        if (context.mounted) {
+          // Navigate to customer fuel delivery screen
+          NavigationService().pushNavigation(
+            Screenroutes.customerFuelDeliveryScreen,
+            arguments: {
+              'assignmentId': widget.assignmentId,
+              'vehicleId': widget.vehicleId,
+              'tripId': widget.tripId.toString(),
+              'tripStopId': widget.tripStopId ?? 0,
+              'requiredQty': widget.requiredQty,
+              'availableQty': widget.availableQty,
+              'vehicleName': widget.vehicleName,
+              'customerName': widget.customerName,
+              'stopOrder': widget.stopOrder,
+              'currentStopIndex': widget.currentStopIndex,
+              'totalStops': widget.totalStops,
+            },
+          );
+        }
       }
     }
   }

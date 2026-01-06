@@ -148,6 +148,384 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  void _showTripDetailsDialog(BuildContext context, Map<String, dynamic> trip) {
+    showDialog(
+      context: context,
+      builder:
+          (BuildContext dialogContext) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              constraints: const BoxConstraints(maxHeight: 600),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue, Colors.blue.shade300],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.route, color: Colors.white, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Trip Stops Details',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Trip ID: ${trip['trip_id']}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content
+                  Flexible(child: _buildTripStopsContent(trip)),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildTripStopsContent(Map<String, dynamic> trip) {
+    final tripStops = trip['trip_stops'] as List<dynamic>?;
+
+    if (tripStops == null || tripStops.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.location_off, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text(
+                'No trip stops available',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: const EdgeInsets.all(16),
+      itemCount: tripStops.length,
+      itemBuilder: (context, index) {
+        final stop = tripStops[index] as Map<String, dynamic>;
+        return _buildStopCard(stop, index);
+      },
+    );
+  }
+
+  Widget _buildStopCard(Map<String, dynamic> stop, int index) {
+    final stopVehicles = stop['stop_vehicles'] as List<dynamic>?;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Stop Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.teal.shade400, Colors.teal.shade300],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stop['site_name'] ?? 'Unknown Site',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              stop['status']?.toString().toUpperCase() ?? 'N/A',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.location_on, color: Colors.white, size: 32),
+              ],
+            ),
+          ),
+
+          // Stop Details
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStopDetailItem(
+                        Icons.local_gas_station,
+                        'Expected Qty',
+                        '${stop['expected_qty'] ?? 'N/A'} IG',
+                        Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildStopDetailItem(
+                  Icons.access_time,
+                  'Expected Arrival',
+                  _formatDateTime(stop['expected_arrival_time']),
+                  Colors.blue,
+                ),
+                const SizedBox(height: 12),
+                _buildStopDetailItem(
+                  Icons.check_circle_outline,
+                  'Expected Completion',
+                  _formatDateTime(stop['expected_completed_time']),
+                  Colors.green,
+                ),
+
+                // Stop Vehicles Section
+                if (stopVehicles != null && stopVehicles.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.local_shipping,
+                        size: 20,
+                        color: Colors.indigo,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Stop Vehicles (${stopVehicles.length})',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.indigo,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ...stopVehicles.asMap().entries.map((entry) {
+                    final vehicle = entry.value as Map<String, dynamic>;
+                    return _buildVehicleChip(vehicle, entry.key);
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopDetailItem(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVehicleChip(Map<String, dynamic> vehicle, int index) {
+    final status = vehicle['status']?.toString() ?? '0';
+    final isActive = status == '1';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isActive ? Colors.green.shade300 : Colors.grey.shade300,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.green : Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.directions_car,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Plate No: ${vehicle['plate_no'] ?? 'N/A'}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.green : Colors.grey,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              isActive ? 'Refilled' : 'Pending',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(dynamic dateTime) {
+    if (dateTime == null) return 'N/A';
+    try {
+      final dt = DateTime.parse(dateTime.toString());
+      return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateTime.toString();
+    }
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -168,116 +546,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // Future<void> _submitResponse(
-  //   BuildContext context,
-  //   Map<String, dynamic> trip,
-  //   String response,
-  //   String? reason,
-  // ) async {
-  //   final controller = context.read<FuelTripController>();
-  //
-  //   // Show loading dialog
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder:
-  //         (context) => Center(
-  //           child: Container(
-  //             padding: const EdgeInsets.all(20),
-  //             decoration: BoxDecoration(
-  //               color: Colors.white,
-  //               borderRadius: BorderRadius.circular(12),
-  //             ),
-  //             child: Column(
-  //               mainAxisSize: MainAxisSize.min,
-  //               children: [
-  //                 const CircularProgressIndicator(),
-  //                 const SizedBox(height: 16),
-  //                 Text(
-  //                   response == 'accepted'
-  //                       ? 'Accepting trip...'
-  //                       : 'Submitting rejection...',
-  //                   style: const TextStyle(fontSize: 16),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //   );
-  //
-  //   final success = await controller.postDriverResponse(
-  //     assignmentId: trip['assignment_id'] as int,
-  //     driverId: widget.driverId,
-  //     response: response,
-  //     reason: reason,
-  //   );
-  //
-  //   if (!mounted) return;
-  //
-  //   // Close loading dialog
-  //   Navigator.pop(context);
-  //
-  //   if (success) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Row(
-  //           children: [
-  //             Icon(
-  //               response == 'accepted' ? Icons.check_circle : Icons.info,
-  //               color: Colors.white,
-  //             ),
-  //             const SizedBox(width: 12),
-  //             Expanded(
-  //               child: Text(
-  //                 response == 'accepted'
-  //                     ? 'Trip accepted successfully'
-  //                     : 'Trip rejected successfully',
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         backgroundColor:
-  //             response == 'accepted' ? Colors.green : Colors.orange,
-  //         behavior: SnackBarBehavior.floating,
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(10),
-  //         ),
-  //       ),
-  //     );
-  //
-  //     if (response == 'accepted') {
-  //       Navigator.pushReplacement(
-  //         context,
-  //         MaterialPageRoute(builder: (context) => const FuelTripScreen()),
-  //       );
-  //     }
-  //   } else {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Row(
-  //           children: [
-  //             const Icon(Icons.error, color: Colors.white),
-  //             const SizedBox(width: 12),
-  //             Expanded(
-  //               child: Text(
-  //                 controller.errorMessage ?? 'Failed to submit response',
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         backgroundColor: Colors.red,
-  //         behavior: SnackBarBehavior.floating,
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(10),
-  //         ),
-  //       ),
-  //     );
-  //   }
-  // }
-
-  // Update the _submitResponse method in your NotificationScreen
-  // Replace the existing method with this:
-
   Future<void> _submitResponse(
     BuildContext context,
     Map<String, dynamic> trip,
@@ -288,7 +556,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -328,7 +595,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
         reason: reason,
       );
 
-      // Close loading dialog first
       navigator.pop();
 
       if (success) {
@@ -361,10 +627,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         );
 
         if (response == 'accepted') {
-          // Small delay to ensure snackbar is visible
           await Future.delayed(const Duration(milliseconds: 500));
-
-          // Navigate to Accepted Assignment Screen
           navigator.pushReplacement(
             MaterialPageRoute(
               builder:
@@ -396,9 +659,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         );
       }
     } catch (e) {
-      // Ensure loading dialog is closed even if there's an error
       navigator.pop();
-
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Row(
@@ -421,28 +682,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        elevation: 0,
-        // flexibleSpace: Container(
-        //   decoration: BoxDecoration(
-        //     gradient: LinearGradient(
-        //       colors: [Colors.blue, Colors.blue.shade300],
-        //       begin: Alignment.topLeft,
-        //       end: Alignment.bottomRight,
-        //     ),
-        //   ),
-        // ),
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.refresh),
-        //     onPressed: () {
-        //       context.read<FuelTripController>().getAssignedTrips();
-        //     },
-        //     tooltip: 'Refresh',
-        //   ),
-        // ],
-      ),
+      appBar: AppBar(title: const Text('Assigned Trips'), elevation: 0),
       body: Consumer<FuelTripController>(
         builder: (context, controller, child) {
           if (controller.isLoading && controller.assignedTripsData == null) {
@@ -543,7 +783,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
             onRefresh: () => controller.getAssignedTrips(),
             child: Column(
               children: [
-                // Header Section
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -618,8 +857,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ],
                   ),
                 ),
-
-                // Trips List
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -644,6 +881,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     FuelTripController controller,
     int index,
   ) {
+    final tripStops = trip['trip_stops'] as List<dynamic>?;
+    final stopsCount = tripStops?.length ?? 0;
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
@@ -656,7 +896,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -740,10 +979,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ],
               ),
             ),
-
             const Divider(height: 1),
-
-            // Body
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -775,13 +1011,80 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     trip['created_at'],
                     Colors.grey,
                   ),
+
+                  // Trip Stops Summary
+                  if (stopsCount > 0) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => _showTripDetailsDialog(context, trip),
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.teal.shade50, Colors.teal.shade100],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.teal.shade300,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.teal,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.route,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Trip Stops',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.teal,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$stopsCount ${stopsCount == 1 ? 'stop' : 'stops'} • Tap to view details',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.teal.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 18,
+                              color: Colors.teal.shade700,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-
             const Divider(height: 1),
-
-            // Actions
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(

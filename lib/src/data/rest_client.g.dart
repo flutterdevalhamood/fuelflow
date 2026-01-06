@@ -1750,6 +1750,128 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<dynamic> postFuelVehicleWithMeterReading({
+    String? token,
+    int? vehicleId,
+    String? inFlow,
+    String? quantity,
+    String? beforeQuantity,
+    String? afterQuantity,
+    String? note,
+    String? tripId,
+    int? tripStopId,
+    int? vehicleTankStartReadingValue,
+    List<MultipartFile>? vehicleStartMeterFiles,
+    int? vehicleTankEndReadingValue,
+    List<MultipartFile>? vehicleEndMeterFiles,
+    int? customerStartMeterReadingValue,
+    List<MultipartFile>? customerStartMeterFiles,
+    int? customerEndMeterReadingValue,
+    List<MultipartFile>? customerEndMeterFiles,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = FormData();
+    if (vehicleId != null) {
+      _data.fields.add(MapEntry('vehicle_id', vehicleId.toString()));
+    }
+    if (inFlow != null) {
+      _data.fields.add(MapEntry('type', inFlow));
+    }
+    if (quantity != null) {
+      _data.fields.add(MapEntry('quantity', quantity));
+    }
+    if (beforeQuantity != null) {
+      _data.fields.add(MapEntry('before_quantity', beforeQuantity));
+    }
+    if (afterQuantity != null) {
+      _data.fields.add(MapEntry('after_quantity', afterQuantity));
+    }
+    if (note != null) {
+      _data.fields.add(MapEntry('note', note));
+    }
+    if (tripId != null) {
+      _data.fields.add(MapEntry('trip_id', tripId));
+    }
+    if (tripStopId != null) {
+      _data.fields.add(MapEntry('trip_stop_id', tripStopId.toString()));
+    }
+    if (vehicleTankStartReadingValue != null) {
+      _data.fields.add(
+        MapEntry(
+          'vehicle_tank_start_reading_value',
+          vehicleTankStartReadingValue.toString(),
+        ),
+      );
+    }
+    if (vehicleStartMeterFiles != null) {
+      _data.files.addAll(
+        vehicleStartMeterFiles.map((i) => MapEntry('vehicle_tank_start', i)),
+      );
+    }
+    if (vehicleTankEndReadingValue != null) {
+      _data.fields.add(
+        MapEntry(
+          'vehicle_tank_end_reading_value',
+          vehicleTankEndReadingValue.toString(),
+        ),
+      );
+    }
+    if (vehicleEndMeterFiles != null) {
+      _data.files.addAll(
+        vehicleEndMeterFiles.map((i) => MapEntry('vehicle_tank_end', i)),
+      );
+    }
+    if (customerStartMeterReadingValue != null) {
+      _data.fields.add(
+        MapEntry(
+          'customer_start_meter_reading_value',
+          customerStartMeterReadingValue.toString(),
+        ),
+      );
+    }
+    if (customerStartMeterFiles != null) {
+      _data.files.addAll(
+        customerStartMeterFiles.map((i) => MapEntry('customer_start_meter', i)),
+      );
+    }
+    if (customerEndMeterReadingValue != null) {
+      _data.fields.add(
+        MapEntry(
+          'customer_end_meter_reading_value',
+          customerEndMeterReadingValue.toString(),
+        ),
+      );
+    }
+    if (customerEndMeterFiles != null) {
+      _data.files.addAll(
+        customerEndMeterFiles.map((i) => MapEntry('customer_end_meter', i)),
+      );
+    }
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/Driver/FuelVehicleWithMeterReading',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
   Future<dynamic> getDriverTripEvents({String? token}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1796,10 +1918,100 @@ class _RestClient implements RestClient {
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
+          .compose(
+            _dio.options,
+            '/Driver/LogTripEvent/${tripId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getUsersBaseList({String? token}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/getUserBaseList',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getAllUsers(String? token, int page, int limit) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/AllUsers/${page}/${limit}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postUserRegistration({
+    String? token,
+    String? name,
+    String? email,
+    String? password,
+    int? roleId,
+    int? driverId,
+    int? customerId,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role_id': roleId,
+      'driver_id': driverId,
+      'customer_id': customerId,
+    };
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/Driver/LogTripEvent/{tripId}',
+            '/userRegistration',
             queryParameters: queryParameters,
             data: _data,
           )

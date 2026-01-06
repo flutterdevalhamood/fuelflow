@@ -23,10 +23,10 @@ class FuelRefillBeforeTripControllerController with ChangeNotifier {
     required int vehicleId,
     required String tripId,
     required int tripStopId,
-    required String type, // 'inflow' or 'outflow'
-    required num quantity, // Refill quantity
-    required num beforeQuantity, // Quantity already in tank
-    required num afterQuantity, // Quantity after refilling
+    required String type,
+    required num quantity,
+    required num beforeQuantity,
+    required num afterQuantity,
     String? note,
   }) async {
     isSubmittingRefill = true;
@@ -197,6 +197,102 @@ class FuelRefillBeforeTripControllerController with ChangeNotifier {
         }
       }
       isSubmittingMeterReading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> postFuelVehicleWithMeterReading({
+    required int vehicleId,
+    required String tripId,
+    required int tripStopId,
+    required String type,
+    required double quantity,
+    required double beforeQuantity,
+    required double afterQuantity,
+    required int customerStartMeterReadingValue,
+    required List<File> customerStartMeterFiles,
+    required int customerEndMeterReadingValue,
+    required List<File> customerEndMeterFiles,
+    required int vehicleTankStartReadingValue,
+    required List<File> vehicleStartMeterFiles,
+    required int vehicleTankEndReadingValue,
+    required List<File> vehicleEndMeterFiles,
+    String? note,
+  }) async {
+    isSubmittingRefill = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Prepare multipart files for customer start meter photos
+      List<MultipartFile> startMeterMultipartFiles = [];
+      for (var file in customerStartMeterFiles) {
+        final multipartFile = await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        );
+        startMeterMultipartFiles.add(multipartFile);
+      }
+
+      // Prepare multipart files for customer end meter photos
+      List<MultipartFile> endMeterMultipartFiles = [];
+      for (var file in customerEndMeterFiles) {
+        final multipartFile = await MultipartFile.fromFile(
+          file.path,
+          filename: file.path.split('/').last,
+        );
+        endMeterMultipartFiles.add(multipartFile);
+      }
+
+      final response = await restApi.postFuelVehicleWithMeterReading(
+        token: 'Bearer ${AuthRepo.token}',
+        vehicleId: vehicleId,
+        tripId: tripId,
+        tripStopId: tripStopId,
+        inFlow: type,
+        quantity: quantity.toStringAsFixed(2),
+        beforeQuantity: beforeQuantity.toStringAsFixed(2),
+        afterQuantity: afterQuantity.toStringAsFixed(2),
+        note: note ?? '',
+        customerStartMeterReadingValue: customerStartMeterReadingValue,
+        customerStartMeterFiles: startMeterMultipartFiles,
+        customerEndMeterReadingValue: customerEndMeterReadingValue,
+        customerEndMeterFiles: endMeterMultipartFiles,
+        vehicleTankStartReadingValue: null,
+        vehicleStartMeterFiles: null,
+        vehicleTankEndReadingValue: null,
+        vehicleEndMeterFiles: null,
+      );
+
+      debugPrint('✅ Fuel delivery with meter readings completed successfully');
+      debugPrint('Response: $response');
+
+      // Extract stock event ID if needed for future use
+      if (response != null && response['data'] != null) {
+        lastStockEventId = response['data']['id'];
+        debugPrint('Stock Event ID: $lastStockEventId');
+      }
+
+      isSubmittingRefill = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error posting fuel delivery with meter readings: $e');
+
+      if (e is DioException) {
+        if (e.response != null) {
+          errorMessage =
+              e.response?.data['message'] ?? 'Failed to complete delivery';
+          debugPrint('Error response: ${e.response?.data}');
+        } else {
+          errorMessage = 'Network error. Please check your connection.';
+        }
+      } else {
+        errorMessage = 'An unexpected error occurred';
+      }
+
+      isSubmittingRefill = false;
       notifyListeners();
       return false;
     }
