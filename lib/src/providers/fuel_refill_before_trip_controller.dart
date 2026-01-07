@@ -83,24 +83,29 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         afterQuantity: afterQuantity.toStringAsFixed(2),
         note: note ?? '',
         vehicleTankStartReadingValue: vehicleTankStartReadingValue,
-        vehicleStartMeterFiles:
-            vehicleStartFiles.isNotEmpty ? vehicleStartFiles : null,
+        vehicleStartMeterFiles: vehicleStartFiles,
         vehicleTankEndReadingValue: vehicleTankEndReadingValue,
-        vehicleEndMeterFiles:
-            vehicleEndFiles.isNotEmpty ? vehicleEndFiles : null,
+        vehicleEndMeterFiles: vehicleEndFiles,
         // ✅ FIXED: Pass customer meter readings and files
         customerStartMeterReadingValue: customerStartMeterReadingValue,
-        customerStartMeterFiles:
-            customerStartFiles.isNotEmpty ? customerStartFiles : null,
+        customerStartMeterFiles: customerStartFiles,
         customerEndMeterReadingValue: customerEndMeterReadingValue,
-        customerEndMeterFiles:
-            customerEndFiles.isNotEmpty ? customerEndFiles : null,
+        customerEndMeterFiles: customerEndFiles,
       );
 
       debugPrint('✅ API Response received');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
+          debugPrint(
+            '🔍 Vehicle Tank Start Reading: $vehicleTankStartReadingValue',
+          );
+          debugPrint(
+            '🔍 Vehicle Tank End Reading: $vehicleTankEndReadingValue',
+          );
+          debugPrint('🔍 Vehicle Start Files: ${vehicleStartFiles.length}');
+          debugPrint('🔍 Vehicle End Files: ${vehicleEndFiles.length}');
+
           successMessage =
               response['Message'] ?? 'Fuel refill completed successfully';
 

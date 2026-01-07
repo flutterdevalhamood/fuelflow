@@ -29,9 +29,20 @@ class TripTrackingController with ChangeNotifier {
     int? tripStopId,
     required String eventType,
   }) async {
-    if (_isTracking && _currentTripId == tripId) {
-      debugPrint('⚠️ Already tracking this trip');
+    // Check if we're already tracking this exact stop
+    if (_isTracking &&
+        _currentTripId == tripId &&
+        _currentTripStopId == tripStopId) {
+      debugPrint('⚠️ Already tracking trip $tripId, stop $tripStopId');
       return;
+    }
+
+    // If tracking a different stop in the same trip, stop current tracking first
+    if (_isTracking &&
+        _currentTripId == tripId &&
+        _currentTripStopId != tripStopId) {
+      debugPrint('🔄 Switching to new stop: $tripStopId');
+      await stopTripTracking();
     }
 
     try {
@@ -67,7 +78,7 @@ class TripTrackingController with ChangeNotifier {
 
       _startSilentBackgroundTracking(tripId, tripStopId);
 
-      debugPrint('✅ Trip tracking started for trip $tripId');
+      debugPrint('✅ Trip tracking started for trip $tripId, stop $tripStopId');
     } catch (e) {
       debugPrint('❌ startTripTracking error: $e');
       _isTracking = false;

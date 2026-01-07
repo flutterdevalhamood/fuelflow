@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
-import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
 class CustomerFuelDeliveryScreen extends StatefulWidget {
@@ -298,6 +297,8 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
+  // Replace the _showCompletionDialog method in CustomerFuelDeliveryScreen
+
   void _showCompletionDialog(bool isLastStop) {
     if (!mounted) return;
 
@@ -341,9 +342,17 @@ class _CustomerFuelDeliveryScreenState
                     debugPrint('✅ Logged: moving_towards_next_stop');
                   }
 
-                  NavigationService().navigateToUntil(
-                    Screenroutes.acceptedAssignmentScreen,
-                  );
+                  // ✅ Navigate with result = true to trigger auto-refresh
+                  if (mounted) {
+                    Navigator.of(context).popUntil(
+                      (route) =>
+                          route.settings.name ==
+                          Screenroutes.acceptedAssignmentScreen,
+                    );
+
+                    // Alternative: If using NavigationService with result
+                    // NavigationService().popWithResult(true);
+                  }
                 },
                 child: const Text('OK'),
               ),
