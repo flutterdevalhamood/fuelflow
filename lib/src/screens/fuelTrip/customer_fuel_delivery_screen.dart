@@ -59,32 +59,40 @@ class _CustomerFuelDeliveryScreenState
 
   late TripTrackingController _trackingController;
   late FuelTripController _fuelTripController;
-  late FuelRefillBeforeTripControllerController _refillController;
+  late FuelRefillBeforeTripController _refillController;
 
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
-  bool _refuelCompletedLogged = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
 
     _deliveryQuantityController.text = widget.requiredQty.toStringAsFixed(2);
+
     _trackingController = context.read<TripTrackingController>();
     _fuelTripController = context.read<FuelTripController>();
-    _refillController =
-        context.read<FuelRefillBeforeTripControllerController>();
+    _refillController = context.read<FuelRefillBeforeTripController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      _initializeTracking();
+    });
+  }
 
-      _trackingController.startTripTracking(
+  Future<void> _initializeTracking() async {
+    if (!mounted) return;
+
+    try {
+      await _trackingController.startTripTracking(
         tripId: int.parse(widget.tripId),
         tripStopId: widget.tripStopId,
         eventType: 'arrived_at_stop',
       );
-    });
+    } catch (e) {
+      debugPrint('Tracking init failed: $e');
+    }
   }
 
   @override
@@ -94,46 +102,6 @@ class _CustomerFuelDeliveryScreenState
     _deliveryQuantityController.dispose();
     _noteController.dispose();
     super.dispose();
-  }
-
-  Future<void> _logTripEvent(String eventType, {String? description}) async {
-    if (!mounted) return;
-
-    try {
-      await _trackingController.logManualTripEvent(
-        eventType: eventType,
-        description:
-            description ?? 'Event: $eventType at ${widget.customerName}',
-      );
-      debugPrint('✅ Logged event: $eventType');
-    } catch (e) {
-      debugPrint('❌ Trip event failed [$eventType]: $e');
-    }
-  }
-
-  Future<bool> _logRefuelCompletedSafely() async {
-    if (_refuelCompletedLogged) return true;
-
-    try {
-      // 🔐 Ensure trip context exists
-      if (!_trackingController.isTracking) {
-        await _trackingController.startTripTracking(
-          tripId: int.parse(widget.tripId),
-          tripStopId: widget.tripStopId,
-          eventType: 'refuel_completed',
-        );
-      }
-
-      final success = await _trackingController.logCriticalTripEvent(
-        eventType: 'refuel_completed',
-      );
-
-      _refuelCompletedLogged = success;
-      return success;
-    } catch (e) {
-      debugPrint('❌ refuel_completed failed safely: $e');
-      return false; // ❗ NEVER CRASH
-    }
   }
 
   void _showSnackBar(String message, {Color? backgroundColor}) {
@@ -146,162 +114,131 @@ class _CustomerFuelDeliveryScreenState
 
   Future<void> _pickImage(Function(File) onPicked) async {
     try {
-      final image = await _picker.pickImage(source: ImageSource.gallery);
+      final image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
       if (image != null && mounted) {
         setState(() => onPicked(File(image.path)));
       }
-    } catch (_) {
-      _showSnackBar('Image picker not available');
+    } catch (e) {
+      _showSnackBar('Image pick failed');
     }
   }
 
   Future<void> _submitFuelDelivery() async {
-    if (!mounted) return;
-
+    if (!mounted || _isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (_startMeterPhoto == null || _endMeterPhoto == null) {
-      _showSnackBar(
-        'Please capture both meter reading photos',
-        backgroundColor: Colors.orange,
-      );
+      _showSnackBar('Please capture both meter photos');
       return;
     }
 
-    final deliveryQty = double.tryParse(_deliveryQuantityController.text) ?? 0;
+    setState(() => _isSubmitting = true);
 
-    if (deliveryQty > widget.availableQty) {
-      _showSnackBar(
-        'Delivery quantity exceeds available quantity',
-        backgroundColor: Colors.red,
-      );
-      return;
-    }
+    try {
+      await _trackingController.logManualTripEvent(eventType: 'refuel_started');
 
-    // ✅ Log refuel started
-    await _logTripEvent('refuel_started');
-
-    if (!mounted) return;
-
-    // ✅ Use cached controller
-    final success = await _refillController.postFuelVehicleWithMeterReading(
-      vehicleId: widget.vehicleId,
-      tripId: widget.tripId,
-      tripStopId: widget.tripStopId,
-      type: 'outflow',
-      quantity: deliveryQty,
-      beforeQuantity: widget.availableQty,
-      afterQuantity: widget.availableQty - deliveryQty,
-      customerStartMeterReadingValue:
-          int.tryParse(_startMeterController.text) ?? 0,
-      customerStartMeterFiles: [_startMeterPhoto!],
-      customerEndMeterReadingValue: int.tryParse(_endMeterController.text) ?? 0,
-      customerEndMeterFiles: [_endMeterPhoto!],
-      note: _noteController.text,
-      vehicleTankStartReadingValue: 0,
-      vehicleStartMeterFiles: const [],
-      vehicleTankEndReadingValue: 0,
-      vehicleEndMeterFiles: const [],
-    );
-
-    if (!mounted) return;
-    if (success) {
-      // 🔴 CRITICAL EVENT — MUST COMPLETE FIRST
-      final refuelLogged = await _logRefuelCompletedSafely();
-
-      if (!refuelLogged && mounted) {
-        _showSnackBar(
-          'Delivery completed but event logging failed',
-          backgroundColor: Colors.orange,
-        );
-      }
-
-      // ⏳ Give network time before navigation
       await Future.delayed(const Duration(milliseconds: 300));
 
-      if (!mounted) return;
-
-      _showSnackBar(
-        'Delivery completed successfully',
-        backgroundColor: Colors.green,
+      final success = await _refillController.postFuelVehicleWithMeterReading(
+        vehicleId: widget.vehicleId,
+        tripId: widget.tripId,
+        tripStopId: widget.tripStopId,
+        type: 'outflow',
+        quantity: double.parse(_deliveryQuantityController.text),
+        beforeQuantity: widget.availableQty,
+        afterQuantity:
+            widget.availableQty -
+            double.parse(_deliveryQuantityController.text),
+        customerStartMeterReadingValue:
+            int.tryParse(_startMeterController.text) ?? 0,
+        customerStartMeterFiles: [
+          _startMeterPhoto!,
+        ], // ✅ These are now being passed
+        customerEndMeterReadingValue:
+            int.tryParse(_endMeterController.text) ?? 0,
+        customerEndMeterFiles: [
+          _endMeterPhoto!,
+        ], // ✅ These are now being passed
+        note: _noteController.text,
+        vehicleTankStartReadingValue: 0,
+        vehicleStartMeterFiles: const [], // ✅ Empty for customer delivery
+        vehicleTankEndReadingValue: 0,
+        vehicleEndMeterFiles: const [], // ✅ Empty for customer delivery
       );
 
-      // 🧵 Background-only logs (NON-BLOCKING)
-      _logRemainingEventsInBackground();
-
-      if (mounted) {
-        _showCompletionDialog();
+      if (!success || !mounted) {
+        _showSnackBar('Delivery failed', backgroundColor: Colors.red);
+        return;
       }
-    } else {
-      _showSnackBar(
-        _refillController.errorMessage ?? 'Failed to complete delivery',
-        backgroundColor: Colors.red,
+
+      await _trackingController.logCriticalTripEvent(
+        eventType: 'refuel_completed',
       );
+
+      await _logAdditionalEvents();
+
+      final isLastStop = widget.currentStopIndex >= widget.totalStops - 1;
+
+      if (isLastStop) {
+        await _trackingController.logCriticalTripEvent(
+          eventType: 'returned_to_base',
+        );
+        await _trackingController.stopTripTracking();
+      }
+
+      _showCompletionDialog();
+    } catch (e) {
+      _showSnackBar('Error occurred', backgroundColor: Colors.red);
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  // ✅ Fire-and-forget background logging (no await)
-  void _logRemainingEventsInBackground() {
-    // Don't await - let it run in background
-    Future.microtask(() async {
-      try {
+  Future<void> _logAdditionalEvents() async {
+    if (!_trackingController.isTracking) return;
+
+    try {
+      await _trackingController.logManualTripEvent(
+        eventType: 'customer_loading_started',
+      );
+      await _trackingController.logManualTripEvent(
+        eventType: 'customer_loading_completed',
+      );
+      if (_noteController.text.isNotEmpty) {
         await _trackingController.logManualTripEvent(
-          eventType: 'customer_loading_started',
-          description: 'Started fuel delivery to ${widget.customerName}',
+          eventType: 'driver_notes_added',
         );
-
-        if (_noteController.text.isNotEmpty) {
-          await _trackingController.logManualTripEvent(
-            eventType: 'driver_notes_added',
-            description: _noteController.text,
-          );
-        }
-
-        await _trackingController.logManualTripEvent(
-          eventType: 'departed_from_stop',
-          description: 'Departed from ${widget.customerName}',
-        );
-
-        debugPrint('✅ Background events logged successfully');
-      } catch (e) {
-        debugPrint('❌ Remaining events logging failed: $e');
       }
-    });
+      await _trackingController.logManualTripEvent(
+        eventType: 'departed_from_stop',
+      );
+    } catch (_) {}
   }
 
   void _showCompletionDialog() {
     if (!mounted) return;
 
-    final isLastStop = widget.currentStopIndex >= widget.totalStops - 1;
-
     showDialog(
       context: context,
       barrierDismissible: false,
       builder:
-          (dialogContext) => WillPopScope(
-            onWillPop: () async => false,
-            child: AlertDialog(
-              title: const Text('Stop Completed'),
-              content: Text(
-                isLastStop
-                    ? 'All stops completed. Return to depot?'
-                    : 'Proceed to next stop?',
+          (ctx) => AlertDialog(
+            title: const Text('Stop Completed'),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  NavigationService().navigateToUntil(
+                    Screenroutes.acceptedAssignmentScreen,
+                  );
+                },
+                child: const Text('OK'),
               ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    // ✅ Close dialog first
-                    Navigator.of(dialogContext).pop();
-
-                    // ✅ Navigate using NavigationService
-                    NavigationService().navigateToUntil(
-                      Screenroutes.acceptedAssignmentScreen,
-                    );
-                  },
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
+            ],
           ),
     );
   }
@@ -310,6 +247,8 @@ class _CustomerFuelDeliveryScreenState
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
+        if (_isSubmitting) return false;
+
         final shouldPop = await showDialog<bool>(
           context: context,
           builder:
@@ -343,7 +282,7 @@ class _CustomerFuelDeliveryScreenState
             title: const Text('Customer Fuel Delivery'),
             elevation: 0,
           ),
-          body: Consumer<FuelRefillBeforeTripControllerController>(
+          body: Consumer<FuelRefillBeforeTripController>(
             builder: (context, controller, child) {
               return SingleChildScrollView(
                 child: Column(
@@ -466,46 +405,6 @@ class _CustomerFuelDeliveryScreenState
                                   ],
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Delivery Quantity
-                            const Text(
-                              'Delivery Quantity',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _deliveryQuantityController,
-                              decoration: InputDecoration(
-                                labelText: 'Quantity (IG)',
-                                prefixIcon: const Icon(Icons.local_shipping),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter delivery quantity';
-                                }
-                                final qty = double.tryParse(value);
-                                if (qty == null || qty <= 0) {
-                                  return 'Please enter a valid quantity';
-                                }
-                                if (qty > widget.availableQty) {
-                                  return 'Cannot exceed available quantity';
-                                }
-                                return null;
-                              },
                             ),
                             const SizedBox(height: 24),
 
@@ -638,6 +537,47 @@ class _CustomerFuelDeliveryScreenState
                             ),
                             const SizedBox(height: 24),
 
+                            // Delivery Quantity
+                            const Text(
+                              'Delivery Quantity',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _deliveryQuantityController,
+                              decoration: InputDecoration(
+                                labelText: 'Quantity (IG)',
+                                prefixIcon: const Icon(Icons.local_shipping),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade50,
+                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter delivery quantity';
+                                }
+                                final qty = double.tryParse(value);
+                                if (qty == null || qty <= 0) {
+                                  return 'Please enter a valid quantity';
+                                }
+                                if (qty > widget.availableQty) {
+                                  return 'Cannot exceed available quantity';
+                                }
+                                return null;
+                              },
+                            ),
+
+                            const SizedBox(height: 24),
+
                             // Note
                             TextFormField(
                               controller: _noteController,
@@ -663,10 +603,7 @@ class _CustomerFuelDeliveryScreenState
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed:
-                              controller.isSubmittingRefill
-                                  ? null
-                                  : _submitFuelDelivery,
+                          onPressed: _isSubmitting ? null : _submitFuelDelivery,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -676,7 +613,7 @@ class _CustomerFuelDeliveryScreenState
                             ),
                           ),
                           child:
-                              controller.isSubmittingRefill
+                              _isSubmitting
                                   ? const SizedBox(
                                     height: 20,
                                     width: 20,

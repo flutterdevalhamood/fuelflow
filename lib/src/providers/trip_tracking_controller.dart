@@ -17,65 +17,92 @@ class TripTrackingController with ChangeNotifier {
 
   Timer? _backgroundTimer;
 
-  static const double distanceThreshold = 500.0; // meters
+  static const double distanceThreshold = 5.0; // meters
   static const Duration backgroundCheckInterval = Duration(seconds: 30);
 
   bool get isTracking => _isTracking;
 
-  // ======================= START TRACKING =======================
+  final Set<String> _pendingEvents = {};
 
   Future<void> startTripTracking({
     required int tripId,
     int? tripStopId,
     required String eventType,
   }) async {
-    if (_isTracking) return;
+    if (_isTracking && _currentTripId == tripId) {
+      debugPrint('⚠️ Already tracking this trip');
+      return;
+    }
 
     try {
       _currentTripId = tripId;
       _currentTripStopId = tripStopId;
 
       final permission = await _checkLocationPermission();
-      if (!permission) return;
+      if (!permission) {
+        debugPrint('❌ Location permission denied');
+        return;
+      }
 
-      _logTripEventInBackground(
-        tripId: tripId,
-        tripStopId: tripStopId,
-        eventType: eventType,
-      );
-
-      _lastPosition = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      // Get initial position with timeout
+      try {
+        _lastPosition = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        ).timeout(const Duration(seconds: 8));
+      } catch (e) {
+        debugPrint('⚠️ Could not get initial position: $e');
+        // Continue without position - will try again
+      }
 
       _isTracking = true;
       notifyListeners();
 
+      // Log the initial event synchronously
+      await _logTripEventSynchronously(
+        tripId: tripId,
+        tripStopId: tripStopId,
+        eventType: eventType,
+        position: _lastPosition,
+      );
+
       _startSilentBackgroundTracking(tripId, tripStopId);
 
-      debugPrint('✅ Trip tracking started');
+      debugPrint('✅ Trip tracking started for trip $tripId');
     } catch (e) {
       debugPrint('❌ startTripTracking error: $e');
+      _isTracking = false;
+      notifyListeners();
     }
   }
-
-  // ======================= PERMISSION =======================
 
   Future<bool> _checkLocationPermission() async {
-    if (!await Geolocator.isLocationServiceEnabled()) return false;
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        debugPrint('❌ Location services disabled');
+        return false;
+      }
 
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('❌ Location permission denied forever');
+        return false;
+      }
+
+      return permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+    } catch (e) {
+      debugPrint('❌ Permission check error: $e');
+      return false;
     }
-
-    return permission == LocationPermission.always ||
-        permission == LocationPermission.whileInUse;
   }
 
-  // ======================= BACKGROUND TRACKING =======================
-
   void _startSilentBackgroundTracking(int tripId, int? tripStopId) {
+    _backgroundTimer?.cancel();
+
     _backgroundTimer = Timer.periodic(backgroundCheckInterval, (timer) async {
       if (!_isTracking) {
         timer.cancel();
@@ -96,7 +123,7 @@ class TripTrackingController with ChangeNotifier {
           );
 
           if (distance >= distanceThreshold) {
-            _logTripEventInBackground(
+            await _logTripEventSynchronously(
               tripId: tripId,
               tripStopId: tripStopId,
               eventType: 'moving_towards_next_stop',
@@ -114,105 +141,142 @@ class TripTrackingController with ChangeNotifier {
     });
   }
 
-  // ======================= BACKGROUND LOGGER (UNCHANGED) =======================
+  // ======================= SYNCHRONOUS EVENT LOGGER =======================
 
-  void _logTripEventInBackground({
+  Future<bool> _logTripEventSynchronously({
     required int tripId,
     int? tripStopId,
     required String eventType,
     Position? position,
-  }) {
-    Future.microtask(() async {
-      try {
-        if (token == null) return;
-
-        final pos =
-            position ??
-            await Geolocator.getCurrentPosition(
-              desiredAccuracy: LocationAccuracy.high,
-            ).timeout(const Duration(seconds: 5));
-
-        final dio = Dio();
-        final api = RestClient(dio);
-
-        api
-            .postLogTripEvent(
-              tripId: tripId,
-              token: 'Bearer $token',
-              tripStopId: tripStopId,
-              eventType: eventType,
-              latitude: pos.latitude.toString(),
-              longitude: pos.longitude.toString(),
-            )
-            .then((_) {
-              debugPrint('✅ Background event logged: $eventType');
-            })
-            .catchError((e) {
-              debugPrint('❌ Background event failed: $e');
-            });
-      } catch (e) {
-        debugPrint('❌ Background logger exception: $e');
-      }
-    });
-  }
-
-  Future<bool> logCriticalTripEvent({
-    required String eventType,
-    String? description,
+    int retries = 2,
   }) async {
-    if (_currentTripId == null || token == null) {
-      debugPrint('❌ Critical event skipped: No trip/token');
+    if (token == null) {
+      debugPrint('❌ No token available');
       return false;
     }
 
-    try {
-      Position? position;
+    // Prevent duplicate simultaneous calls
+    final eventKey = '${tripId}_${tripStopId}_$eventType';
+    if (_pendingEvents.contains(eventKey)) {
+      debugPrint('⚠️ Event $eventType already in progress');
+      return false;
+    }
 
-      try {
-        position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium,
-        ).timeout(const Duration(seconds: 5));
-      } catch (_) {
-        position = _lastPosition; // ✅ fallback for physical devices
+    _pendingEvents.add(eventKey);
+
+    try {
+      Position? pos = position;
+
+      // Try to get current position if not provided
+      if (pos == null) {
+        try {
+          pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+          ).timeout(const Duration(seconds: 5));
+        } catch (e) {
+          debugPrint('⚠️ Using last known position for $eventType');
+          pos = _lastPosition;
+        }
       }
 
       final dio = Dio(
         BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
         ),
       );
 
       final api = RestClient(dio);
 
       await api.postLogTripEvent(
-        tripId: _currentTripId!,
+        tripId: tripId,
         token: 'Bearer $token',
-        tripStopId: _currentTripStopId,
+        tripStopId: tripStopId,
         eventType: eventType,
-        latitude: position?.latitude.toString(),
-        longitude: position?.longitude.toString(),
+        latitude: pos?.latitude.toString(),
+        longitude: pos?.longitude.toString(),
       );
 
-      debugPrint('✅ CRITICAL event logged: $eventType');
+      debugPrint(
+        '✅ Event logged: $eventType (trip: $tripId, stop: $tripStopId)',
+      );
+      _pendingEvents.remove(eventKey);
       return true;
     } catch (e) {
-      debugPrint('❌ CRITICAL event failed [$eventType]: $e');
+      debugPrint('❌ Event logging failed [$eventType]: $e');
+
+      // Retry logic
+      if (retries > 0) {
+        debugPrint('🔄 Retrying $eventType (${retries} attempts left)');
+        await Future.delayed(const Duration(seconds: 2));
+        _pendingEvents.remove(eventKey);
+        return await _logTripEventSynchronously(
+          tripId: tripId,
+          tripStopId: tripStopId,
+          eventType: eventType,
+          position: position,
+          retries: retries - 1,
+        );
+      }
+
+      _pendingEvents.remove(eventKey);
       return false;
     }
   }
 
-  Future<void> logManualTripEvent({
+  // ======================= PUBLIC EVENT LOGGERS =======================
+
+  Future<bool> logCriticalTripEvent({
     required String eventType,
     String? description,
   }) async {
-    if (_currentTripId == null) return;
+    if (_currentTripId == null) {
+      debugPrint('❌ Critical event skipped: No active trip');
+      return false;
+    }
 
-    _logTripEventInBackground(
+    debugPrint('🔴 CRITICAL EVENT: $eventType');
+
+    return await _logTripEventSynchronously(
       tripId: _currentTripId!,
       tripStopId: _currentTripStopId,
       eventType: eventType,
     );
+  }
+
+  Future<bool> logManualTripEvent({
+    required String eventType,
+    String? description,
+  }) async {
+    if (_currentTripId == null) {
+      debugPrint('❌ Manual event skipped: No active trip');
+      return false;
+    }
+
+    debugPrint('📝 Manual event: $eventType');
+
+    return await _logTripEventSynchronously(
+      tripId: _currentTripId!,
+      tripStopId: _currentTripStopId,
+      eventType: eventType,
+    );
+  }
+
+  // ======================= BATCH LOGGING =======================
+
+  Future<void> logMultipleEvents(List<String> eventTypes) async {
+    if (_currentTripId == null) return;
+
+    for (final eventType in eventTypes) {
+      await _logTripEventSynchronously(
+        tripId: _currentTripId!,
+        tripStopId: _currentTripStopId,
+        eventType: eventType,
+      );
+
+      // Small delay between events
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
   }
 
   // ======================= CONTROL =======================
@@ -221,6 +285,7 @@ class TripTrackingController with ChangeNotifier {
     _isTracking = false;
     _backgroundTimer?.cancel();
     notifyListeners();
+    debugPrint('⏸️ Trip tracking paused');
   }
 
   void resumeTripTracking() {
@@ -228,11 +293,12 @@ class TripTrackingController with ChangeNotifier {
     _isTracking = true;
     _startSilentBackgroundTracking(_currentTripId!, _currentTripStopId);
     notifyListeners();
+    debugPrint('▶️ Trip tracking resumed');
   }
 
   Future<void> stopTripTracking({String? finalEventType}) async {
     if (_currentTripId != null && finalEventType != null) {
-      _logTripEventInBackground(
+      await _logTripEventSynchronously(
         tripId: _currentTripId!,
         tripStopId: _currentTripStopId,
         eventType: finalEventType,
@@ -244,7 +310,10 @@ class TripTrackingController with ChangeNotifier {
     _lastPosition = null;
     _currentTripId = null;
     _currentTripStopId = null;
+    _pendingEvents.clear();
     notifyListeners();
+
+    debugPrint('⏹️ Trip tracking stopped');
   }
 
   @override

@@ -44,7 +44,7 @@ void main() async {
         ),
         ChangeNotifierProvider(create: (context) => FuelTripController()),
         ChangeNotifierProvider(
-          create: (context) => FuelRefillBeforeTripControllerController(),
+          create: (context) => FuelRefillBeforeTripController(),
         ),
         ChangeNotifierProvider(create: (context) => TripTrackingController()),
         ChangeNotifierProvider(

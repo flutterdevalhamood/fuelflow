@@ -490,6 +490,17 @@ abstract class RestClient {
     @Field("longitude") String? longitude,
   });
 
+  @POST('/Driver/LogTripLocations/{tripId}')
+  @FormUrlEncoded()
+  Future<dynamic> postLogTripLocations({
+    @Path("tripId") int? tripId,
+    @Header("Authorization") String? token,
+    @Field("driver_id") int? driverId,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("latitude") String? latitude,
+    @Field("longitude") String? longitude,
+  });
+
   @GET('/getUserBaseList')
   Future<dynamic> getUsersBaseList({@Header("Authorization") String? token});
 

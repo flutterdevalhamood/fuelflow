@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
-import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
-import 'package:sample/src/util/app_navigation.dart';
-import 'package:sample/src/util/app_routes.dart';
 
 class FuelRefillBeforeTripScreen extends StatefulWidget {
   final int assignmentId;
@@ -42,7 +39,6 @@ class FuelRefillBeforeTripScreen extends StatefulWidget {
 class _FuelRefillBeforeTripScreenState
     extends State<FuelRefillBeforeTripScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _startMeterController = TextEditingController();
   final _endMeterController = TextEditingController();
   final _refillQuantityController = TextEditingController();
@@ -52,35 +48,15 @@ class _FuelRefillBeforeTripScreenState
   File? _endMeterPhoto;
 
   final ImagePicker _picker = ImagePicker();
-
-  // ✅ Cached providers (NO context usage later)
-  late TripTrackingController _trackingController;
-  late FuelTripController _fuelTripController;
-  late FuelRefillBeforeTripControllerController _refillController;
-
-  // ✅ Add scaffold messenger key to show messages safely
-  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
-      GlobalKey<ScaffoldMessengerState>();
+  bool _isSubmitting = false;
+  bool _showCompletionDialog = false;
+  bool _shouldNavigateBack = false;
 
   @override
   void initState() {
     super.initState();
-
-    // Pre-fill the refill quantity with the deficit
     final deficit = widget.requiredQty - widget.availableQty;
     _refillQuantityController.text = deficit.toStringAsFixed(2);
-
-    // ✅ Cache all providers in initState
-    _trackingController = context.read<TripTrackingController>();
-    _fuelTripController = context.read<FuelTripController>();
-    _refillController =
-        context.read<FuelRefillBeforeTripControllerController>();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _logTripEvent('arrived_at_depot');
-      }
-    });
   }
 
   @override
@@ -92,579 +68,690 @@ class _FuelRefillBeforeTripScreenState
     super.dispose();
   }
 
-  // =================== SAFE EVENT LOGGING ===================
-
-  Future<void> _logTripEvent(String eventType, {String? description}) async {
+  void _showSnackBar(String message, {Color backgroundColor = Colors.red}) {
     if (!mounted) return;
 
-    try {
-      await _trackingController.logManualTripEvent(
-        eventType: eventType,
-        description: description ?? 'Event: $eventType at depot',
-      );
-    } catch (e) {
-      debugPrint('❌ Trip event error [$eventType]: $e');
-    }
-  }
-
-  // =================== SAFE SNACKBAR ===================
-
-  void _showSnackBar(String message, {Color? backgroundColor}) {
-    if (!mounted) return;
-
-    _scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
-  // =================== IMAGE PICKER ===================
-
-  Future<void> _pickImage(Function(File) onPicked) async {
+  Future<void> _pickImage(Function(File) onImagePicked) async {
     try {
-      final image = await _picker.pickImage(source: ImageSource.gallery);
-      if (image != null && mounted) {
-        setState(() => onPicked(File(image.path)));
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          onImagePicked(File(image.path));
+        });
       }
-    } catch (_) {
-      _showSnackBar('Image picker not available');
+    } catch (e) {
+      // Fallback if camera/gallery not available
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Image picker not available in simulator'),
+        ),
+      );
     }
   }
 
-  // =================== SUBMIT REFILL ===================
+  // Future<void> _pickImage(bool isStartMeter) async {
+  //   try {
+  //     final XFile? image = await _picker.pickImage(
+  //       source: ImageSource.camera,
+  //       imageQuality: 80,
+  //     );
+  //
+  //     if (image != null) {
+  //       setState(() {
+  //         if (isStartMeter) {
+  //           _startMeterPhoto = File(image.path);
+  //         } else {
+  //           _endMeterPhoto = File(image.path);
+  //         }
+  //       });
+  //     }
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(
+  //       context,
+  //     ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
+  //   }
+  // }
 
   Future<void> _submitFuelRefill() async {
-    if (!mounted) return;
-
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
-    if (_startMeterPhoto == null || _endMeterPhoto == null) {
+    if (_startMeterPhoto == null) {
       _showSnackBar(
-        'Please capture both meter reading photos',
+        'Please capture start meter photo',
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
+
+    if (_endMeterPhoto == null) {
+      _showSnackBar(
+        'Please capture end meter photo',
         backgroundColor: Colors.orange,
       );
       return;
     }
 
     final refillQty = double.tryParse(_refillQuantityController.text) ?? 0;
-    final afterQuantity = widget.availableQty + refillQty;
-
-    // ✅ Log refuel started
-    await _logTripEvent('refuel_started', description: 'Started depot refill');
-
-    if (!mounted) return;
-
-    // ✅ Use cached controller
-    final success = await _refillController.postFuelVehicleWithMeterReading(
-      vehicleId: widget.vehicleId,
-      tripId: widget.tripId,
-      tripStopId: widget.tripStopId,
-      type: 'inflow',
-      quantity: refillQty,
-      beforeQuantity: widget.availableQty,
-      afterQuantity: afterQuantity,
-      customerStartMeterReadingValue: 0,
-      customerStartMeterFiles: const [],
-      customerEndMeterReadingValue: 0,
-      customerEndMeterFiles: const [],
-      vehicleTankStartReadingValue:
-          int.tryParse(_startMeterController.text) ?? 0,
-      vehicleStartMeterFiles: [_startMeterPhoto!],
-      vehicleTankEndReadingValue: int.tryParse(_endMeterController.text) ?? 0,
-      vehicleEndMeterFiles: [_endMeterPhoto!],
-      note: _noteController.text.isEmpty ? null : _noteController.text,
-    );
-
-    if (!mounted) return;
-
-    if (success) {
-      // ✅ Log refuel_completed IMMEDIATELY after success
-      await _logTripEvent(
-        'refuel_completed',
-        description: 'Refilled ${_refillQuantityController.text} IG at depot',
+    if (refillQty <= 0) {
+      _showSnackBar(
+        'Please enter valid refill quantity',
+        backgroundColor: Colors.orange,
       );
-      debugPrint('✅ refuel_completed logged immediately after refill success');
+      return;
+    }
 
-      // ✅ REMOVED: getAcceptedAssignments call that was causing crashes
-      // The data will be refreshed when navigating back to the assignments screen
+    final startValue = int.tryParse(_startMeterController.text) ?? 0;
+    final endValue = int.tryParse(_endMeterController.text) ?? 0;
+
+    if (endValue <= startValue) {
+      _showSnackBar(
+        'End reading must be greater than start reading',
+        backgroundColor: Colors.orange,
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final trackingController = context.read<TripTrackingController>();
+      final refillController = context.read<FuelRefillBeforeTripController>();
+
+      // Log refuel started
+      await trackingController.logManualTripEvent(eventType: 'refuel_started');
+
+      // Submit fuel refill
+      final success = await refillController.postFuelVehicleWithMeterReading(
+        vehicleId: widget.vehicleId,
+        tripId: widget.tripId,
+        tripStopId: widget.tripStopId,
+        type: 'inflow',
+        quantity: refillQty,
+        beforeQuantity: widget.availableQty,
+        afterQuantity: widget.availableQty + refillQty,
+        customerStartMeterReadingValue: 0,
+        customerStartMeterFiles: const [],
+        customerEndMeterReadingValue: 0,
+        customerEndMeterFiles: const [],
+        vehicleTankStartReadingValue: startValue,
+        vehicleStartMeterFiles: [_startMeterPhoto!],
+        vehicleTankEndReadingValue: endValue,
+        vehicleEndMeterFiles: [_endMeterPhoto!],
+        note:
+            _noteController.text.trim().isEmpty
+                ? null
+                : _noteController.text.trim(),
+      );
 
       if (!mounted) return;
 
-      _showSnackBar(
-        'Refill completed successfully',
-        backgroundColor: Colors.green,
-      );
+      if (success) {
+        // Log critical events
+        await trackingController.logCriticalTripEvent(
+          eventType: 'refuel_completed',
+        );
 
-      // ✅ Log remaining events in background (fire and forget)
-      _logRemainingEventsInBackground();
-
-      // ✅ Show dialog immediately
-      if (mounted) {
-        _showCompletionDialog();
-      }
-    } else {
-      _showSnackBar(
-        _refillController.errorMessage ?? 'Failed to complete refill',
-        backgroundColor: Colors.red,
-      );
-    }
-  }
-
-  // ✅ Fire-and-forget background logging (no await)
-  void _logRemainingEventsInBackground() {
-    // Don't await - let it run in background
-    Future.microtask(() async {
-      try {
-        if (_noteController.text.isNotEmpty) {
-          await _trackingController.logManualTripEvent(
+        if (_noteController.text.trim().isNotEmpty) {
+          await trackingController.logManualTripEvent(
             eventType: 'driver_notes_added',
-            description: _noteController.text,
           );
         }
 
-        await _trackingController.logManualTripEvent(
+        await trackingController.logManualTripEvent(
           eventType: 'departed_from_depot',
-          description: 'Departed from depot after refill',
         );
 
-        debugPrint('✅ Background events logged successfully');
-      } catch (e) {
-        debugPrint('❌ Remaining events logging failed: $e');
+        // Show success message
+        _showSnackBar(
+          'Fuel refill completed successfully!',
+          backgroundColor: Colors.green,
+        );
+
+        // Wait a bit then show completion dialog
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        if (mounted) {
+          _showCompletionDialogSafe();
+        }
+      } else {
+        final errorMsg =
+            refillController.errorMessage ?? 'Failed to complete refill';
+        _showSnackBar(errorMsg);
       }
-    });
+    } catch (e) {
+      debugPrint('❌ Refill error: $e');
+      _showSnackBar('An error occurred. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
-  void _showCompletionDialog() {
-    if (!mounted) return;
+  void _showCompletionDialogSafe() {
+    if (_showCompletionDialog || !mounted) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (dialogContext) => WillPopScope(
+    setState(() => _showCompletionDialog = true);
+
+    // Use a delayed future to ensure dialog builds properly
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return WillPopScope(
             onWillPop: () async => false,
             child: AlertDialog(
-              title: const Text('Refill Completed'),
-              content: const Text(
-                'Depot refill completed successfully. Return to assignments?',
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.check_circle, color: Colors.green, size: 28),
+                  SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      'Refill Completed',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: const Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.done_all, color: Colors.green, size: 60),
+                  SizedBox(height: 16),
+                  Text(
+                    'Fuel refill was completed successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'You can now continue with your trip.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
               ),
               actions: [
-                ElevatedButton(
-                  onPressed: () async {
-                    // 1️⃣ Close dialog using root navigator
-                    Navigator.of(dialogContext, rootNavigator: true).pop();
-
-                    // 2️⃣ Wait for dialog pop to complete
-                    await Future.microtask(() {});
-
-                    // 3️⃣ Ensure widget is still alive
-                    if (!mounted) return;
-
-                    // 4️⃣ Navigate safely
-                    NavigationService().navigateToUntil(
-                      Screenroutes.acceptedAssignmentScreen,
-                    );
-                  },
-                  child: const Text('OK'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        setState(() {
+                          _showCompletionDialog = false;
+                          _shouldNavigateBack = true;
+                        });
+                        // Navigate back after dialog is dismissed
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _shouldNavigateBack) {
+                            _navigateBack();
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-    );
+          );
+        },
+      ).then((value) {
+        if (mounted) {
+          setState(() => _showCompletionDialog = false);
+        }
+      });
+    });
+  }
+
+  void _navigateBack() {
+    // Return to previous screen with success result
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
+        if (_isSubmitting) return false;
+
         final shouldPop = await showDialog<bool>(
           context: context,
           builder:
               (context) => AlertDialog(
                 title: const Text('Cancel Refill?'),
                 content: const Text(
-                  'You have already arrived at depot and started refill. '
-                  'Are you sure you want to go back? Progress may be lost.',
+                  'Are you sure you want to cancel the fuel refill? '
+                  'All entered data will be lost.',
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Stay'),
+                    child: const Text('No'),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
-                    child: const Text('Go Back'),
+                    child: const Text('Yes, Cancel'),
                   ),
                 ],
               ),
         );
+
         return shouldPop ?? false;
       },
-      child: ScaffoldMessenger(
-        key: _scaffoldMessengerKey,
-        child: Scaffold(
-          appBar: AppBar(title: const Text('Fuel Refill'), elevation: 0),
-          body: Consumer<FuelRefillBeforeTripControllerController>(
-            builder: (context, controller, child) {
-              return SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Header
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.orange, Colors.orange.shade300],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Fuel Refill'),
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              if (!_isSubmitting) {
+                final shouldPop = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        title: const Text('Cancel Refill?'),
+                        content: const Text('Are you sure you want to cancel?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('No'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text('Yes'),
+                          ),
+                        ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                );
+                if (shouldPop ?? false && mounted) {
+                  Navigator.of(context).pop(false);
+                }
+              }
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Vehicle Info Card
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.local_gas_station,
+                            color: Colors.orange,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.local_gas_station,
-                                  color: Colors.white,
-                                  size: 30,
+                              Text(
+                                widget.vehicleName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Depot Refill',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Vehicle: ${widget.vehicleName}',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(height: 4),
+                              Text(
+                                'Trip: ${widget.tripId}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Fuel Status Card
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Fuel Status',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildInfoRow(
-                                      'Required Quantity',
-                                      '${widget.requiredQty.toStringAsFixed(2)} IG',
-                                      Colors.red,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildInfoRow(
-                                      'Available in Vehicle',
-                                      '${widget.availableQty.toStringAsFixed(2)} IG',
-                                      Colors.orange,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildInfoRow(
-                                      'Deficit',
-                                      '${(widget.requiredQty - widget.availableQty).toStringAsFixed(2)} IG',
-                                      Colors.red,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Refill Quantity
-                            const Text(
-                              'Refill Quantity',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _refillQuantityController,
-                              decoration: InputDecoration(
-                                labelText: 'Quantity (IG)',
-                                prefixIcon: const Icon(Icons.local_gas_station),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter refill quantity';
-                                }
-                                final qty = double.tryParse(value);
-                                if (qty == null || qty <= 0) {
-                                  return 'Please enter a valid quantity';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Vehicle Tank Meter Readings
-                            const Text(
-                              'Vehicle Tank Meter Readings',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Start Meter
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPhotoSection(
-                                      'Start Meter Photo',
-                                      _startMeterPhoto,
-                                      () => _pickImage(
-                                        (file) => _startMeterPhoto = file,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Start Meter Reading Serial Number',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: _startMeterController,
-                                      decoration: InputDecoration(
-                                        labelText: 'Reading Value',
-                                        prefixIcon: const Icon(Icons.speed),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.grey.shade50,
-                                      ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter start meter reading';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // End Meter
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPhotoSection(
-                                      'End Meter Photo',
-                                      _endMeterPhoto,
-                                      () => _pickImage(
-                                        (file) => _endMeterPhoto = file,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'End Meter Reading Serial Number',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: _endMeterController,
-                                      decoration: InputDecoration(
-                                        labelText: 'Reading Value',
-                                        prefixIcon: const Icon(Icons.speed),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.grey.shade50,
-                                      ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter end meter reading';
-                                        }
-                                        final endValue = int.tryParse(value);
-                                        final startValue = int.tryParse(
-                                          _startMeterController.text,
-                                        );
-                                        if (endValue != null &&
-                                            startValue != null &&
-                                            endValue <= startValue) {
-                                          return 'End reading must be greater than start';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Note
-                            TextFormField(
-                              controller: _noteController,
-                              decoration: InputDecoration(
-                                labelText: 'Note (Optional)',
-                                prefixIcon: const Icon(Icons.note),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              maxLines: 3,
-                            ),
-                          ],
                         ),
-                      ),
+                      ],
                     ),
-
-                    // Submit Button
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed:
-                              controller.isSubmittingRefill
-                                  ? null
-                                  : _submitFuelRefill,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child:
-                              controller.isSubmittingRefill
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                  : const Text(
-                                    'Complete Refill',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              );
-            },
+                const SizedBox(height: 20),
+
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Fuel Summary
+                      _buildFuelSummary(),
+                      const SizedBox(height: 24),
+
+                      // Refill Quantity
+
+                      // Meter Readings
+                      _buildMeterReadings(),
+                      const SizedBox(height: 24),
+
+                      _buildRefillQuantityField(),
+                      const SizedBox(height: 24),
+
+                      // Note
+                      _buildNoteField(),
+                      const SizedBox(height: 32),
+
+                      // Submit Button
+                      _buildSubmitButton(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color color) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildFuelSummary() {
+    final deficit = widget.requiredQty - widget.availableQty;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Fuel Requirements',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Required:', style: TextStyle(color: Colors.grey)),
+              Text(
+                '${widget.requiredQty.toStringAsFixed(2)} IG',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Available:', style: TextStyle(color: Colors.grey)),
+              Text(
+                '${widget.availableQty.toStringAsFixed(2)} IG',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Deficit:', style: TextStyle(color: Colors.grey)),
+              Text(
+                '${deficit.toStringAsFixed(2)} IG',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRefillQuantityField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        Text(
-          value,
+        const Text(
+          'Refill Quantity (IG)',
           style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _refillQuantityController,
+          decoration: InputDecoration(
+            hintText: 'Enter quantity',
+            prefixIcon: const Icon(
+              Icons.local_gas_station,
+              color: Colors.orange,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.orange, width: 2),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textInputAction: TextInputAction.next,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter refill quantity';
+            }
+            final qty = double.tryParse(value);
+            if (qty == null || qty <= 0) {
+              return 'Please enter a valid quantity';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMeterReadings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Meter Readings',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Start Meter
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Start Reading',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                _buildPhotoSection(
+                  'Start Photo',
+                  _startMeterPhoto,
+                  () => _pickImage((file) => _startMeterPhoto = file),
+                ),
+
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _startMeterController,
+                  decoration: InputDecoration(
+                    labelText: 'Reading Value',
+                    prefixIcon: const Icon(Icons.speed, color: Colors.blue),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter start reading';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // End Meter
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'End Reading',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                _buildPhotoSection(
+                  'End Photo',
+                  _endMeterPhoto,
+
+                  () => _pickImage((file) => _endMeterPhoto = file),
+                ),
+
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _endMeterController,
+                  decoration: InputDecoration(
+                    labelText: 'Reading Value',
+                    prefixIcon: const Icon(Icons.speed, color: Colors.green),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter end reading';
+                    }
+                    final endValue = int.tryParse(value) ?? 0;
+                    final startValue =
+                        int.tryParse(_startMeterController.text) ?? 0;
+                    if (endValue <= startValue) {
+                      return 'End must be greater than start';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -675,21 +762,20 @@ class _FuelRefillBeforeTripScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        ),
+        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
         const SizedBox(height: 8),
-        InkWell(
+        GestureDetector(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
           child: Container(
-            height: 150,
+            height: 140,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Colors.grey[100],
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color: photo == null ? Colors.grey[300]! : Colors.green,
+                width: photo == null ? 1 : 2,
+              ),
             ),
             child:
                 photo == null
@@ -699,22 +785,92 @@ class _FuelRefillBeforeTripScreenState
                         Icon(
                           Icons.camera_alt,
                           size: 40,
-                          color: Colors.grey.shade400,
+                          color: Colors.grey[400],
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Tap to capture',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
                     )
                     : ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       child: Image.file(photo, fit: BoxFit.cover),
                     ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNoteField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Additional Notes (Optional)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _noteController,
+          decoration: InputDecoration(
+            hintText: 'Enter any notes here...',
+            prefixIcon: const Icon(Icons.note_add, color: Colors.blueGrey),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          maxLines: 3,
+          textInputAction: TextInputAction.done,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submitFuelRefill,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 3,
+          shadowColor: Colors.orange.withOpacity(0.3),
+        ),
+        child:
+            _isSubmitting
+                ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.check_circle, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'COMPLETE REFILL',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+      ),
     );
   }
 }

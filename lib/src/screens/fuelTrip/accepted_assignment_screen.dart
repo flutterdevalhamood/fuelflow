@@ -27,6 +27,12 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _refreshAssignments();
+  }
+
   Future<void> _refreshAssignments() async {
     final controller = context.read<FuelTripController>();
 
@@ -1060,7 +1066,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                                 const SizedBox(height: 8),
                                 ...stopVehicles.map((vehicleData) {
                                   final vehicle =
-                                      vehicleData['vehicle']
+                                      vehicleData['stop_vehicles']
                                           as Map<String, dynamic>? ??
                                       {};
                                   final plateNo = vehicle['plate_no'] ?? 'N/A';
