@@ -66,6 +66,12 @@ class _CustomerFuelDeliveryScreenState
 
   bool _isSubmitting = false;
 
+  // Track if events have been logged
+  bool _arrivedAtStopLogged = false;
+  bool _customerLoadingStartedLogged = false;
+  bool _customerLoadingCompletedLogged = false;
+  bool _driverNotesAddedLogged = false;
+
   @override
   void initState() {
     super.initState();
@@ -76,27 +82,117 @@ class _CustomerFuelDeliveryScreenState
     _fuelTripController = context.read<FuelTripController>();
     _refillController = context.read<FuelRefillBeforeTripController>();
 
+    // Add listeners to text fields
+    _startMeterController.addListener(_onStartMeterChanged);
+    _endMeterController.addListener(_onEndMeterChanged);
+    _noteController.addListener(_onNoteChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeTracking();
     });
   }
 
   Future<void> _initializeTracking() async {
-    if (!mounted) return;
+    if (!mounted || _arrivedAtStopLogged) return;
 
     try {
+      // Log "arrived_at_stop" when screen loads
       await _trackingController.startTripTracking(
         tripId: int.parse(widget.tripId),
         tripStopId: widget.tripStopId,
         eventType: 'arrived_at_stop',
       );
+
+      _arrivedAtStopLogged = true;
+      debugPrint('✅ Logged: arrived_at_stop');
     } catch (e) {
-      debugPrint('Tracking init failed: $e');
+      debugPrint('❌ Tracking init failed: $e');
+    }
+  }
+
+  // Log "customer_loading_started" when start meter reading is entered
+  void _onStartMeterChanged() {
+    if (_startMeterController.text.isNotEmpty &&
+        !_customerLoadingStartedLogged &&
+        _startMeterPhoto != null) {
+      _logCustomerLoadingStarted();
+    }
+  }
+
+  Future<void> _logCustomerLoadingStarted() async {
+    if (_customerLoadingStartedLogged) return;
+
+    try {
+      final success = await _trackingController.logManualTripEvent(
+        eventType: 'customer_loading_started',
+      );
+
+      if (success) {
+        _customerLoadingStartedLogged = true;
+        debugPrint('✅ Logged: customer_loading_started');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to log customer_loading_started: $e');
+    }
+  }
+
+  // Log "customer_loading_completed" when end meter reading is entered
+  void _onEndMeterChanged() {
+    if (_endMeterController.text.isNotEmpty &&
+        !_customerLoadingCompletedLogged &&
+        _endMeterPhoto != null &&
+        _customerLoadingStartedLogged) {
+      _logCustomerLoadingCompleted();
+    }
+  }
+
+  Future<void> _logCustomerLoadingCompleted() async {
+    if (_customerLoadingCompletedLogged) return;
+
+    try {
+      final success = await _trackingController.logManualTripEvent(
+        eventType: 'customer_loading_completed',
+      );
+
+      if (success) {
+        _customerLoadingCompletedLogged = true;
+        debugPrint('✅ Logged: customer_loading_completed');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to log customer_loading_completed: $e');
+    }
+  }
+
+  // Log "driver_notes_added" when note is entered
+  void _onNoteChanged() {
+    if (_noteController.text.isNotEmpty && !_driverNotesAddedLogged) {
+      _logDriverNotesAdded();
+    }
+  }
+
+  Future<void> _logDriverNotesAdded() async {
+    if (_driverNotesAddedLogged) return;
+
+    try {
+      final success = await _trackingController.logManualTripEvent(
+        eventType: 'driver_notes_added',
+      );
+
+      if (success) {
+        _driverNotesAddedLogged = true;
+        debugPrint('✅ Logged: driver_notes_added');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to log driver_notes_added: $e');
     }
   }
 
   @override
   void dispose() {
+    _startMeterController.removeListener(_onStartMeterChanged);
+    _endMeterController.removeListener(_onEndMeterChanged);
+    _noteController.removeListener(_onNoteChanged);
+
     _startMeterController.dispose();
     _endMeterController.dispose();
     _deliveryQuantityController.dispose();
@@ -121,6 +217,13 @@ class _CustomerFuelDeliveryScreenState
 
       if (image != null && mounted) {
         setState(() => onPicked(File(image.path)));
+
+        // Trigger event checks after photo is picked
+        if (onPicked.toString().contains('_startMeterPhoto')) {
+          _onStartMeterChanged();
+        } else if (onPicked.toString().contains('_endMeterPhoto')) {
+          _onEndMeterChanged();
+        }
       }
     } catch (e) {
       _showSnackBar('Image pick failed');
@@ -139,7 +242,11 @@ class _CustomerFuelDeliveryScreenState
     setState(() => _isSubmitting = true);
 
     try {
-      await _trackingController.logManualTripEvent(eventType: 'refuel_started');
+      // Log "refuel_completed" event
+      await _trackingController.logCriticalTripEvent(
+        eventType: 'refuel_completed',
+      );
+      debugPrint('✅ Logged: refuel_completed');
 
       await Future.delayed(const Duration(milliseconds: 300));
 
@@ -155,71 +262,43 @@ class _CustomerFuelDeliveryScreenState
             double.parse(_deliveryQuantityController.text),
         customerStartMeterReadingValue:
             int.tryParse(_startMeterController.text) ?? 0,
-        customerStartMeterFiles: [
-          _startMeterPhoto!,
-        ], // ✅ These are now being passed
+        customerStartMeterFiles: [_startMeterPhoto!],
         customerEndMeterReadingValue:
             int.tryParse(_endMeterController.text) ?? 0,
-        customerEndMeterFiles: [
-          _endMeterPhoto!,
-        ], // ✅ These are now being passed
+        customerEndMeterFiles: [_endMeterPhoto!],
         note: _noteController.text,
         vehicleTankStartReadingValue: 0,
-        vehicleStartMeterFiles: const [], // ✅ Empty for customer delivery
+        vehicleStartMeterFiles: const [],
         vehicleTankEndReadingValue: 0,
-        vehicleEndMeterFiles: const [], // ✅ Empty for customer delivery
+        vehicleEndMeterFiles: const [],
       );
 
       if (!success || !mounted) {
         _showSnackBar('Delivery failed', backgroundColor: Colors.red);
+        setState(() => _isSubmitting = false);
         return;
       }
 
-      await _trackingController.logCriticalTripEvent(
-        eventType: 'refuel_completed',
+      // Log "departed_from_stop" after successful delivery
+      await _trackingController.logManualTripEvent(
+        eventType: 'departed_from_stop',
       );
-
-      await _logAdditionalEvents();
+      debugPrint('✅ Logged: departed_from_stop');
 
       final isLastStop = widget.currentStopIndex >= widget.totalStops - 1;
 
-      if (isLastStop) {
-        await _trackingController.logCriticalTripEvent(
-          eventType: 'returned_to_base',
-        );
-        await _trackingController.stopTripTracking();
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        _showCompletionDialog(isLastStop);
       }
-
-      _showCompletionDialog();
     } catch (e) {
+      debugPrint('❌ Error occurred: $e');
       _showSnackBar('Error occurred', backgroundColor: Colors.red);
-    } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  Future<void> _logAdditionalEvents() async {
-    if (!_trackingController.isTracking) return;
-
-    try {
-      await _trackingController.logManualTripEvent(
-        eventType: 'customer_loading_started',
-      );
-      await _trackingController.logManualTripEvent(
-        eventType: 'customer_loading_completed',
-      );
-      if (_noteController.text.isNotEmpty) {
-        await _trackingController.logManualTripEvent(
-          eventType: 'driver_notes_added',
-        );
-      }
-      await _trackingController.logManualTripEvent(
-        eventType: 'departed_from_stop',
-      );
-    } catch (_) {}
-  }
-
-  void _showCompletionDialog() {
+  void _showCompletionDialog(bool isLastStop) {
     if (!mounted) return;
 
     showDialog(
@@ -228,10 +307,40 @@ class _CustomerFuelDeliveryScreenState
       builder:
           (ctx) => AlertDialog(
             title: const Text('Stop Completed'),
+            content: Text(
+              isLastStop
+                  ? 'All stops completed! Moving towards base.'
+                  : 'Moving towards next stop.',
+            ),
             actions: [
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(ctx).pop();
+
+                  if (isLastStop) {
+                    // Log "moving_towards_base" for last stop
+                    await _trackingController.logCriticalTripEvent(
+                      eventType: 'moving_towards_base',
+                    );
+                    debugPrint('✅ Logged: moving_towards_base');
+
+                    // Small delay before logging returned_to_base
+                    await Future.delayed(const Duration(milliseconds: 500));
+
+                    await _trackingController.logCriticalTripEvent(
+                      eventType: 'returned_to_base',
+                    );
+                    debugPrint('✅ Logged: returned_to_base');
+
+                    await _trackingController.stopTripTracking();
+                  } else {
+                    // Log "moving_towards_next_stop" for intermediate stops
+                    await _trackingController.logManualTripEvent(
+                      eventType: 'moving_towards_next_stop',
+                    );
+                    debugPrint('✅ Logged: moving_towards_next_stop');
+                  }
+
                   NavigationService().navigateToUntil(
                     Screenroutes.acceptedAssignmentScreen,
                   );
@@ -432,9 +541,10 @@ class _CustomerFuelDeliveryScreenState
                                     _buildPhotoSection(
                                       'Start Meter Photo',
                                       _startMeterPhoto,
-                                      () => _pickImage(
-                                        (file) => _startMeterPhoto = file,
-                                      ),
+                                      () => _pickImage((file) {
+                                        _startMeterPhoto = file;
+                                        _onStartMeterChanged();
+                                      }),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text(
@@ -487,9 +597,10 @@ class _CustomerFuelDeliveryScreenState
                                     _buildPhotoSection(
                                       'End Meter Photo',
                                       _endMeterPhoto,
-                                      () => _pickImage(
-                                        (file) => _endMeterPhoto = file,
-                                      ),
+                                      () => _pickImage((file) {
+                                        _endMeterPhoto = file;
+                                        _onEndMeterChanged();
+                                      }),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text(

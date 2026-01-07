@@ -1065,11 +1065,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 ...stopVehicles.map((vehicleData) {
-                                  final vehicle =
-                                      vehicleData['stop_vehicles']
-                                          as Map<String, dynamic>? ??
-                                      {};
-                                  final plateNo = vehicle['plate_no'] ?? 'N/A';
+                                  final plateNo =
+                                      vehicleData['plate_no']?.toString() ??
+                                      'N/A';
 
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 6),
