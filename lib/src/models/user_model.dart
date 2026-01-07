@@ -27,7 +27,10 @@ abstract class UserData with _$UserData {
     String? email,
     String? imageUrl,
     String? isActive,
+    String? customerId,
+    String? driverId,
     Roles? roles,
+    Driver? driver,
     Customer? customer,
   }) = _UserData;
 
@@ -48,4 +51,11 @@ abstract class Customer with _$Customer {
 
   factory Customer.fromJson(Map<String, dynamic> json) =>
       _$CustomerFromJson(json);
+}
+
+@freezed
+abstract class Driver with _$Driver {
+  const factory Driver({required int id, required String Name}) = _Driver;
+
+  factory Driver.fromJson(Map<String, dynamic> json) => _$DriverFromJson(json);
 }

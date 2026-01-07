@@ -35,10 +35,16 @@ _UserData _$UserDataFromJson(Map<String, dynamic> json) => _UserData(
   email: json['email'] as String?,
   imageUrl: json['imageUrl'] as String?,
   isActive: json['isActive'] as String?,
+  customerId: json['customerId'] as String?,
+  driverId: json['driverId'] as String?,
   roles:
       json['roles'] == null
           ? null
           : Roles.fromJson(json['roles'] as Map<String, dynamic>),
+  driver:
+      json['driver'] == null
+          ? null
+          : Driver.fromJson(json['driver'] as Map<String, dynamic>),
   customer:
       json['customer'] == null
           ? null
@@ -52,7 +58,10 @@ Map<String, dynamic> _$UserDataToJson(_UserData instance) => <String, dynamic>{
   'email': instance.email,
   'imageUrl': instance.imageUrl,
   'isActive': instance.isActive,
+  'customerId': instance.customerId,
+  'driverId': instance.driverId,
   'roles': instance.roles,
+  'driver': instance.driver,
   'customer': instance.customer,
 };
 
@@ -68,6 +77,14 @@ _Customer _$CustomerFromJson(Map<String, dynamic> json) =>
     _Customer(id: (json['id'] as num).toInt(), Name: json['Name'] as String);
 
 Map<String, dynamic> _$CustomerToJson(_Customer instance) => <String, dynamic>{
+  'id': instance.id,
+  'Name': instance.Name,
+};
+
+_Driver _$DriverFromJson(Map<String, dynamic> json) =>
+    _Driver(id: (json['id'] as num).toInt(), Name: json['Name'] as String);
+
+Map<String, dynamic> _$DriverToJson(_Driver instance) => <String, dynamic>{
   'id': instance.id,
   'Name': instance.Name,
 };

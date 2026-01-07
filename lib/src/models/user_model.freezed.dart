@@ -188,7 +188,7 @@ $UserDataCopyWith<$Res>? get Data {
 /// @nodoc
 mixin _$UserData {
 
- int? get id; String? get name; String? get role_id; String? get email; String? get imageUrl; String? get isActive; Roles? get roles; Customer? get customer;
+ int? get id; String? get name; String? get role_id; String? get email; String? get imageUrl; String? get isActive; String? get customerId; String? get driverId; Roles? get roles; Driver? get driver; Customer? get customer;
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -201,16 +201,16 @@ $UserDataCopyWith<UserData> get copyWith => _$UserDataCopyWithImpl<UserData>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.customer, customer) || other.customer == customer));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.customerId, customerId) || other.customerId == customerId)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.driver, driver) || other.driver == driver)&&(identical(other.customer, customer) || other.customer == customer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles,customer);
+int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,customerId,driverId,roles,driver,customer);
 
 @override
 String toString() {
-  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles, customer: $customer)';
+  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, customerId: $customerId, driverId: $driverId, roles: $roles, driver: $driver, customer: $customer)';
 }
 
 
@@ -221,11 +221,11 @@ abstract mixin class $UserDataCopyWith<$Res>  {
   factory $UserDataCopyWith(UserData value, $Res Function(UserData) _then) = _$UserDataCopyWithImpl;
 @useResult
 $Res call({
- int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, Roles? roles, Customer? customer
+ int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, String? customerId, String? driverId, Roles? roles, Driver? driver, Customer? customer
 });
 
 
-$RolesCopyWith<$Res>? get roles;$CustomerCopyWith<$Res>? get customer;
+$RolesCopyWith<$Res>? get roles;$DriverCopyWith<$Res>? get driver;$CustomerCopyWith<$Res>? get customer;
 
 }
 /// @nodoc
@@ -238,7 +238,7 @@ class _$UserDataCopyWithImpl<$Res>
 
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,Object? customer = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? customerId = freezed,Object? driverId = freezed,Object? roles = freezed,Object? driver = freezed,Object? customer = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -246,8 +246,11 @@ as String?,role_id: freezed == role_id ? _self.role_id : role_id // ignore: cast
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as String?,customerId: freezed == customerId ? _self.customerId : customerId // ignore: cast_nullable_to_non_nullable
+as String?,driverId: freezed == driverId ? _self.driverId : driverId // ignore: cast_nullable_to_non_nullable
 as String?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
-as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
+as Roles?,driver: freezed == driver ? _self.driver : driver // ignore: cast_nullable_to_non_nullable
+as Driver?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
 as Customer?,
   ));
 }
@@ -262,6 +265,18 @@ $RolesCopyWith<$Res>? get roles {
 
   return $RolesCopyWith<$Res>(_self.roles!, (value) {
     return _then(_self.copyWith(roles: value));
+  });
+}/// Create a copy of UserData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DriverCopyWith<$Res>? get driver {
+    if (_self.driver == null) {
+    return null;
+  }
+
+  return $DriverCopyWith<$Res>(_self.driver!, (value) {
+    return _then(_self.copyWith(driver: value));
   });
 }/// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
@@ -283,7 +298,7 @@ $CustomerCopyWith<$Res>? get customer {
 @JsonSerializable()
 
 class _UserData implements UserData {
-  const _UserData({this.id, this.name, this.role_id, this.email, this.imageUrl, this.isActive, this.roles, this.customer});
+  const _UserData({this.id, this.name, this.role_id, this.email, this.imageUrl, this.isActive, this.customerId, this.driverId, this.roles, this.driver, this.customer});
   factory _UserData.fromJson(Map<String, dynamic> json) => _$UserDataFromJson(json);
 
 @override final  int? id;
@@ -292,7 +307,10 @@ class _UserData implements UserData {
 @override final  String? email;
 @override final  String? imageUrl;
 @override final  String? isActive;
+@override final  String? customerId;
+@override final  String? driverId;
 @override final  Roles? roles;
+@override final  Driver? driver;
 @override final  Customer? customer;
 
 /// Create a copy of UserData
@@ -308,16 +326,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.customer, customer) || other.customer == customer));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.role_id, role_id) || other.role_id == role_id)&&(identical(other.email, email) || other.email == email)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.customerId, customerId) || other.customerId == customerId)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.roles, roles) || other.roles == roles)&&(identical(other.driver, driver) || other.driver == driver)&&(identical(other.customer, customer) || other.customer == customer));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,roles,customer);
+int get hashCode => Object.hash(runtimeType,id,name,role_id,email,imageUrl,isActive,customerId,driverId,roles,driver,customer);
 
 @override
 String toString() {
-  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, roles: $roles, customer: $customer)';
+  return 'UserData(id: $id, name: $name, role_id: $role_id, email: $email, imageUrl: $imageUrl, isActive: $isActive, customerId: $customerId, driverId: $driverId, roles: $roles, driver: $driver, customer: $customer)';
 }
 
 
@@ -328,11 +346,11 @@ abstract mixin class _$UserDataCopyWith<$Res> implements $UserDataCopyWith<$Res>
   factory _$UserDataCopyWith(_UserData value, $Res Function(_UserData) _then) = __$UserDataCopyWithImpl;
 @override @useResult
 $Res call({
- int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, Roles? roles, Customer? customer
+ int? id, String? name, String? role_id, String? email, String? imageUrl, String? isActive, String? customerId, String? driverId, Roles? roles, Driver? driver, Customer? customer
 });
 
 
-@override $RolesCopyWith<$Res>? get roles;@override $CustomerCopyWith<$Res>? get customer;
+@override $RolesCopyWith<$Res>? get roles;@override $DriverCopyWith<$Res>? get driver;@override $CustomerCopyWith<$Res>? get customer;
 
 }
 /// @nodoc
@@ -345,7 +363,7 @@ class __$UserDataCopyWithImpl<$Res>
 
 /// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? roles = freezed,Object? customer = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = freezed,Object? role_id = freezed,Object? email = freezed,Object? imageUrl = freezed,Object? isActive = freezed,Object? customerId = freezed,Object? driverId = freezed,Object? roles = freezed,Object? driver = freezed,Object? customer = freezed,}) {
   return _then(_UserData(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -353,8 +371,11 @@ as String?,role_id: freezed == role_id ? _self.role_id : role_id // ignore: cast
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as String?,customerId: freezed == customerId ? _self.customerId : customerId // ignore: cast_nullable_to_non_nullable
+as String?,driverId: freezed == driverId ? _self.driverId : driverId // ignore: cast_nullable_to_non_nullable
 as String?,roles: freezed == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
-as Roles?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
+as Roles?,driver: freezed == driver ? _self.driver : driver // ignore: cast_nullable_to_non_nullable
+as Driver?,customer: freezed == customer ? _self.customer : customer // ignore: cast_nullable_to_non_nullable
 as Customer?,
   ));
 }
@@ -370,6 +391,18 @@ $RolesCopyWith<$Res>? get roles {
 
   return $RolesCopyWith<$Res>(_self.roles!, (value) {
     return _then(_self.copyWith(roles: value));
+  });
+}/// Create a copy of UserData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DriverCopyWith<$Res>? get driver {
+    if (_self.driver == null) {
+    return null;
+  }
+
+  return $DriverCopyWith<$Res>(_self.driver!, (value) {
+    return _then(_self.copyWith(driver: value));
   });
 }/// Create a copy of UserData
 /// with the given fields replaced by the non-null parameter values.
@@ -649,6 +682,142 @@ class __$CustomerCopyWithImpl<$Res>
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,}) {
   return _then(_Customer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$Driver {
+
+ int get id; String get Name;
+/// Create a copy of Driver
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DriverCopyWith<Driver> get copyWith => _$DriverCopyWithImpl<Driver>(this as Driver, _$identity);
+
+  /// Serializes this Driver to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Driver&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Name);
+
+@override
+String toString() {
+  return 'Driver(id: $id, Name: $Name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DriverCopyWith<$Res>  {
+  factory $DriverCopyWith(Driver value, $Res Function(Driver) _then) = _$DriverCopyWithImpl;
+@useResult
+$Res call({
+ int id, String Name
+});
+
+
+
+
+}
+/// @nodoc
+class _$DriverCopyWithImpl<$Res>
+    implements $DriverCopyWith<$Res> {
+  _$DriverCopyWithImpl(this._self, this._then);
+
+  final Driver _self;
+  final $Res Function(Driver) _then;
+
+/// Create a copy of Driver
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? Name = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// @nodoc
+@JsonSerializable()
+
+class _Driver implements Driver {
+  const _Driver({required this.id, required this.Name});
+  factory _Driver.fromJson(Map<String, dynamic> json) => _$DriverFromJson(json);
+
+@override final  int id;
+@override final  String Name;
+
+/// Create a copy of Driver
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DriverCopyWith<_Driver> get copyWith => __$DriverCopyWithImpl<_Driver>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DriverToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Driver&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,Name);
+
+@override
+String toString() {
+  return 'Driver(id: $id, Name: $Name)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DriverCopyWith<$Res> implements $DriverCopyWith<$Res> {
+  factory _$DriverCopyWith(_Driver value, $Res Function(_Driver) _then) = __$DriverCopyWithImpl;
+@override @useResult
+$Res call({
+ int id, String Name
+});
+
+
+
+
+}
+/// @nodoc
+class __$DriverCopyWithImpl<$Res>
+    implements _$DriverCopyWith<$Res> {
+  __$DriverCopyWithImpl(this._self, this._then);
+
+  final _Driver _self;
+  final $Res Function(_Driver) _then;
+
+/// Create a copy of Driver
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,}) {
+  return _then(_Driver(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
 as String,

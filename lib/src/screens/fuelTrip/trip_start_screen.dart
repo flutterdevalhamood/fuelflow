@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
@@ -58,15 +59,21 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Start trip tracking silently in background
+    // In the initState of TripStartedScreen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = context.read<TripTrackingController>();
+      final driverId = AuthRepo.driverId;
+      print('driveriddddd $driverId');
       controller.startTripTracking(
         tripId: widget.tripId,
         tripStopId: widget.tripStopId,
         eventType: 'start_journey',
+        driverId: driverId, // Make sure to get this from your user data
+        vehicleId: widget.vehicleId,
       );
     });
+
+    print('vehicleidddddd  ${widget.vehicleId}');
   }
 
   @override

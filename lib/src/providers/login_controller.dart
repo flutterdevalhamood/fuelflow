@@ -47,11 +47,13 @@ class AuthController with ChangeNotifier {
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
+        AuthRepo.driverId = loginResponse.Data?.driver?.id;
 
         print('New token set: ${AuthRepo.token}');
         print('Customer ID: ${AuthRepo.customerId}');
         print('Login type: ${AuthRepo.loginType}');
         print('Role: ${AuthRepo.role}');
+        print('Role: ${AuthRepo.driverId}');
 
         // Verify token is properly set
         if (AuthRepo.token != null && AuthRepo.token!.isNotEmpty) {

@@ -12,6 +12,7 @@ class AuthRepo {
   static const _prefTokenKey = "token";
   static const _prefRoleKey = "role";
   static const _prefCustomerIdKey = "customerId";
+  static const _prefDriverIdKey = "driverId";
 
   static set token(String? token) {
     if (token == null) {
@@ -86,6 +87,22 @@ class AuthRepo {
     if (value == null) return null;
     final customerIdJson = jsonDecode(value);
     return customerIdJson;
+  }
+
+  static set driverId(int? driverId) {
+    if (driverId == null) {
+      prefs?.remove(_prefDriverIdKey);
+    } else {
+      final userJson = jsonEncode(driverId);
+      prefs?.setString(_prefDriverIdKey, userJson);
+    }
+  }
+
+  static int? get driverId {
+    var value = prefs?.getString(_prefDriverIdKey);
+    if (value == null) return null;
+    final driverIdJson = jsonDecode(value);
+    return driverIdJson;
   }
 
   // Fixed logout method - clear individual keys instead of clearing all prefs
