@@ -15,7 +15,8 @@ class AcceptedAssignmentScreen extends StatefulWidget {
       _AcceptedAssignmentScreenState();
 }
 
-class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
+class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
+    with RouteAware {
   // Track which stop card is expanded
   int? _expandedStopIndex;
 
@@ -30,6 +31,24 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // ✅ Subscribe to route observer
+    final route = ModalRoute.of(context);
+    if (route != null && route is PageRoute) {
+      Screenroutes.routeobserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    // ✅ Unsubscribe from route observer
+    Screenroutes.routeobserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // ✅ Called when returning to this screen from another screen
+    debugPrint('🔄 AcceptedAssignmentScreen became visible - auto-refreshing');
     _refreshAssignments();
   }
 

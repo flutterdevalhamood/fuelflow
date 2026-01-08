@@ -64,7 +64,7 @@ class TripTrackingController with ChangeNotifier {
       _currentTripId = tripId;
       _currentTripStopId = tripStopId;
 
-      final permission = await _checkLocationPermission();
+      final permission = await checkLocationPermission();
       if (!permission) {
         debugPrint('❌ Location permission denied');
         return;
@@ -102,7 +102,7 @@ class TripTrackingController with ChangeNotifier {
     }
   }
 
-  Future<bool> _checkLocationPermission() async {
+  Future<bool> checkLocationPermission() async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         debugPrint('❌ Location services disabled');

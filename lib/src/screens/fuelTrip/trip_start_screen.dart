@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_navigation.dart';
@@ -44,6 +47,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _truckAnimation;
+  bool _isLocationReady = false;
+  bool _isCheckingLocation = false;
+  bool _hasShownLocationDialog = false;
 
   @override
   void initState() {
@@ -53,34 +59,256 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     _animationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
-    )..repeat(reverse: true);
+    );
 
     _truckAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // In the initState of TripStartedScreen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    print('vehicleidddddd  ${widget.vehicleId}');
+
+    // Start location check and trip setup
+    _setupTripWithLocation();
+  }
+
+  Future<void> _setupTripWithLocation() async {
+    setState(() {
+      _isCheckingLocation = true;
+    });
+
+    try {
+      // Step 1: Check location services
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        // Location is required - show dialog to enable it
+        await _showLocationRequiredDialog();
+
+        // Re-check after dialog
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+        if (!serviceEnabled) {
+          // User didn't enable location, keep checking in background
+          _startLocationMonitoring();
+          return;
+        }
+      }
+
+      // Step 2: Check and request location permission
+      var permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // Permission permanently denied - show settings dialog
+        await _showPermissionSettingsDialog();
+        _startLocationMonitoring();
+        return;
+      }
+
+      final hasValidPermission =
+          permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+
+      if (!hasValidPermission) {
+        // Don't have permission yet, keep monitoring
+        _startLocationMonitoring();
+        return;
+      }
+
+      // Step 3: Location is ready - start trip tracking
+      await _startTripTracking();
+
+      setState(() {
+        _isLocationReady = true;
+        _isCheckingLocation = false;
+      });
+
+      // Start animation only when location is ready
+      _animationController.repeat(reverse: true);
+    } catch (e) {
+      print('❌ Error setting up trip: $e');
+      setState(() {
+        _isCheckingLocation = false;
+      });
+      _startLocationMonitoring(); // Keep trying
+    }
+  }
+
+  Future<void> _showLocationRequiredDialog() async {
+    if (_hasShownLocationDialog) return;
+    _hasShownLocationDialog = true;
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.location_on, size: 30, color: Colors.blue),
+                SizedBox(width: 10),
+                Text('Location Required'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'To continue your trip, please enable location services.',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _navigateBack();
+                },
+                child: const Text('Cancel Trip'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Geolocator.openLocationSettings();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                child: const Text('Enable Location'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _showPermissionSettingsDialog() async {
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.settings, size: 30, color: Colors.blue),
+                SizedBox(width: 10),
+                Text('Location Permission'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Please grant location permission to continue your trip.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Go to Settings > Apps > [Your App] > Permissions',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _navigateBack();
+                },
+                child: const Text('Cancel Trip'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openAppSettings();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _startLocationMonitoring() {
+    // Check location every 3 seconds
+    Timer.periodic(const Duration(seconds: 3), (timer) async {
+      if (_isLocationReady) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        var permission = await Geolocator.checkPermission();
+
+        final hasValidPermission =
+            permission == LocationPermission.always ||
+            permission == LocationPermission.whileInUse;
+
+        if (serviceEnabled && hasValidPermission) {
+          timer.cancel();
+          if (mounted) {
+            await _startTripTracking();
+            setState(() {
+              _isLocationReady = true;
+              _isCheckingLocation = false;
+            });
+            _animationController.repeat(reverse: true);
+          }
+        }
+      } catch (e) {
+        print('❌ Location monitoring error: $e');
+      }
+    });
+  }
+
+  Future<void> _startTripTracking() async {
+    try {
       final controller = context.read<TripTrackingController>();
       final driverId = AuthRepo.driverId;
-      print('driveriddddd $driverId');
-      controller.startTripTracking(
+
+      await controller.startTripTracking(
         tripId: widget.tripId,
         tripStopId: widget.tripStopId,
         eventType: 'start_journey',
-        driverId: driverId, // Make sure to get this from your user data
+        driverId: driverId,
         vehicleId: widget.vehicleId,
       );
-    });
 
-    print('vehicleidddddd  ${widget.vehicleId}');
+      print('✅ Trip tracking started for trip ${widget.tripId}');
+    } catch (e) {
+      print('❌ Error starting trip tracking: $e');
+      // Re-throw to handle in calling function
+      rethrow;
+    }
+  }
+
+  void _navigateBack() {
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     // Stop tracking when leaving screen
-    context.read<TripTrackingController>().stopTripTracking();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final controller = context.read<TripTrackingController>();
+        controller.stopTripTracking();
+      } catch (e) {
+        print('Error stopping trip tracking: $e');
+      }
+    });
     super.dispose();
   }
 
@@ -88,26 +316,25 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Show confirmation dialog before leaving
         final shouldPop = await showDialog<bool>(
           context: context,
           builder:
               (context) => AlertDialog(
-                title: const Text('Leave Trip?'),
+                title: const Text('Cancel Trip?'),
                 content: const Text(
-                  'Are you sure you want to leave this screen?',
+                  'Are you sure you want to cancel this trip?',
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
+                    child: const Text('Continue Trip'),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
-                    child: const Text('Leave'),
+                    child: const Text('Cancel Trip'),
                   ),
                 ],
               ),
@@ -138,15 +365,15 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                             context: context,
                             builder:
                                 (context) => AlertDialog(
-                                  title: const Text('Leave Trip?'),
+                                  title: const Text('Cancel Trip?'),
                                   content: const Text(
-                                    'Are you sure you want to leave this screen?',
+                                    'Are you sure you want to cancel this trip?',
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed:
                                           () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
+                                      child: const Text('Continue Trip'),
                                     ),
                                     ElevatedButton(
                                       onPressed:
@@ -154,7 +381,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.red,
                                       ),
-                                      child: const Text('Leave'),
+                                      child: const Text('Cancel Trip'),
                                     ),
                                   ],
                                 ),
@@ -186,147 +413,51 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                           ],
                         ),
                       ),
+                      // Location status indicator
+                      if (_isCheckingLocation)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      else if (!_isLocationReady)
+                        const Icon(
+                          Icons.location_off,
+                          color: Colors.orange,
+                          size: 24,
+                        )
+                      else
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.greenAccent,
+                          size: 24,
+                        ),
                     ],
                   ),
                 ),
 
-                // Truck Animation
+                // Main Content
                 Expanded(
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Animated Truck
-                        AnimatedBuilder(
-                          animation: _truckAnimation,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(
-                                (_truckAnimation.value - 0.5) * 100,
-                                0,
-                              ),
-                              child: Transform.scale(
-                                scale: 1.0 + (_truckAnimation.value * 0.1),
-                                child: Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.local_shipping,
-                                    size: 80,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Status indicator
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 12,
-                                height: 12,
-                                decoration: const BoxDecoration(
-                                  color: Colors.greenAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'En Route',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+                        if (_isCheckingLocation)
+                          _buildCheckingLocationContent()
+                        else if (!_isLocationReady)
+                          _buildLocationRequiredContent()
+                        else
+                          _buildTripActiveContent(),
                       ],
                     ),
                   ),
                 ),
 
-                // Trip Details Card
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Destination',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.customerName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      _buildInfoItem(
-                        icon: Icons.access_time,
-                        label: 'Expected Arrival',
-                        value: widget.arrivalTime,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoItem(
-                        icon: Icons.local_gas_station,
-                        label: 'Delivery Quantity',
-                        value: '${widget.requiredQty.toStringAsFixed(2)} IG',
-                      ),
-                    ],
-                  ),
-                ),
+                // Trip Details Card (only shown when location is ready)
+                if (_isLocationReady) _buildTripDetailsCard(),
 
                 // Action Buttons
                 Padding(
@@ -337,11 +468,15 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () => _handleArrival(context),
+                          onPressed:
+                              _isLocationReady
+                                  ? () => _handleArrival(context)
+                                  : null,
                           icon: const Icon(Icons.check_circle),
                           label: const Text('Arrived at Customer Location'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor:
+                                _isLocationReady ? Colors.green : Colors.grey,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
@@ -351,27 +486,25 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Back to Stops Button
-                      // SizedBox(
-                      //   width: double.infinity,
-                      //   child: OutlinedButton.icon(
-                      //     onPressed: () {
-                      //       NavigationService().navigateToUntil(
-                      //         Screenroutes.acceptedAssignmentScreen,
-                      //       );
-                      //     },
-                      //     icon: const Icon(Icons.list),
-                      //     label: const Text('View All Stops'),
-                      //     style: OutlinedButton.styleFrom(
-                      //       foregroundColor: Colors.white,
-                      //       side: const BorderSide(color: Colors.white),
-                      //       padding: const EdgeInsets.symmetric(vertical: 16),
-                      //       shape: RoundedRectangleBorder(
-                      //         borderRadius: BorderRadius.circular(12),
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
+
+                      // Location Help Button (when location not ready)
+                      if (!_isLocationReady)
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _setupTripWithLocation,
+                            icon: const Icon(Icons.location_on),
+                            label: const Text('Enable Location to Start Trip'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -379,6 +512,197 @@ class _TripStartedScreenState extends State<TripStartedScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCheckingLocationContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 80,
+          height: 80,
+          child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+        ),
+        const SizedBox(height: 30),
+        const Text(
+          'Setting Up Your Trip',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Checking location services...',
+          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationRequiredContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.location_on,
+          size: 100,
+          color: Colors.white.withOpacity(0.7),
+        ),
+        const SizedBox(height: 30),
+        const Text(
+          'Location Required',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Text(
+            'Please enable location services to start your trip.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: _setupTripWithLocation,
+          icon: const Icon(Icons.location_on),
+          label: const Text('Enable Location'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.blue,
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTripActiveContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Animated Truck
+        AnimatedBuilder(
+          animation: _truckAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset((_truckAnimation.value - 0.5) * 100, 0),
+              child: Transform.scale(
+                scale: 1.0 + (_truckAnimation.value * 0.1),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.local_shipping,
+                    size: 80,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 32),
+
+        // Status indicator
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(backgroundColor: Colors.greenAccent, radius: 6),
+              SizedBox(width: 8),
+              Text(
+                'En Route - Trip Active',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildTripDetailsCard() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Destination',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.red, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.customerName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+          _buildInfoItem(
+            icon: Icons.access_time,
+            label: 'Expected Arrival',
+            value: widget.arrivalTime,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoItem(
+            icon: Icons.local_gas_station,
+            label: 'Delivery Quantity',
+            value: '${widget.requiredQty.toStringAsFixed(2)} IG',
+          ),
+        ],
       ),
     );
   }
@@ -411,6 +735,12 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _handleArrival(BuildContext context) async {
+    // Double-check location is still active
+    if (!_isLocationReady) {
+      await _setupTripWithLocation();
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
@@ -440,11 +770,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
+                  child: const Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Colors.blue),
-                      const SizedBox(width: 12),
-                      const Expanded(
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Expanded(
                         child: Text(
                           'You will proceed to fuel delivery',
                           style: TextStyle(fontSize: 14),
@@ -514,14 +844,14 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       if (startDelivery == true && context.mounted) {
         final controller = context.read<TripTrackingController>();
 
-        // Log arrival event silently in background
+        // Log arrival event
         await controller.logManualTripEvent(
           eventType: 'arrived_at_stop',
           description: 'Driver confirmed arrival at ${widget.customerName}',
         );
 
-        // Refresh assignment data to get latest fuel quantities
-        await context.read<FuelTripController>().getAcceptedAssignments();
+        // // Refresh assignment data
+        // await context.read<FuelTripController>().getAcceptedAssignments();
 
         if (context.mounted) {
           // Navigate to customer fuel delivery screen

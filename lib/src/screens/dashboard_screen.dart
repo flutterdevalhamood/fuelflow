@@ -80,12 +80,12 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'Manage storage facilities',
       },
       {
-        'title': 'Assigned Trip',
+        'title': 'Assigned Trips',
         'icon': Icons.local_shipping_rounded,
         'route': Screenroutes.notificationScreen,
         'color': Colors.deepOrange,
         'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
-        'description': 'Go to Your Assignment Trip',
+        'description': 'Go to Your Assignment Trips',
       },
       {
         'title': 'Fuel Trip',
@@ -98,17 +98,17 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'Manage fuel delivery trips',
       },
       {
-        'title': 'Accepted Assignments',
+        'title': 'Accepted Trips',
         'icon': Icons.local_shipping_rounded,
         'route':
             Screenroutes
                 .acceptedAssignmentScreen, // Add this route to your app_routes.dart
         'color': Colors.green,
         'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
-        'description': 'View active accepted assignments',
+        'description': 'View active accepted trips',
       },
       {
-        'title': 'Completed Trip',
+        'title': 'Completed Trips',
         'icon': Icons.storage_rounded,
         'route': '',
         'color': Colors.lime,
@@ -166,9 +166,9 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       return allGridItems
           .where(
             (item) =>
-                item['title'] == 'Assigned Trip' ||
-                item['title'] == 'Accepted Assignments' ||
-                item['title'] == 'Completed Trip',
+                item['title'] == 'Assigned Trips' ||
+                item['title'] == 'Accepted Trips' ||
+                item['title'] == 'Completed Trips',
           )
           .toList();
     }
@@ -456,12 +456,13 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: GridView.builder(
                     physics: BouncingScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: MediaQuery.of(context).size.width,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.95,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 3.2, // wide card look
                     ),
+
                     itemCount: gridItems.length,
                     itemBuilder: (context, index) {
                       final item = gridItems[index];
@@ -507,44 +508,58 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
               ),
             ),
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(item['icon'], size: 32, color: Colors.white),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // ICON + TITLE ROW
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        item['title'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          item['icon'],
+                          size: 26,
                           color: Colors.white,
-                          letterSpacing: 0.3,
                         ),
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        item['description'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withOpacity(0.85),
-                          height: 1.3,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          item['title'],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
+
+                  const SizedBox(height: 10),
+
+                  // DESCRIPTION ROW
+                  Text(
+                    item['description'],
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.85),
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 6),
                 ],
               ),
             ),

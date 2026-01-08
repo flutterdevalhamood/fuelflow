@@ -539,6 +539,7 @@ class Screenroutes {
               stopOrder: args?['stopOrder'] as String? ?? '1',
               currentStopIndex: args?['currentStopIndex'] as int? ?? 0,
               totalStops: args?['totalStops'] as int? ?? 1,
+              driverId: args?['driverId'] as int? ?? 0,
             );
           },
         );

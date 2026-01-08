@@ -22,6 +22,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
   final String stopOrder;
   final int currentStopIndex;
   final int totalStops;
+  final int driverId;
 
   const CustomerFuelDeliveryScreen({
     Key? key,
@@ -36,6 +37,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
     required this.stopOrder,
     required this.currentStopIndex,
     required this.totalStops,
+    required this.driverId,
   }) : super(key: key);
 
   @override
@@ -300,6 +302,59 @@ class _CustomerFuelDeliveryScreenState
 
   // Replace the _showCompletionDialog method in CustomerFuelDeliveryScreen
 
+  // void _showCompletionDialog(bool isLastStop) {
+  //   if (!mounted) return;
+  //
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder:
+  //         (ctx) => AlertDialog(
+  //           title: const Text('Stop Completed'),
+  //           content: Text(
+  //             isLastStop
+  //                 ? 'All stops completed! Moving towards base.'
+  //                 : 'Moving towards next stop.',
+  //           ),
+  //           actions: [
+  //             ElevatedButton(
+  //               onPressed: () async {
+  //                 Navigator.of(ctx).pop();
+  //
+  //                 if (isLastStop) {
+  //                   // Log "moving_towards_base" for last stop
+  //                   await _trackingController.logCriticalTripEvent(
+  //                     eventType: 'moving_towards_base',
+  //                   );
+  //                   debugPrint('✅ Logged: moving_towards_base');
+  //
+  //                   // Small delay before logging returned_to_base
+  //                   await Future.delayed(const Duration(milliseconds: 500));
+  //
+  //                   await _trackingController.logCriticalTripEvent(
+  //                     eventType: 'returned_to_base',
+  //                   );
+  //                   debugPrint('✅ Logged: returned_to_base');
+  //
+  //                   await _trackingController.stopTripTracking();
+  //                 } else {
+  //                   // Log "moving_towards_next_stop" for intermediate stops
+  //                   await _trackingController.logManualTripEvent(
+  //                     eventType: 'moving_towards_next_stop',
+  //                   );
+  //                   debugPrint('✅ Logged: moving_towards_next_stop');
+  //                 }
+  //
+  //                 // Navigate to AcceptedAssignmentScreen instead of Dashboard
+  //                 await _navigateToAcceptedAssignmentScreen();
+  //               },
+  //               child: const Text('OK'),
+  //             ),
+  //           ],
+  //         ),
+  //   );
+  // }
+
   void _showCompletionDialog(bool isLastStop) {
     if (!mounted) return;
 
@@ -307,49 +362,75 @@ class _CustomerFuelDeliveryScreenState
       context: context,
       barrierDismissible: false,
       builder:
-          (ctx) => AlertDialog(
-            title: const Text('Stop Completed'),
-            content: Text(
-              isLastStop
-                  ? 'All stops completed! Moving towards base.'
-                  : 'Moving towards next stop.',
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
+          (ctx) => StatefulBuilder(
+            builder: (context, setState) {
+              bool _isProcessing = false;
 
-                  if (isLastStop) {
-                    // Log "moving_towards_base" for last stop
-                    await _trackingController.logCriticalTripEvent(
-                      eventType: 'moving_towards_base',
-                    );
-                    debugPrint('✅ Logged: moving_towards_base');
+              return AlertDialog(
+                title: const Text('Stop Completed'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isLastStop
+                          ? 'All stops completed! Moving towards base.'
+                          : 'Moving towards next stop.',
+                    ),
+                    if (_isProcessing) ...[
+                      const SizedBox(height: 16),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Finalizing...',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  if (!_isProcessing)
+                    ElevatedButton(
+                      onPressed: () async {
+                        setState(() => _isProcessing = true);
 
-                    // Small delay before logging returned_to_base
-                    await Future.delayed(const Duration(milliseconds: 500));
+                        try {
+                          // Execute tracking events
+                          if (isLastStop) {
+                            await Future.wait([
+                              _trackingController.logCriticalTripEvent(
+                                eventType: 'moving_towards_base',
+                              ),
+                              _trackingController.logCriticalTripEvent(
+                                eventType: 'returned_to_base',
+                              ),
+                              _trackingController.stopTripTracking(),
+                            ]);
+                          } else {
+                            await _trackingController.logManualTripEvent(
+                              eventType: 'moving_towards_next_stop',
+                            );
+                          }
+                        } catch (e) {
+                          debugPrint('Error in completion: $e');
+                        }
 
-                    await _trackingController.logCriticalTripEvent(
-                      eventType: 'returned_to_base',
-                    );
-                    debugPrint('✅ Logged: returned_to_base');
-
-                    await _trackingController.stopTripTracking();
-                  } else {
-                    // Log "moving_towards_next_stop" for intermediate stops
-                    await _trackingController.logManualTripEvent(
-                      eventType: 'moving_towards_next_stop',
-                    );
-                    debugPrint('✅ Logged: moving_towards_next_stop');
-                  }
-
-                  NavigationService().navigateToUntil(Screenroutes.dashboard);
-                },
-                child: const Text('OK'),
-              ),
-            ],
+                        if (mounted) {
+                          Navigator.of(ctx).pop();
+                          _navigateToAcceptedAssignmentScreen();
+                        }
+                      },
+                      child: const Text('OK'),
+                    ),
+                ],
+              );
+            },
           ),
     );
+  }
+
+  Future<void> _navigateToAcceptedAssignmentScreen() async {
+    // Navigate to AcceptedAssignmentScreen
+    NavigationService().pushNavigation(Screenroutes.acceptedAssignmentScreen);
   }
 
   @override
