@@ -448,7 +448,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen> {
                       ),
                       const SizedBox(height: 12),
                       _buildQuantityRow(
-                        'Customer Requirement',
+                        'Customer Req.',
                         double.tryParse(stop['expected_qty'].toString()) ?? 0,
                         Colors.grey,
                       ),

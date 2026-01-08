@@ -20,6 +20,8 @@ class TripTrackingController with ChangeNotifier {
   Timer? _locationLoggerTimer;
   Timer? _backgroundPositionChecker;
 
+  int? get currentTripId => _currentTripId;
+
   static const double distanceThreshold = 5.0; // meters for location logging
   static const Duration locationLogInterval = Duration(
     seconds: 30,
