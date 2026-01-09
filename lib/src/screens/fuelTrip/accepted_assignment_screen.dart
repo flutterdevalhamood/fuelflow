@@ -836,7 +836,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                               child: Column(
                                 children: [
                                   _buildQuantityRow(
-                                    'Total Required (All Stops)',
+                                    'Total Req. (All Stops)',
                                     totals['totalRequired']!,
                                     Colors.grey.shade700,
                                   ),

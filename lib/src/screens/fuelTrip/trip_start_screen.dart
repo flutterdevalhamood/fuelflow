@@ -51,6 +51,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   bool _isCheckingLocation = false;
   bool _hasShownLocationDialog = false;
 
+  bool _isNavigating = false;
+
   @override
   void initState() {
     super.initState();
@@ -735,6 +737,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _handleArrival(BuildContext context) async {
+    // Prevent multiple navigations
+    if (_isNavigating) return;
+
     // Double-check location is still active
     if (!_isLocationReady) {
       await _setupTripWithLocation();
@@ -799,80 +804,284 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           ),
     );
 
-    if (confirmed == true && context.mounted) {
-      // Show second confirmation dialog for starting delivery
-      final startDelivery = await showDialog<bool>(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.local_shipping, color: Colors.orange),
-                  SizedBox(width: 12),
-                  Text('Start Delivery'),
-                ],
-              ),
-              content: const Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Do you want to start the fuel delivery now?',
-                    style: TextStyle(fontSize: 16),
+    if (confirmed != true || !context.mounted) return;
+
+    // Show delivery confirmation dialog with loading state
+    await _showDeliveryConfirmationDialog(context);
+  }
+
+  Future<void> _showDeliveryConfirmationDialog(BuildContext context) async {
+    // Reset navigation state
+    bool dialogProcessing = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              return PopScope(
+                canPop: !dialogProcessing,
+                child: AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                  title: const Row(
+                    children: [
+                      Icon(Icons.local_shipping, color: Colors.orange),
+                      SizedBox(width: 12),
+                      Text('Start Delivery'),
+                    ],
                   ),
-                  child: const Text('Start Delivery'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Do you want to start the fuel delivery now?',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      if (dialogProcessing) ...[
+                        const SizedBox(height: 16),
+                        const Center(child: CircularProgressIndicator()),
+                        const SizedBox(height: 8),
+                        const Center(
+                          child: Text(
+                            'Starting delivery...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  actions: [
+                    if (!dialogProcessing)
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel'),
+                      ),
+                    if (!dialogProcessing)
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Show loading state
+                          setDialogState(() {
+                            dialogProcessing = true;
+                          });
+
+                          setState(() {
+                            _isNavigating = true;
+                          });
+
+                          try {
+                            final controller =
+                                context.read<TripTrackingController>();
+
+                            // Log arrival event
+                            await controller.logManualTripEvent(
+                              eventType: 'arrived_at_stop',
+                              description:
+                                  'Driver confirmed arrival at ${widget.customerName}',
+                            );
+
+                            debugPrint('✅ Logged: arrived_at_stop');
+                          } catch (e) {
+                            debugPrint('❌ Error logging arrival: $e');
+                            // Continue navigation even if logging fails
+                          }
+
+                          // Close dialog and navigate
+                          if (mounted && Navigator.of(ctx).canPop()) {
+                            Navigator.of(ctx).pop();
+
+                            // Small delay to ensure dialog is closed
+                            await Future.delayed(
+                              const Duration(milliseconds: 100),
+                            );
+
+                            if (mounted) {
+                              _navigateToDeliveryScreen();
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                        ),
+                        child: const Text('Start Delivery'),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-      );
-
-      if (startDelivery == true && context.mounted) {
-        final controller = context.read<TripTrackingController>();
-
-        // Log arrival event
-        await controller.logManualTripEvent(
-          eventType: 'arrived_at_stop',
-          description: 'Driver confirmed arrival at ${widget.customerName}',
-        );
-
-        // // Refresh assignment data
-        // await context.read<FuelTripController>().getAcceptedAssignments();
-
-        if (context.mounted) {
-          // Navigate to customer fuel delivery screen
-          NavigationService().pushNavigation(
-            Screenroutes.customerFuelDeliveryScreen,
-            arguments: {
-              'assignmentId': widget.assignmentId,
-              'vehicleId': widget.vehicleId,
-              'tripId': widget.tripId.toString(),
-              'tripStopId': widget.tripStopId ?? 0,
-              'requiredQty': widget.requiredQty,
-              'availableQty': widget.availableQty,
-              'vehicleName': widget.vehicleName,
-              'customerName': widget.customerName,
-              'stopOrder': widget.stopOrder,
-              'currentStopIndex': widget.currentStopIndex,
-              'totalStops': widget.totalStops,
+              );
             },
-          );
-        }
-      }
+          ),
+    );
+
+    // Reset navigation state when dialog is dismissed
+    if (mounted) {
+      setState(() {
+        _isNavigating = false;
+      });
     }
   }
+
+  void _navigateToDeliveryScreen() {
+    NavigationService().pushReplaceNavigation(
+      Screenroutes.customerFuelDeliveryScreen,
+      arguments: {
+        'assignmentId': widget.assignmentId,
+        'vehicleId': widget.vehicleId,
+        'tripId': widget.tripId.toString(),
+        'tripStopId': widget.tripStopId ?? 0,
+        'requiredQty': widget.requiredQty,
+        'availableQty': widget.availableQty,
+        'vehicleName': widget.vehicleName,
+        'customerName': widget.customerName,
+        'stopOrder': widget.stopOrder,
+        'currentStopIndex': widget.currentStopIndex,
+        'totalStops': widget.totalStops,
+      },
+    );
+  }
 }
+
+//   Future<void> _handleArrival(BuildContext context) async {
+//     // Double-check location is still active
+//     if (!_isLocationReady) {
+//       await _setupTripWithLocation();
+//       return;
+//     }
+//
+//     final confirmed = await showDialog<bool>(
+//       context: context,
+//       builder:
+//           (context) => AlertDialog(
+//             shape: RoundedRectangleBorder(
+//               borderRadius: BorderRadius.circular(16),
+//             ),
+//             title: const Row(
+//               children: [
+//                 Icon(Icons.location_on, color: Colors.green),
+//                 SizedBox(width: 12),
+//                 Text('Confirm Arrival'),
+//               ],
+//             ),
+//             content: Column(
+//               mainAxisSize: MainAxisSize.min,
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 const Text(
+//                   'Have you arrived at the customer location?',
+//                   style: TextStyle(fontSize: 16),
+//                 ),
+//                 const SizedBox(height: 16),
+//                 Container(
+//                   padding: const EdgeInsets.all(12),
+//                   decoration: BoxDecoration(
+//                     color: Colors.blue.shade50,
+//                     borderRadius: BorderRadius.circular(8),
+//                   ),
+//                   child: const Row(
+//                     children: [
+//                       Icon(Icons.info_outline, color: Colors.blue),
+//                       SizedBox(width: 12),
+//                       Expanded(
+//                         child: Text(
+//                           'You will proceed to fuel delivery',
+//                           style: TextStyle(fontSize: 14),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ],
+//             ),
+//             actions: [
+//               TextButton(
+//                 onPressed: () => Navigator.pop(context, false),
+//                 child: const Text('Not Yet'),
+//               ),
+//               ElevatedButton(
+//                 onPressed: () => Navigator.pop(context, true),
+//                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+//                 child: const Text('Yes, Arrived'),
+//               ),
+//             ],
+//           ),
+//     );
+//
+//     if (confirmed == true && context.mounted) {
+//       // Show second confirmation dialog for starting delivery
+//       final startDelivery = await showDialog<bool>(
+//         context: context,
+//         builder:
+//             (context) => AlertDialog(
+//               shape: RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.circular(16),
+//               ),
+//               title: const Row(
+//                 children: [
+//                   Icon(Icons.local_shipping, color: Colors.orange),
+//                   SizedBox(width: 12),
+//                   Text('Start Delivery'),
+//                 ],
+//               ),
+//               content: const Column(
+//                 mainAxisSize: MainAxisSize.min,
+//                 crossAxisAlignment: CrossAxisAlignment.start,
+//                 children: [
+//                   Text(
+//                     'Do you want to start the fuel delivery now?',
+//                     style: TextStyle(fontSize: 16),
+//                   ),
+//                 ],
+//               ),
+//               actions: [
+//                 TextButton(
+//                   onPressed: () => Navigator.pop(context, false),
+//                   child: const Text('Cancel'),
+//                 ),
+//                 ElevatedButton(
+//                   onPressed: () => Navigator.pop(context, true),
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: Colors.orange,
+//                   ),
+//                   child: const Text('Start Delivery'),
+//                 ),
+//               ],
+//             ),
+//       );
+//
+//       if (startDelivery == true && context.mounted) {
+//         final controller = context.read<TripTrackingController>();
+//
+//         // Log arrival event
+//         await controller.logManualTripEvent(
+//           eventType: 'arrived_at_stop',
+//           description: 'Driver confirmed arrival at ${widget.customerName}',
+//         );
+//
+//         // // Refresh assignment data
+//         // await context.read<FuelTripController>().getAcceptedAssignments();
+//
+//         if (context.mounted) {
+//           // Navigate to customer fuel delivery screen
+//           NavigationService().pushReplaceNavigation(
+//             Screenroutes.customerFuelDeliveryScreen,
+//             arguments: {
+//               'assignmentId': widget.assignmentId,
+//               'vehicleId': widget.vehicleId,
+//               'tripId': widget.tripId.toString(),
+//               'tripStopId': widget.tripStopId ?? 0,
+//               'requiredQty': widget.requiredQty,
+//               'availableQty': widget.availableQty,
+//               'vehicleName': widget.vehicleName,
+//               'customerName': widget.customerName,
+//               'stopOrder': widget.stopOrder,
+//               'currentStopIndex': widget.currentStopIndex,
+//               'totalStops': widget.totalStops,
+//             },
+//           );
+//         }
+//       }
+//     }
+//   }
+// }

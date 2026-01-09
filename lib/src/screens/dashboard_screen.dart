@@ -13,6 +13,15 @@ class DashBoardScreen extends StatefulWidget {
 }
 
 class _DashBoardScreenState extends State<DashBoardScreen> {
+  late String? _effectiveUserRole;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use passed userRole or fall back to AuthRepo role
+    _effectiveUserRole = widget.userRole ?? AuthRepo.role?.toLowerCase();
+  }
+
   List<Map<String, dynamic>> getGridItems() {
     final allGridItems = [
       {

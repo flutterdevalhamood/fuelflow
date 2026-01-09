@@ -63,6 +63,8 @@ class _CustomerFuelDeliveryScreenState
   late FuelTripController _fuelTripController;
   late FuelRefillBeforeTripController _refillController;
 
+  bool _dialogProcessing = false;
+
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
@@ -355,73 +357,176 @@ class _CustomerFuelDeliveryScreenState
   //   );
   // }
 
+  // void _showCompletionDialog(bool isLastStop) {
+  //   if (!mounted) return;
+  //
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder:
+  //         (ctx) => StatefulBuilder(
+  //           builder: (context, setState) {
+  //             bool _isProcessing = false;
+  //
+  //             return AlertDialog(
+  //               title: const Text('Stop Completed'),
+  //               content: Column(
+  //                 mainAxisSize: MainAxisSize.min,
+  //                 children: [
+  //                   Text(
+  //                     isLastStop
+  //                         ? 'All stops completed! Moving towards base.'
+  //                         : 'Moving towards next stop.',
+  //                   ),
+  //                   if (_isProcessing) ...[
+  //                     const SizedBox(height: 16),
+  //                     const CircularProgressIndicator(),
+  //                     const SizedBox(height: 8),
+  //                     const Text(
+  //                       'Finalizing...',
+  //                       style: TextStyle(fontSize: 12),
+  //                     ),
+  //                   ],
+  //                 ],
+  //               ),
+  //               actions: [
+  //                 if (!_isProcessing)
+  //                   ElevatedButton(
+  //                     onPressed: () async {
+  //                       setState(() => _isProcessing = true);
+  //
+  //                       try {
+  //                         // Execute tracking events
+  //                         if (isLastStop) {
+  //                           await Future.wait([
+  //                             _trackingController.logCriticalTripEvent(
+  //                               eventType: 'moving_towards_base',
+  //                             ),
+  //                             _trackingController.logCriticalTripEvent(
+  //                               eventType: 'returned_to_base',
+  //                             ),
+  //                             _trackingController.stopTripTracking(),
+  //                           ]);
+  //                         } else {
+  //                           await _trackingController.logManualTripEvent(
+  //                             eventType: 'moving_towards_next_stop',
+  //                           );
+  //                         }
+  //                       } catch (e) {
+  //                         debugPrint('Error in completion: $e');
+  //                       }
+  //
+  //                       if (mounted) {
+  //                         Navigator.of(ctx).pop();
+  //                         _navigateToAcceptedAssignmentScreen();
+  //                       }
+  //                     },
+  //                     child: const Text('OK'),
+  //                   ),
+  //               ],
+  //             );
+  //           },
+  //         ),
+  //   );
+  // }
+  //
+  // Future<void> _navigateToAcceptedAssignmentScreen() async {
+  //   // Navigate to AcceptedAssignmentScreen
+  //   NavigationService().pushReplaceNavigation(
+  //     Screenroutes.acceptedAssignmentScreen,
+  //   );
+  // }
+
+  // Replace your _showCompletionDialog method with this:
   void _showCompletionDialog(bool isLastStop) {
     if (!mounted) return;
+
+    // Reset the dialog processing state
+    _dialogProcessing = false;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder:
           (ctx) => StatefulBuilder(
-            builder: (context, setState) {
-              bool _isProcessing = false;
-
-              return AlertDialog(
-                title: const Text('Stop Completed'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isLastStop
-                          ? 'All stops completed! Moving towards base.'
-                          : 'Moving towards next stop.',
-                    ),
-                    if (_isProcessing) ...[
-                      const SizedBox(height: 16),
-                      const CircularProgressIndicator(),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Finalizing...',
-                        style: TextStyle(fontSize: 12),
+            builder: (dialogContext, setDialogState) {
+              return PopScope(
+                canPop: !_dialogProcessing,
+                child: AlertDialog(
+                  title: const Text('Stop Completed'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isLastStop
+                            ? 'All stops completed! Moving towards base.'
+                            : 'Moving towards next stop.',
                       ),
+                      if (_dialogProcessing) ...[
+                        const SizedBox(height: 16),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Finalizing...',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                     ],
+                  ),
+                  actions: [
+                    if (!_dialogProcessing)
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Update dialog state to show loading
+                          setDialogState(() {
+                            _dialogProcessing = true;
+                          });
+
+                          try {
+                            if (isLastStop) {
+                              // Execute all tracking events in parallel
+                              await Future.wait([
+                                _trackingController.logCriticalTripEvent(
+                                  eventType: 'moving_towards_base',
+                                ),
+                                _trackingController.logCriticalTripEvent(
+                                  eventType: 'returned_to_base',
+                                ),
+                              ]);
+
+                              // Stop tracking after events are logged
+                              await _trackingController.stopTripTracking();
+
+                              debugPrint('✅ All last stop events logged');
+                            } else {
+                              await _trackingController.logManualTripEvent(
+                                eventType: 'moving_towards_next_stop',
+                              );
+                              debugPrint('✅ Moving to next stop event logged');
+                            }
+                          } catch (e) {
+                            debugPrint('❌ Error in completion: $e');
+                            // Continue navigation even if tracking fails
+                          }
+
+                          // Close dialog and navigate
+                          if (mounted && Navigator.of(ctx).canPop()) {
+                            Navigator.of(ctx).pop();
+
+                            // Small delay to ensure dialog is fully closed
+                            await Future.delayed(
+                              const Duration(milliseconds: 100),
+                            );
+
+                            if (mounted) {
+                              _navigateToAcceptedAssignmentScreen();
+                            }
+                          }
+                        },
+                        child: const Text('OK'),
+                      ),
                   ],
                 ),
-                actions: [
-                  if (!_isProcessing)
-                    ElevatedButton(
-                      onPressed: () async {
-                        setState(() => _isProcessing = true);
-
-                        try {
-                          // Execute tracking events
-                          if (isLastStop) {
-                            await Future.wait([
-                              _trackingController.logCriticalTripEvent(
-                                eventType: 'moving_towards_base',
-                              ),
-                              _trackingController.logCriticalTripEvent(
-                                eventType: 'returned_to_base',
-                              ),
-                              _trackingController.stopTripTracking(),
-                            ]);
-                          } else {
-                            await _trackingController.logManualTripEvent(
-                              eventType: 'moving_towards_next_stop',
-                            );
-                          }
-                        } catch (e) {
-                          debugPrint('Error in completion: $e');
-                        }
-
-                        if (mounted) {
-                          Navigator.of(ctx).pop();
-                          _navigateToAcceptedAssignmentScreen();
-                        }
-                      },
-                      child: const Text('OK'),
-                    ),
-                ],
               );
             },
           ),
