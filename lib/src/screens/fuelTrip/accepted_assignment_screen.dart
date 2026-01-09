@@ -909,7 +909,43 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: tripStops.length,
                             itemBuilder: (context, index) {
-                              final stop = tripStops[index];
+                              // Sort stops: incomplete first, completed last
+                              final sortedStops = List<
+                                Map<String, dynamic>
+                              >.from(
+                                tripStops.map((e) => e as Map<String, dynamic>),
+                              )..sort((a, b) {
+                                final aStatus =
+                                    a['status']?.toString().toLowerCase() ?? '';
+                                final bStatus =
+                                    b['status']?.toString().toLowerCase() ?? '';
+
+                                final aCompleted =
+                                    aStatus == 'delivered' ||
+                                    aStatus == 'completed';
+                                final bCompleted =
+                                    bStatus == 'delivered' ||
+                                    bStatus == 'completed';
+
+                                // Incomplete stops come first
+                                if (!aCompleted && bCompleted) return -1;
+                                if (aCompleted && !bCompleted) return 1;
+
+                                // Within same completion status, maintain original order
+                                final aOrder =
+                                    int.tryParse(
+                                      a['stop_order']?.toString() ?? '0',
+                                    ) ??
+                                    0;
+                                final bOrder =
+                                    int.tryParse(
+                                      b['stop_order']?.toString() ?? '0',
+                                    ) ??
+                                    0;
+                                return aOrder.compareTo(bOrder);
+                              });
+
+                              final stop = sortedStops[index];
                               return _buildStopCard(
                                 context,
                                 assignment,
@@ -986,10 +1022,13 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     final status = stop['status']?.toString().toLowerCase() ?? '';
     final isCompleted = status == 'delivered' || status == 'completed';
 
+    // Find the original index in the unsorted list for "previous stop" check
+    final tripStops = assignment['trip_stops'] as List<dynamic>;
+    final originalIndex = tripStops.indexOf(stop);
+
     bool isPreviousCompleted = true;
-    if (index > 0) {
-      final tripStops = assignment['trip_stops'] as List<dynamic>;
-      final previousStop = tripStops[index - 1];
+    if (originalIndex > 0) {
+      final previousStop = tripStops[originalIndex - 1];
       final prevStatus = previousStop['status']?.toString().toLowerCase() ?? '';
       isPreviousCompleted =
           prevStatus == 'delivered' || prevStatus == 'completed';

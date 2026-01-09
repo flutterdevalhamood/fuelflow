@@ -83,14 +83,10 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
-        // Location is required - show dialog to enable it
         await _showLocationRequiredDialog();
-
-        // Re-check after dialog
         serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
         if (!serviceEnabled) {
-          // User didn't enable location, keep checking in background
           _startLocationMonitoring();
           return;
         }
@@ -104,10 +100,17 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // Permission permanently denied - show settings dialog
         await _showPermissionSettingsDialog();
         _startLocationMonitoring();
         return;
+      }
+
+      // Step 3: For Android 10+, request background location permission
+      if (permission == LocationPermission.whileInUse) {
+        // Try to upgrade to "always" permission for background tracking
+        if (await _shouldRequestBackgroundPermission()) {
+          await _requestBackgroundPermission();
+        }
       }
 
       final hasValidPermission =
@@ -115,12 +118,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           permission == LocationPermission.whileInUse;
 
       if (!hasValidPermission) {
-        // Don't have permission yet, keep monitoring
         _startLocationMonitoring();
         return;
       }
 
-      // Step 3: Location is ready - start trip tracking
+      // Step 4: Start trip tracking
       await _startTripTracking();
 
       setState(() {
@@ -128,15 +130,49 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         _isCheckingLocation = false;
       });
 
-      // Start animation only when location is ready
       _animationController.repeat(reverse: true);
     } catch (e) {
       print('❌ Error setting up trip: $e');
       setState(() {
         _isCheckingLocation = false;
       });
-      _startLocationMonitoring(); // Keep trying
+      _startLocationMonitoring();
     }
+  }
+
+  Future<bool> _shouldRequestBackgroundPermission() async {
+    // Check if we're on Android 10+ where background permission is separate
+    // This is a simplified check - you might want to use platform channel for accurate version
+    return true;
+  }
+
+  Future<void> _requestBackgroundPermission() async {
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Background Location'),
+            content: const Text(
+              'To track your trip accurately, please allow location access "All the time" in the next screen.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Skip'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await Geolocator.requestPermission();
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+    );
   }
 
   Future<void> _showLocationRequiredDialog() async {
@@ -830,7 +866,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     children: [
                       Icon(Icons.local_shipping, color: Colors.orange),
                       SizedBox(width: 12),
-                      Text('Start Delivery'),
+                      Text('Start Refueling'),
                     ],
                   ),
                   content: Column(

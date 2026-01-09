@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -128,11 +129,9 @@ class TripTrackingController with ChangeNotifier {
   }
 
   void _startBackgroundLocationLogging(int tripId) {
-    // Cancel any existing timers
     _locationLoggerTimer?.cancel();
     _backgroundPositionChecker?.cancel();
 
-    // Start timer to check position and log location when moved 5+ meters
     _backgroundPositionChecker = Timer.periodic(locationLogInterval, (
       timer,
     ) async {
@@ -142,17 +141,47 @@ class TripTrackingController with ChangeNotifier {
       }
 
       try {
+        // Use better location settings for physical device
+        final LocationSettings locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5, // Only update when moved 5 meters
+          forceLocationManager: false, // Use Google Play Services
+          intervalDuration: const Duration(seconds: 30),
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationText: "Tracking your trip location",
+            notificationTitle: "Trip Active",
+            enableWakeLock: true,
+          ),
+        );
+
         final currentPosition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings:
+              Platform.isAndroid
+                  ? AndroidSettings(
+                    accuracy: LocationAccuracy.high,
+                    distanceFilter: 5,
+                    forceLocationManager: false,
+                    intervalDuration: const Duration(seconds: 30),
+                    foregroundNotificationConfig:
+                        const ForegroundNotificationConfig(
+                          notificationText: "Tracking your trip location",
+                          notificationTitle: "Trip Active",
+                          enableWakeLock: true,
+                        ),
+                  )
+                  : AppleSettings(
+                    accuracy: LocationAccuracy.high,
+                    distanceFilter: 5,
+                    activityType: ActivityType.automotiveNavigation,
+                  ),
         ).timeout(const Duration(seconds: 10));
 
         bool shouldLogLocation = false;
 
         if (_lastPosition == null) {
-          // First time getting position
           shouldLogLocation = true;
+          debugPrint('📍 First position captured');
         } else {
-          // Check if moved more than 5 meters
           final distance = Geolocator.distanceBetween(
             _lastPosition!.latitude,
             _lastPosition!.longitude,
@@ -160,23 +189,28 @@ class TripTrackingController with ChangeNotifier {
             currentPosition.longitude,
           );
 
+          debugPrint('📏 Distance moved: ${distance.toStringAsFixed(2)}m');
+
           if (distance >= distanceThreshold) {
             shouldLogLocation = true;
+            debugPrint('✅ Distance threshold met, logging location');
+          } else {
+            debugPrint('⏭️ Distance too small, skipping log');
           }
         }
 
         if (shouldLogLocation) {
-          // Log location using LogTripLocations API
-          await _logTripLocationSynchronously(
+          final success = await _logTripLocationSynchronously(
             tripId: tripId,
             position: currentPosition,
           );
 
-          _lastPosition = currentPosition;
+          if (success) {
+            _lastPosition = currentPosition;
+          }
         }
       } catch (e) {
         debugPrint('❌ Background location check error: $e');
-        // Don't stop the timer - keep trying
       }
     });
   }
@@ -188,20 +222,24 @@ class TripTrackingController with ChangeNotifier {
     required Position position,
     int retries = 2,
   }) async {
+    debugPrint('🔵 Attempting to log location for trip $tripId');
+    debugPrint('   Driver ID: $_driverId');
+    debugPrint('   Vehicle ID: $_vehicleId');
+    debugPrint('   Lat: ${position.latitude}, Lng: ${position.longitude}');
+
     if (token == null) {
       debugPrint('❌ No token available for location logging');
       return false;
     }
 
-    // Don't log if driverId or vehicleId is missing
     if (_driverId == null || _vehicleId == null) {
       debugPrint('⚠️ Driver ID or Vehicle ID not set for location logging');
       return false;
     }
 
-    // Create unique key for this location log to prevent duplicates
     final locationKey =
         'loc_${tripId}_${position.latitude}_${position.longitude}_${DateTime.now().millisecondsSinceEpoch}';
+
     if (_pendingLocationLogs.contains(locationKey)) {
       debugPrint('⚠️ Location logging already in progress');
       return false;
@@ -219,6 +257,8 @@ class TripTrackingController with ChangeNotifier {
 
       final api = RestClient(dio);
 
+      debugPrint('🌐 Sending location to API...');
+
       await api.postLogTripLocations(
         tripId: tripId,
         token: 'Bearer $token',
@@ -228,17 +268,14 @@ class TripTrackingController with ChangeNotifier {
         longitude: position.longitude.toString(),
       );
 
-      debugPrint(
-        '📍 Location logged via LogTripLocations: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)} (trip: $tripId)',
-      );
+      debugPrint('✅ Location logged successfully');
       _pendingLocationLogs.remove(locationKey);
       return true;
     } catch (e) {
-      debugPrint('❌ Location logging via LogTripLocations failed: $e');
+      debugPrint('❌ Location logging failed: $e');
 
-      // Retry logic
       if (retries > 0) {
-        debugPrint('🔄 Retrying location logging (${retries} attempts left)');
+        debugPrint('🔄 Retrying... ($retries attempts left)');
         await Future.delayed(const Duration(seconds: 2));
         _pendingLocationLogs.remove(locationKey);
         return await _logTripLocationSynchronously(
@@ -252,7 +289,6 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
   }
-
   // ======================= EVENT LOGGING (LogTripEvent API) =======================
 
   Future<bool> _logTripEventSynchronously({
