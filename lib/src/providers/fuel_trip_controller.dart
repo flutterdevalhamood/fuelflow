@@ -212,6 +212,71 @@ class FuelTripController with ChangeNotifier {
     }
   }
 
+  Future<bool> postVehicleNotAvailable({
+    required int vehicleId,
+    required String description,
+    required int tripStopId,
+  }) async {
+    errorMessage = null;
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final currentToken = token;
+
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found - user not authenticated");
+      }
+
+      print(
+        '🔑 Marking vehicle unavailable with token: ${currentToken.substring(0, 20)}...',
+      );
+      print('Vehicle ID: $vehicleId, Trip Stop ID: $tripStopId');
+
+      final response = await restApi.postVehicleNotAvailable(
+        token: 'Bearer $currentToken',
+        vehicleId: vehicleId,
+        description: description,
+        tripStopId: tripStopId,
+      );
+
+      print('API Response: $response');
+
+      if (response is Map<String, dynamic>) {
+        if (response['IsSuccess'] == true) {
+          print('✅ Vehicle marked as unavailable successfully');
+          isLoading = false;
+          notifyListeners();
+          return true;
+        } else {
+          errorMessage =
+              response['Message'] ?? 'Failed to mark vehicle as unavailable';
+          print('❌ API call failed: ${response['Message']}');
+          isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      } else {
+        errorMessage = 'Unexpected API response format';
+        print('❌ Unexpected API response format');
+        isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      errorMessage = 'Failed to mark vehicle as unavailable';
+      print('❌ Exception: $e');
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+        print('Response: ${e.response?.data}');
+        print('Status code: ${e.response?.statusCode}');
+      }
+      isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     errorMessage = null;
     notifyListeners();

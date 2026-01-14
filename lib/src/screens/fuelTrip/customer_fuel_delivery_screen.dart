@@ -54,6 +54,9 @@ class _CustomerFuelDeliveryScreenState
   final _deliveryQuantityController = TextEditingController();
   final _noteController = TextEditingController();
 
+  final _startMeterFocusNode = FocusNode();
+  final _endMeterFocusNode = FocusNode();
+
   File? _startMeterPhoto;
   File? _endMeterPhoto;
 
@@ -70,23 +73,39 @@ class _CustomerFuelDeliveryScreenState
 
   bool _isSubmitting = false;
 
-  // Track if events have been logged
   bool _arrivedAtStopLogged = false;
   bool _customerLoadingStartedLogged = false;
   bool _customerLoadingCompletedLogged = false;
   bool _driverNotesAddedLogged = false;
 
+  // New flags for delivery buttons
+  bool _refuelStartedLogged = false;
+  bool _refuelCompletedLogged = false;
+  bool _deliveryStarted = false;
+  bool _deliveryEnded = false;
+
+  // Calculate meter reading difference
+  int get _meterReadingDifference {
+    final startValue = int.tryParse(_startMeterController.text) ?? 0;
+    final endValue = int.tryParse(_endMeterController.text) ?? 0;
+    return endValue - startValue;
+  }
+
+  // Check if quantity matches meter difference
+  bool get _isQuantityMismatch {
+    if (_deliveryQuantityController.text.isEmpty) return false;
+    final deliveryQty = double.tryParse(_deliveryQuantityController.text) ?? 0;
+    return deliveryQty != _meterReadingDifference.toDouble();
+  }
+
   @override
   void initState() {
     super.initState();
-
-    _deliveryQuantityController.text = widget.requiredQty.toStringAsFixed(2);
 
     _trackingController = context.read<TripTrackingController>();
     _fuelTripController = context.read<FuelTripController>();
     _refillController = context.read<FuelRefillBeforeTripController>();
 
-    // Add listeners to text fields
     _startMeterController.addListener(_onStartMeterChanged);
     _endMeterController.addListener(_onEndMeterChanged);
     _noteController.addListener(_onNoteChanged);
@@ -100,7 +119,6 @@ class _CustomerFuelDeliveryScreenState
     if (!mounted || _arrivedAtStopLogged) return;
 
     try {
-      // Log "arrived_at_stop" when screen loads
       await _trackingController.startTripTracking(
         tripId: int.parse(widget.tripId),
         tripStopId: widget.tripStopId,
@@ -114,13 +132,13 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // Log "customer_loading_started" when start meter reading is entered
   void _onStartMeterChanged() {
     if (_startMeterController.text.isNotEmpty &&
         !_customerLoadingStartedLogged &&
         _startMeterPhoto != null) {
       _logCustomerLoadingStarted();
     }
+    setState(() {});
   }
 
   Future<void> _logCustomerLoadingStarted() async {
@@ -140,7 +158,6 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // Log "customer_loading_completed" when end meter reading is entered
   void _onEndMeterChanged() {
     if (_endMeterController.text.isNotEmpty &&
         !_customerLoadingCompletedLogged &&
@@ -148,6 +165,7 @@ class _CustomerFuelDeliveryScreenState
         _customerLoadingStartedLogged) {
       _logCustomerLoadingCompleted();
     }
+    setState(() {});
   }
 
   Future<void> _logCustomerLoadingCompleted() async {
@@ -167,7 +185,6 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // Log "driver_notes_added" when note is entered
   void _onNoteChanged() {
     if (_noteController.text.isNotEmpty && !_driverNotesAddedLogged) {
       _logDriverNotesAdded();
@@ -191,6 +208,110 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
+  // NEW: Start Delivery Button Handler
+  Future<void> _handleStartDelivery() async {
+    if (_deliveryStarted || _refuelStartedLogged) return;
+
+    // Validate start meter reading and photo
+    if (_startMeterController.text.isEmpty) {
+      _showSnackBar('Please enter start meter reading');
+      return;
+    }
+
+    if (_startMeterPhoto == null) {
+      _showSnackBar('Please capture start meter photo');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final success = await _trackingController.logCriticalTripEvent(
+        eventType: 'refuel_started',
+      );
+
+      if (success) {
+        setState(() {
+          _refuelStartedLogged = true;
+          _deliveryStarted = true;
+        });
+        _showSnackBar(
+          'Delivery started successfully',
+          backgroundColor: Colors.green,
+        );
+        debugPrint('✅ Logged: refuel_started');
+      } else {
+        _showSnackBar(
+          'Failed to log delivery start',
+          backgroundColor: Colors.red,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error logging refuel_started: $e');
+      _showSnackBar('Error starting delivery', backgroundColor: Colors.red);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  // NEW: End Delivery Button Handler
+  Future<void> _handleEndDelivery() async {
+    if (_deliveryEnded || _refuelCompletedLogged) return;
+
+    if (!_deliveryStarted) {
+      _showSnackBar('Please start delivery first');
+      return;
+    }
+
+    // Validate end meter reading and photo
+    if (_endMeterController.text.isEmpty) {
+      _showSnackBar('Please enter end meter reading');
+      return;
+    }
+
+    if (_endMeterPhoto == null) {
+      _showSnackBar('Please capture end meter photo');
+      return;
+    }
+
+    final endValue = int.tryParse(_endMeterController.text);
+    final startValue = int.tryParse(_startMeterController.text);
+    if (endValue != null && startValue != null && endValue <= startValue) {
+      _showSnackBar('End reading must be greater than start reading');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final success = await _trackingController.logCriticalTripEvent(
+        eventType: 'refuel_completed',
+      );
+
+      if (success) {
+        setState(() {
+          _refuelCompletedLogged = true;
+          _deliveryEnded = true;
+        });
+        _showSnackBar(
+          'Delivery ended successfully',
+          backgroundColor: Colors.green,
+        );
+        debugPrint('✅ Logged: refuel_completed');
+      } else {
+        _showSnackBar(
+          'Failed to log delivery end',
+          backgroundColor: Colors.red,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error logging refuel_completed: $e');
+      _showSnackBar('Error ending delivery', backgroundColor: Colors.red);
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
   @override
   void dispose() {
     _startMeterController.removeListener(_onStartMeterChanged);
@@ -201,6 +322,10 @@ class _CustomerFuelDeliveryScreenState
     _endMeterController.dispose();
     _deliveryQuantityController.dispose();
     _noteController.dispose();
+
+    _startMeterFocusNode.dispose();
+    _endMeterFocusNode.dispose();
+
     super.dispose();
   }
 
@@ -212,7 +337,7 @@ class _CustomerFuelDeliveryScreenState
     );
   }
 
-  Future<void> _pickImage(Function(File) onPicked) async {
+  Future<void> _pickImage(Function(File) onPicked, FocusNode? focusNode) async {
     try {
       final image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -222,7 +347,15 @@ class _CustomerFuelDeliveryScreenState
       if (image != null && mounted) {
         setState(() => onPicked(File(image.path)));
 
-        // Trigger event checks after photo is picked
+        // Auto-focus the next text field after image is selected
+        if (focusNode != null) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              FocusScope.of(context).requestFocus(focusNode);
+            }
+          });
+        }
+
         if (onPicked.toString().contains('_startMeterPhoto')) {
           _onStartMeterChanged();
         } else if (onPicked.toString().contains('_endMeterPhoto')) {
@@ -243,15 +376,14 @@ class _CustomerFuelDeliveryScreenState
       return;
     }
 
+    if (!_deliveryEnded) {
+      _showSnackBar('Please end delivery before completing');
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
-      // Log "refuel_completed" event
-      await _trackingController.logCriticalTripEvent(
-        eventType: 'refuel_completed',
-      );
-      debugPrint('✅ Logged: refuel_completed');
-
       await Future.delayed(const Duration(milliseconds: 300));
 
       final success = await _refillController.postFuelVehicleWithMeterReading(
@@ -283,7 +415,6 @@ class _CustomerFuelDeliveryScreenState
         return;
       }
 
-      // Log "departed_from_stop" after successful delivery
       await _trackingController.logManualTripEvent(
         eventType: 'departed_from_stop',
       );
@@ -302,146 +433,9 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // Replace the _showCompletionDialog method in CustomerFuelDeliveryScreen
-
-  // void _showCompletionDialog(bool isLastStop) {
-  //   if (!mounted) return;
-  //
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder:
-  //         (ctx) => AlertDialog(
-  //           title: const Text('Stop Completed'),
-  //           content: Text(
-  //             isLastStop
-  //                 ? 'All stops completed! Moving towards base.'
-  //                 : 'Moving towards next stop.',
-  //           ),
-  //           actions: [
-  //             ElevatedButton(
-  //               onPressed: () async {
-  //                 Navigator.of(ctx).pop();
-  //
-  //                 if (isLastStop) {
-  //                   // Log "moving_towards_base" for last stop
-  //                   await _trackingController.logCriticalTripEvent(
-  //                     eventType: 'moving_towards_base',
-  //                   );
-  //                   debugPrint('✅ Logged: moving_towards_base');
-  //
-  //                   // Small delay before logging returned_to_base
-  //                   await Future.delayed(const Duration(milliseconds: 500));
-  //
-  //                   await _trackingController.logCriticalTripEvent(
-  //                     eventType: 'returned_to_base',
-  //                   );
-  //                   debugPrint('✅ Logged: returned_to_base');
-  //
-  //                   await _trackingController.stopTripTracking();
-  //                 } else {
-  //                   // Log "moving_towards_next_stop" for intermediate stops
-  //                   await _trackingController.logManualTripEvent(
-  //                     eventType: 'moving_towards_next_stop',
-  //                   );
-  //                   debugPrint('✅ Logged: moving_towards_next_stop');
-  //                 }
-  //
-  //                 // Navigate to AcceptedAssignmentScreen instead of Dashboard
-  //                 await _navigateToAcceptedAssignmentScreen();
-  //               },
-  //               child: const Text('OK'),
-  //             ),
-  //           ],
-  //         ),
-  //   );
-  // }
-
-  // void _showCompletionDialog(bool isLastStop) {
-  //   if (!mounted) return;
-  //
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder:
-  //         (ctx) => StatefulBuilder(
-  //           builder: (context, setState) {
-  //             bool _isProcessing = false;
-  //
-  //             return AlertDialog(
-  //               title: const Text('Stop Completed'),
-  //               content: Column(
-  //                 mainAxisSize: MainAxisSize.min,
-  //                 children: [
-  //                   Text(
-  //                     isLastStop
-  //                         ? 'All stops completed! Moving towards base.'
-  //                         : 'Moving towards next stop.',
-  //                   ),
-  //                   if (_isProcessing) ...[
-  //                     const SizedBox(height: 16),
-  //                     const CircularProgressIndicator(),
-  //                     const SizedBox(height: 8),
-  //                     const Text(
-  //                       'Finalizing...',
-  //                       style: TextStyle(fontSize: 12),
-  //                     ),
-  //                   ],
-  //                 ],
-  //               ),
-  //               actions: [
-  //                 if (!_isProcessing)
-  //                   ElevatedButton(
-  //                     onPressed: () async {
-  //                       setState(() => _isProcessing = true);
-  //
-  //                       try {
-  //                         // Execute tracking events
-  //                         if (isLastStop) {
-  //                           await Future.wait([
-  //                             _trackingController.logCriticalTripEvent(
-  //                               eventType: 'moving_towards_base',
-  //                             ),
-  //                             _trackingController.logCriticalTripEvent(
-  //                               eventType: 'returned_to_base',
-  //                             ),
-  //                             _trackingController.stopTripTracking(),
-  //                           ]);
-  //                         } else {
-  //                           await _trackingController.logManualTripEvent(
-  //                             eventType: 'moving_towards_next_stop',
-  //                           );
-  //                         }
-  //                       } catch (e) {
-  //                         debugPrint('Error in completion: $e');
-  //                       }
-  //
-  //                       if (mounted) {
-  //                         Navigator.of(ctx).pop();
-  //                         _navigateToAcceptedAssignmentScreen();
-  //                       }
-  //                     },
-  //                     child: const Text('OK'),
-  //                   ),
-  //               ],
-  //             );
-  //           },
-  //         ),
-  //   );
-  // }
-  //
-  // Future<void> _navigateToAcceptedAssignmentScreen() async {
-  //   // Navigate to AcceptedAssignmentScreen
-  //   NavigationService().pushReplaceNavigation(
-  //     Screenroutes.acceptedAssignmentScreen,
-  //   );
-  // }
-
-  // Replace your _showCompletionDialog method with this:
   void _showCompletionDialog(bool isLastStop) {
     if (!mounted) return;
 
-    // Reset the dialog processing state
     _dialogProcessing = false;
 
     showDialog(
@@ -477,14 +471,12 @@ class _CustomerFuelDeliveryScreenState
                     if (!_dialogProcessing)
                       ElevatedButton(
                         onPressed: () async {
-                          // Update dialog state to show loading
                           setDialogState(() {
                             _dialogProcessing = true;
                           });
 
                           try {
                             if (isLastStop) {
-                              // Execute all tracking events in parallel
                               await Future.wait([
                                 _trackingController.logCriticalTripEvent(
                                   eventType: 'moving_towards_base',
@@ -494,7 +486,6 @@ class _CustomerFuelDeliveryScreenState
                                 ),
                               ]);
 
-                              // Stop tracking after events are logged
                               await _trackingController.stopTripTracking();
 
                               debugPrint('✅ All last stop events logged');
@@ -506,14 +497,11 @@ class _CustomerFuelDeliveryScreenState
                             }
                           } catch (e) {
                             debugPrint('❌ Error in completion: $e');
-                            // Continue navigation even if tracking fails
                           }
 
-                          // Close dialog and navigate
                           if (mounted && Navigator.of(ctx).canPop()) {
                             Navigator.of(ctx).pop();
 
-                            // Small delay to ensure dialog is fully closed
                             await Future.delayed(
                               const Duration(milliseconds: 100),
                             );
@@ -534,8 +522,10 @@ class _CustomerFuelDeliveryScreenState
   }
 
   Future<void> _navigateToAcceptedAssignmentScreen() async {
-    // Navigate to AcceptedAssignmentScreen
-    NavigationService().pushNavigation(Screenroutes.acceptedAssignmentScreen);
+    NavigationService().pushAndRemoveUntilNavigation(
+      Screenroutes.acceptedAssignmentScreen,
+      removeUntilPageName: Screenroutes.dashboard,
+    );
   }
 
   @override
@@ -582,7 +572,6 @@ class _CustomerFuelDeliveryScreenState
               return SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Header
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -659,7 +648,6 @@ class _CustomerFuelDeliveryScreenState
                       ),
                     ),
 
-                    // Content
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Form(
@@ -667,7 +655,6 @@ class _CustomerFuelDeliveryScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Fuel Status Card
                             Card(
                               elevation: 2,
                               shape: RoundedRectangleBorder(
@@ -703,7 +690,6 @@ class _CustomerFuelDeliveryScreenState
                             ),
                             const SizedBox(height: 24),
 
-                            // Customer Meter Readings
                             const Text(
                               'Customer Meter Readings',
                               style: TextStyle(
@@ -713,7 +699,6 @@ class _CustomerFuelDeliveryScreenState
                             ),
                             const SizedBox(height: 16),
 
-                            // Start Meter
                             Card(
                               elevation: 2,
                               shape: RoundedRectangleBorder(
@@ -730,7 +715,7 @@ class _CustomerFuelDeliveryScreenState
                                       () => _pickImage((file) {
                                         _startMeterPhoto = file;
                                         _onStartMeterChanged();
-                                      }),
+                                      }, _startMeterFocusNode),
                                     ),
                                     const SizedBox(height: 12),
                                     const Text(
@@ -743,6 +728,8 @@ class _CustomerFuelDeliveryScreenState
                                     const SizedBox(height: 12),
                                     TextFormField(
                                       controller: _startMeterController,
+                                      focusNode: _startMeterFocusNode,
+                                      enabled: !_deliveryStarted,
                                       decoration: InputDecoration(
                                         labelText: 'Reading Value',
                                         prefixIcon: const Icon(Icons.speed),
@@ -752,7 +739,10 @@ class _CustomerFuelDeliveryScreenState
                                           ),
                                         ),
                                         filled: true,
-                                        fillColor: Colors.grey.shade50,
+                                        fillColor:
+                                            _deliveryStarted
+                                                ? Colors.grey.shade200
+                                                : Colors.grey.shade50,
                                       ),
                                       keyboardType:
                                           const TextInputType.numberWithOptions(),
@@ -763,13 +753,71 @@ class _CustomerFuelDeliveryScreenState
                                         return null;
                                       },
                                     ),
+                                    const SizedBox(height: 16),
+
+                                    // START DELIVERY BUTTON
+                                    // START DELIVERY BUTTON
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed:
+                                            (_deliveryStarted || _isSubmitting)
+                                                ? null
+                                                : _handleStartDelivery,
+                                        icon:
+                                            _isSubmitting && !_deliveryStarted
+                                                ? const SizedBox.shrink()
+                                                : Icon(
+                                                  _deliveryStarted
+                                                      ? Icons.check_circle
+                                                      : Icons.play_arrow,
+                                                ),
+                                        label:
+                                            _isSubmitting && !_deliveryStarted
+                                                ? const SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Colors.white),
+                                                  ),
+                                                )
+                                                : Text(
+                                                  _deliveryStarted
+                                                      ? 'Refueling Started'
+                                                      : 'Start Refueling',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              (_deliveryStarted ||
+                                                      _isSubmitting)
+                                                  ? Colors.grey
+                                                  : Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // End Meter
                             Card(
                               elevation: 2,
                               shape: RoundedRectangleBorder(
@@ -783,10 +831,12 @@ class _CustomerFuelDeliveryScreenState
                                     _buildPhotoSection(
                                       'End Meter Photo',
                                       _endMeterPhoto,
-                                      () => _pickImage((file) {
-                                        _endMeterPhoto = file;
-                                        _onEndMeterChanged();
-                                      }),
+                                      _deliveryStarted
+                                          ? () => _pickImage((file) {
+                                            _endMeterPhoto = file;
+                                            _onEndMeterChanged();
+                                          }, _endMeterFocusNode)
+                                          : null,
                                     ),
                                     const SizedBox(height: 12),
                                     const Text(
@@ -799,6 +849,9 @@ class _CustomerFuelDeliveryScreenState
                                     const SizedBox(height: 12),
                                     TextFormField(
                                       controller: _endMeterController,
+                                      focusNode: _endMeterFocusNode,
+                                      enabled:
+                                          _deliveryStarted && !_deliveryEnded,
                                       decoration: InputDecoration(
                                         labelText: 'Reading Value',
                                         prefixIcon: const Icon(Icons.speed),
@@ -808,7 +861,11 @@ class _CustomerFuelDeliveryScreenState
                                           ),
                                         ),
                                         filled: true,
-                                        fillColor: Colors.grey.shade50,
+                                        fillColor:
+                                            (!_deliveryStarted ||
+                                                    _deliveryEnded)
+                                                ? Colors.grey.shade200
+                                                : Colors.grey.shade50,
                                       ),
                                       keyboardType:
                                           const TextInputType.numberWithOptions(),
@@ -828,13 +885,135 @@ class _CustomerFuelDeliveryScreenState
                                         return null;
                                       },
                                     ),
+                                    const SizedBox(height: 16),
+
+                                    // END DELIVERY BUTTON
+                                    // END DELIVERY BUTTON
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed:
+                                            (_deliveryStarted &&
+                                                    !_deliveryEnded &&
+                                                    !_isSubmitting)
+                                                ? _handleEndDelivery
+                                                : null,
+                                        icon:
+                                            _isSubmitting &&
+                                                    _deliveryStarted &&
+                                                    !_deliveryEnded
+                                                ? const SizedBox.shrink()
+                                                : Icon(
+                                                  _deliveryEnded
+                                                      ? Icons.check_circle
+                                                      : Icons.stop,
+                                                ),
+                                        label:
+                                            _isSubmitting &&
+                                                    _deliveryStarted &&
+                                                    !_deliveryEnded
+                                                ? const SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Colors.white),
+                                                  ),
+                                                )
+                                                : Text(
+                                                  _deliveryEnded
+                                                      ? 'Refueling Ended'
+                                                      : 'End Refueling',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              (_deliveryEnded || _isSubmitting)
+                                                  ? Colors.grey
+                                                  : Colors.orange,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                             const SizedBox(height: 24),
 
-                            // Delivery Quantity
+                            // Meter Reading Difference Display
+                            if (_startMeterController.text.isNotEmpty &&
+                                _endMeterController.text.isNotEmpty &&
+                                _meterReadingDifference > 0)
+                              Card(
+                                elevation: 2,
+                                color: Colors.orange.shade50,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.orange.shade200,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calculate,
+                                        color: Colors.orange.shade700,
+                                        size: 28,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+
+                                          children: [
+                                            Text(
+                                              'Meter Reading Difference',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_meterReadingDifference.toStringAsFixed(2)} IG',
+                                              style: TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.orange.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (_startMeterController.text.isNotEmpty &&
+                                _endMeterController.text.isNotEmpty &&
+                                _meterReadingDifference > 0)
+                              const SizedBox(height: 24),
+
                             const Text(
                               'Delivery Quantity',
                               style: TextStyle(
@@ -853,6 +1032,14 @@ class _CustomerFuelDeliveryScreenState
                                 ),
                                 filled: true,
                                 fillColor: Colors.grey.shade50,
+                                helperText:
+                                    _isQuantityMismatch
+                                        ? '⚠️ Quantity differs from meter reading difference'
+                                        : null,
+                                helperStyle: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
@@ -867,34 +1054,72 @@ class _CustomerFuelDeliveryScreenState
                                   return 'Please enter a valid quantity';
                                 }
                                 if (qty > widget.availableQty) {
-                                  return 'Cannot exceed available quantity';
+                                  return 'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
+                                }
+                                if (qty < widget.requiredQty) {
+                                  return 'Quantity cannot be less than required (${widget.requiredQty.toStringAsFixed(2)} IG)';
                                 }
                                 return null;
+                              },
+                              onChanged: (value) {
+                                setState(() {});
                               },
                             ),
 
                             const SizedBox(height: 24),
 
-                            // Note
                             TextFormField(
                               controller: _noteController,
                               decoration: InputDecoration(
-                                labelText: 'Note (Optional)',
-                                prefixIcon: const Icon(Icons.note),
+                                labelText:
+                                    _isQuantityMismatch
+                                        ? 'Reason for Quantity Difference *'
+                                        : 'Note (Optional)',
+                                prefixIcon: Icon(
+                                  Icons.note,
+                                  color:
+                                      _isQuantityMismatch
+                                          ? Colors.orange.shade700
+                                          : null,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                  borderSide:
+                                      _isQuantityMismatch
+                                          ? BorderSide(
+                                            color: Colors.orange.shade700,
+                                            width: 1.5,
+                                          )
+                                          : const BorderSide(),
                                 ),
                                 filled: true,
-                                fillColor: Colors.grey.shade50,
+                                fillColor:
+                                    _isQuantityMismatch
+                                        ? Colors.orange.shade50
+                                        : Colors.grey.shade50,
+                                helperText:
+                                    _isQuantityMismatch
+                                        ? 'Please explain why the delivery quantity differs from meter reading'
+                                        : null,
+                                helperStyle: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               maxLines: 3,
+                              validator: (value) {
+                                if (_isQuantityMismatch &&
+                                    (value == null || value.trim().isEmpty)) {
+                                  return 'Please provide a reason for the quantity difference';
+                                }
+                                return null;
+                              },
                             ),
                           ],
                         ),
                       ),
                     ),
 
-                    // Submit Button
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: SizedBox(
@@ -958,7 +1183,7 @@ class _CustomerFuelDeliveryScreenState
     );
   }
 
-  Widget _buildPhotoSection(String label, File? photo, VoidCallback onTap) {
+  Widget _buildPhotoSection(String label, File? photo, VoidCallback? onTap) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

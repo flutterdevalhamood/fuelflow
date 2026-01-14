@@ -52,6 +52,9 @@ class _FuelRefillBeforeTripScreenState
   bool _showCompletionDialog = false;
   bool _shouldNavigateBack = false;
 
+  final _startMeterFocusNode = FocusNode();
+  final _endMeterFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +68,8 @@ class _FuelRefillBeforeTripScreenState
     _endMeterController.dispose();
     _refillQuantityController.dispose();
     _noteController.dispose();
+    _startMeterFocusNode.dispose();
+    _endMeterFocusNode.dispose();
     super.dispose();
   }
 
@@ -82,16 +87,27 @@ class _FuelRefillBeforeTripScreenState
     );
   }
 
-  Future<void> _pickImage(Function(File) onImagePicked) async {
+  Future<void> _pickImage(
+    Function(File) onImagePicked,
+    FocusNode? focusNode,
+  ) async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         setState(() {
           onImagePicked(File(image.path));
         });
+
+        // Auto-focus the next text field after image is selected
+        if (focusNode != null) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              FocusScope.of(context).requestFocus(focusNode);
+            }
+          });
+        }
       }
     } catch (e) {
-      // Fallback if camera/gallery not available
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Image picker not available in simulator'),
@@ -421,6 +437,7 @@ class _FuelRefillBeforeTripScreenState
             },
           ),
         ),
+
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -675,12 +692,16 @@ class _FuelRefillBeforeTripScreenState
                 _buildPhotoSection(
                   'Start Photo',
                   _startMeterPhoto,
-                  () => _pickImage((file) => _startMeterPhoto = file),
+                  () => _pickImage(
+                    (file) => _startMeterPhoto = file,
+                    _startMeterFocusNode,
+                  ),
                 ),
 
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _startMeterController,
+                  focusNode: _startMeterFocusNode,
                   decoration: InputDecoration(
                     labelText: 'Reading Value',
                     prefixIcon: const Icon(Icons.speed, color: Colors.blue),
@@ -723,12 +744,16 @@ class _FuelRefillBeforeTripScreenState
                   'End Photo',
                   _endMeterPhoto,
 
-                  () => _pickImage((file) => _endMeterPhoto = file),
+                  () => _pickImage(
+                    (file) => _endMeterPhoto = file,
+                    _endMeterFocusNode,
+                  ),
                 ),
 
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _endMeterController,
+                  focusNode: _endMeterFocusNode,
                   decoration: InputDecoration(
                     labelText: 'Reading Value',
                     prefixIcon: const Icon(Icons.speed, color: Colors.green),

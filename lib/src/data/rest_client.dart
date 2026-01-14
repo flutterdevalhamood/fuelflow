@@ -521,4 +521,12 @@ abstract class RestClient {
     @Field("driver_id") int? driverId,
     @Field("customer_id") int? customerId,
   });
+
+  @POST('/Driver/IgnoreFuelRefillForTripStopVehicle')
+  Future<dynamic> postVehicleNotAvailable({
+    @Header("Authorization") String? token,
+    @Field("vehicle_id") int? vehicleId,
+    @Field("description") String? description,
+    @Field("trip_stop_id") int? tripStopId,
+  });
 }

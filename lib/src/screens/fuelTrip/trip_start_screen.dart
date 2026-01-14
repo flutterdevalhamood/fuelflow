@@ -50,7 +50,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   bool _isLocationReady = false;
   bool _isCheckingLocation = false;
   bool _hasShownLocationDialog = false;
-
   bool _isNavigating = false;
 
   @override
@@ -69,8 +68,70 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     print('vehicleidddddd  ${widget.vehicleId}');
 
-    // Start location check and trip setup
-    _setupTripWithLocation();
+    // Check if tracking is already active
+    _checkExistingTracking();
+  }
+
+  Future<void> _checkExistingTracking() async {
+    final controller = context.read<TripTrackingController>();
+
+    // If already tracking this trip, just verify location is still enabled
+    if (controller.isTracking && controller.currentTripId == widget.tripId) {
+      debugPrint('✅ Trip tracking already active for trip ${widget.tripId}');
+
+      // Just verify location is still enabled
+      final hasPermission = await _quickLocationCheck();
+
+      if (hasPermission) {
+        setState(() {
+          _isLocationReady = true;
+          _isCheckingLocation = false;
+        });
+        _animationController.repeat(reverse: true);
+
+        // Update trip stop if different
+        if (controller.currentTripId == widget.tripId) {
+          await _updateTripStop();
+        }
+      } else {
+        // Location was disabled, need to re-enable
+        await _setupTripWithLocation();
+      }
+    } else {
+      // First time or new trip - full setup
+      await _setupTripWithLocation();
+    }
+  }
+
+  Future<bool> _quickLocationCheck() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return false;
+
+      final permission = await Geolocator.checkPermission();
+      return permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+    } catch (e) {
+      debugPrint('❌ Quick location check error: $e');
+      return false;
+    }
+  }
+
+  Future<void> _updateTripStop() async {
+    try {
+      final controller = context.read<TripTrackingController>();
+      final driverId = AuthRepo.driverId;
+
+      // Log the new stop event
+      await controller.logManualTripEvent(
+        eventType: 'start_journey',
+        description: 'Started journey to ${widget.customerName}',
+      );
+
+      debugPrint('✅ Updated to new trip stop ${widget.tripStopId}');
+    } catch (e) {
+      debugPrint('❌ Error updating trip stop: $e');
+    }
   }
 
   Future<void> _setupTripWithLocation() async {
@@ -107,7 +168,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
       // Step 3: For Android 10+, request background location permission
       if (permission == LocationPermission.whileInUse) {
-        // Try to upgrade to "always" permission for background tracking
         if (await _shouldRequestBackgroundPermission()) {
           await _requestBackgroundPermission();
         }
@@ -141,8 +201,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<bool> _shouldRequestBackgroundPermission() async {
-    // Check if we're on Android 10+ where background permission is separate
-    // This is a simplified check - you might want to use platform channel for accurate version
     return true;
   }
 
@@ -276,7 +334,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   void _startLocationMonitoring() {
-    // Check location every 3 seconds
     Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (_isLocationReady) {
         timer.cancel();
@@ -324,7 +381,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       print('✅ Trip tracking started for trip ${widget.tripId}');
     } catch (e) {
       print('❌ Error starting trip tracking: $e');
-      // Re-throw to handle in calling function
       rethrow;
     }
   }
@@ -338,15 +394,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   @override
   void dispose() {
     _animationController.dispose();
-    // Stop tracking when leaving screen
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        final controller = context.read<TripTrackingController>();
-        controller.stopTripTracking();
-      } catch (e) {
-        print('Error stopping trip tracking: $e');
-      }
-    });
+    // DON'T stop tracking when leaving screen - keep it running for entire trip
+    // Only stop when the entire trip is completed
     super.dispose();
   }
 
@@ -773,10 +822,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _handleArrival(BuildContext context) async {
-    // Prevent multiple navigations
     if (_isNavigating) return;
 
-    // Double-check location is still active
     if (!_isLocationReady) {
       await _setupTripWithLocation();
       return;
@@ -842,12 +889,10 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     if (confirmed != true || !context.mounted) return;
 
-    // Show delivery confirmation dialog with loading state
     await _showDeliveryConfirmationDialog(context);
   }
 
   Future<void> _showDeliveryConfirmationDialog(BuildContext context) async {
-    // Reset navigation state
     bool dialogProcessing = false;
 
     await showDialog(
@@ -899,7 +944,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     if (!dialogProcessing)
                       ElevatedButton(
                         onPressed: () async {
-                          // Show loading state
                           setDialogState(() {
                             dialogProcessing = true;
                           });
@@ -912,7 +956,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                             final controller =
                                 context.read<TripTrackingController>();
 
-                            // Log arrival event
                             await controller.logManualTripEvent(
                               eventType: 'arrived_at_stop',
                               description:
@@ -922,14 +965,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                             debugPrint('✅ Logged: arrived_at_stop');
                           } catch (e) {
                             debugPrint('❌ Error logging arrival: $e');
-                            // Continue navigation even if logging fails
                           }
 
-                          // Close dialog and navigate
                           if (mounted && Navigator.of(ctx).canPop()) {
                             Navigator.of(ctx).pop();
 
-                            // Small delay to ensure dialog is closed
                             await Future.delayed(
                               const Duration(milliseconds: 100),
                             );
@@ -951,7 +991,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           ),
     );
 
-    // Reset navigation state when dialog is dismissed
     if (mounted) {
       setState(() {
         _isNavigating = false;
@@ -978,146 +1017,3 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     );
   }
 }
-
-//   Future<void> _handleArrival(BuildContext context) async {
-//     // Double-check location is still active
-//     if (!_isLocationReady) {
-//       await _setupTripWithLocation();
-//       return;
-//     }
-//
-//     final confirmed = await showDialog<bool>(
-//       context: context,
-//       builder:
-//           (context) => AlertDialog(
-//             shape: RoundedRectangleBorder(
-//               borderRadius: BorderRadius.circular(16),
-//             ),
-//             title: const Row(
-//               children: [
-//                 Icon(Icons.location_on, color: Colors.green),
-//                 SizedBox(width: 12),
-//                 Text('Confirm Arrival'),
-//               ],
-//             ),
-//             content: Column(
-//               mainAxisSize: MainAxisSize.min,
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 const Text(
-//                   'Have you arrived at the customer location?',
-//                   style: TextStyle(fontSize: 16),
-//                 ),
-//                 const SizedBox(height: 16),
-//                 Container(
-//                   padding: const EdgeInsets.all(12),
-//                   decoration: BoxDecoration(
-//                     color: Colors.blue.shade50,
-//                     borderRadius: BorderRadius.circular(8),
-//                   ),
-//                   child: const Row(
-//                     children: [
-//                       Icon(Icons.info_outline, color: Colors.blue),
-//                       SizedBox(width: 12),
-//                       Expanded(
-//                         child: Text(
-//                           'You will proceed to fuel delivery',
-//                           style: TextStyle(fontSize: 14),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ],
-//             ),
-//             actions: [
-//               TextButton(
-//                 onPressed: () => Navigator.pop(context, false),
-//                 child: const Text('Not Yet'),
-//               ),
-//               ElevatedButton(
-//                 onPressed: () => Navigator.pop(context, true),
-//                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-//                 child: const Text('Yes, Arrived'),
-//               ),
-//             ],
-//           ),
-//     );
-//
-//     if (confirmed == true && context.mounted) {
-//       // Show second confirmation dialog for starting delivery
-//       final startDelivery = await showDialog<bool>(
-//         context: context,
-//         builder:
-//             (context) => AlertDialog(
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(16),
-//               ),
-//               title: const Row(
-//                 children: [
-//                   Icon(Icons.local_shipping, color: Colors.orange),
-//                   SizedBox(width: 12),
-//                   Text('Start Delivery'),
-//                 ],
-//               ),
-//               content: const Column(
-//                 mainAxisSize: MainAxisSize.min,
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   Text(
-//                     'Do you want to start the fuel delivery now?',
-//                     style: TextStyle(fontSize: 16),
-//                   ),
-//                 ],
-//               ),
-//               actions: [
-//                 TextButton(
-//                   onPressed: () => Navigator.pop(context, false),
-//                   child: const Text('Cancel'),
-//                 ),
-//                 ElevatedButton(
-//                   onPressed: () => Navigator.pop(context, true),
-//                   style: ElevatedButton.styleFrom(
-//                     backgroundColor: Colors.orange,
-//                   ),
-//                   child: const Text('Start Delivery'),
-//                 ),
-//               ],
-//             ),
-//       );
-//
-//       if (startDelivery == true && context.mounted) {
-//         final controller = context.read<TripTrackingController>();
-//
-//         // Log arrival event
-//         await controller.logManualTripEvent(
-//           eventType: 'arrived_at_stop',
-//           description: 'Driver confirmed arrival at ${widget.customerName}',
-//         );
-//
-//         // // Refresh assignment data
-//         // await context.read<FuelTripController>().getAcceptedAssignments();
-//
-//         if (context.mounted) {
-//           // Navigate to customer fuel delivery screen
-//           NavigationService().pushReplaceNavigation(
-//             Screenroutes.customerFuelDeliveryScreen,
-//             arguments: {
-//               'assignmentId': widget.assignmentId,
-//               'vehicleId': widget.vehicleId,
-//               'tripId': widget.tripId.toString(),
-//               'tripStopId': widget.tripStopId ?? 0,
-//               'requiredQty': widget.requiredQty,
-//               'availableQty': widget.availableQty,
-//               'vehicleName': widget.vehicleName,
-//               'customerName': widget.customerName,
-//               'stopOrder': widget.stopOrder,
-//               'currentStopIndex': widget.currentStopIndex,
-//               'totalStops': widget.totalStops,
-//             },
-//           );
-//         }
-//       }
-//     }
-//   }
-// }

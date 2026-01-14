@@ -23,6 +23,7 @@ import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart'
 import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
+import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
 import 'package:sample/src/screens/products/product_list_screen.dart';
 import 'package:sample/src/screens/products/product_registration_screen.dart';
@@ -112,6 +113,7 @@ class Screenroutes {
 
   static const String userViewScreen = "userViewScreen";
   static const String userRegistrationScreen = "userRegistrationScreen";
+  static const String vehicleUnavailableScreen = "vehicleUnavailableScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -559,6 +561,24 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return UserRegistrationScreen();
+          },
+        );
+
+      case Screenroutes.vehicleUnavailableScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.vehicleUnavailableScreen,
+          ),
+          builder: (BuildContext context) {
+            return VehicleUnavailableScreen(
+              vehicleId: args?['vehicleID'] as int? ?? 0,
+              plateNo: args?['plateNo'] as String? ?? '',
+
+              tripStopId: args?['tripStopId'] as int? ?? 0,
+              customerName: args?['customerName'] as String? ?? '',
+              siteName: args?['customerName'] as String? ?? '',
+            );
           },
         );
     }

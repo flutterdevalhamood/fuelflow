@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
+import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
@@ -558,6 +559,90 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     );
   }
 
+  // Add these methods to _AcceptedAssignmentScreenState class
+
+  void _handleVehicleRefuel(
+    BuildContext context,
+    Map<String, dynamic> assignment,
+    Map<String, dynamic> stop,
+    int vehicleId,
+    String plateNo,
+  ) async {
+    final requiredQty = double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
+    final availableQty = _toDouble(assignment['available_qty']);
+
+    // Navigate to refill screen
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.fuelRefillBeforeTripScreen,
+      arguments: {
+        'assignmentId':
+            int.tryParse(assignment['assignment_id']?.toString() ?? '0') ?? 0,
+        'vehicleId': vehicleId,
+        'tripId': assignment['trip_id']?.toString() ?? '',
+        'tripStopId': int.tryParse(stop['stop_id']?.toString() ?? '0') ?? 0,
+        'requiredQty': requiredQty,
+        'availableQty': availableQty,
+        'vehicleName': plateNo,
+        'stopOrder': stop['stop_order'] ?? '1',
+        'customerName': stop['customer_name'] ?? '',
+      },
+    );
+
+    // Refresh if refill was completed
+    if (result == true && mounted) {
+      debugPrint('🔄 Auto-refreshing after vehicle refill...');
+      await _refreshAssignments();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vehicle refueled successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleVehicleUnavailable(
+    BuildContext context,
+    Map<String, dynamic> assignment,
+    Map<String, dynamic> stop,
+    int vehicleId,
+    String plateNo,
+  ) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => VehicleUnavailableScreen(
+              vehicleId: vehicleId,
+              plateNo: plateNo,
+              tripStopId: int.tryParse(stop['stop_id']?.toString() ?? '0') ?? 0,
+              customerName: stop['customer_name']?.toString() ?? 'Unknown',
+              siteName: stop['site_name']?.toString() ?? 'Unknown',
+            ),
+      ),
+    );
+
+    // Refresh if vehicle was marked unavailable
+    if (result == true && mounted) {
+      debugPrint('🔄 Auto-refreshing after marking vehicle unavailable...');
+      await _refreshAssignments();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Vehicle $plateNo marked as unavailable'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildQuantityRow(String label, double quantity, Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -723,40 +808,40 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Trip Details',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildDetailRow(
-                              Icons.directions_car,
-                              'Vehicle',
-                              assignment['vehicle'],
-                              Colors.green,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildDetailRow(
-                              Icons.person,
-                              'Driver',
-                              assignment['driver'],
-                              Colors.purple,
-                            ),
-                            const SizedBox(height: 16),
-                            const Divider(),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Current Available Fuel Stock',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            // const Text(
+                            //   'Trip Details',
+                            //   style: TextStyle(
+                            //     fontSize: 18,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
+                            // const SizedBox(height: 16),
+                            // _buildDetailRow(
+                            //   Icons.directions_car,
+                            //   'Vehicle',
+                            //   assignment['vehicle'],
+                            //   Colors.green,
+                            // ),
+                            // const SizedBox(height: 12),
+                            // _buildDetailRow(
+                            //   Icons.person,
+                            //   'Driver',
+                            //   assignment['driver'],
+                            //   Colors.purple,
+                            // ),
+                            // const SizedBox(height: 16),
+                            // const Divider(),
+                            // const SizedBox(height: 16),
+                            // const Text(
+                            //   'Current Available Fuel Stock',
+                            //   style: TextStyle(
+                            //     fontSize: 16,
+                            //     fontWeight: FontWeight.bold,
+                            //   ),
+                            // ),
                             const SizedBox(height: 12),
                             Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(12),
@@ -1251,7 +1336,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                           ),
                         ],
 
-                        // Expanded Vehicle List
+                        // Replace the vehicle list section in _buildStopCard with this:
+                        // Expanded Vehicle List with Actions
                         if (isExpanded && stopVehicles.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Container(
@@ -1273,43 +1359,204 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 8),
+
+                                // Replace the vehicle status determination section in _buildStopCard
+                                // Starting from line ~1140 in your code
                                 ...stopVehicles.map((vehicleData) {
                                   final plateNo =
                                       vehicleData['plate_no']?.toString() ??
                                       'N/A';
+                                  final vehicleId =
+                                      int.tryParse(
+                                        vehicleData['vehicle_id']?.toString() ??
+                                            '0',
+                                      ) ??
+                                      0;
+
+                                  // Parse status as integer
+                                  final statusValue =
+                                      int.tryParse(
+                                        vehicleData['status']?.toString() ??
+                                            '0',
+                                      ) ??
+                                      0;
+
+                                  // Determine vehicle state based on status
+                                  final isUnavailable = statusValue == -1;
+                                  final isPending = statusValue == 0;
+                                  final isCompleted = statusValue == 1;
+
+                                  // Determine colors and labels based on status
+                                  Color borderColor;
+                                  Color bgColor;
+                                  Color iconColor;
+                                  Color containerBgColor;
+                                  Color containerBorderColor;
+                                  String? statusLabel;
+
+                                  if (isUnavailable) {
+                                    borderColor = Colors.red.shade300;
+                                    bgColor = Colors.red.shade50;
+                                    iconColor = Colors.red.shade700;
+                                    containerBgColor = Colors.red.shade100;
+                                    containerBorderColor = Colors.red.shade400;
+                                    statusLabel = 'Unavailable';
+                                  } else if (isCompleted) {
+                                    borderColor = Colors.green.shade300;
+                                    bgColor = Colors.green.shade50;
+                                    iconColor = Colors.green.shade700;
+                                    containerBgColor = Colors.green.shade100;
+                                    containerBorderColor =
+                                        Colors.green.shade400;
+                                    statusLabel = 'Completed';
+                                  } else {
+                                    // Pending (status = 0)
+                                    borderColor = Colors.amber.shade400;
+                                    bgColor = Colors.amber.shade50;
+                                    iconColor = Colors.amber.shade700;
+                                    containerBgColor = Colors.amber.shade100;
+                                    containerBorderColor =
+                                        Colors.amber.shade400;
+                                    statusLabel = 'Pending';
+                                  }
 
                                   return Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.grey.shade400,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.directions_car,
-                                            size: 16,
-                                            color: Colors.grey.shade700,
-                                          ),
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: bgColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: borderColor,
+                                          width:
+                                              2, // Keep width 2 for all statuses for consistency
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            plateNo,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: containerBgColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: containerBorderColor,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              isCompleted
+                                                  ? Icons.check_circle
+                                                  : isPending
+                                                  ? Icons.pending
+                                                  : Icons.directions_car,
+                                              size: 16,
+                                              color: iconColor,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  plateNo,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        isUnavailable
+                                                            ? Colors
+                                                                .red
+                                                                .shade700
+                                                            : isCompleted
+                                                            ? Colors
+                                                                .green
+                                                                .shade700
+                                                            : Colors
+                                                                .amber
+                                                                .shade900,
+                                                  ),
+                                                ),
+                                                if (statusLabel != null) ...[
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    statusLabel,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          isUnavailable
+                                                              ? Colors
+                                                                  .red
+                                                                  .shade600
+                                                              : isCompleted
+                                                              ? Colors
+                                                                  .green
+                                                                  .shade600
+                                                              : Colors
+                                                                  .amber
+                                                                  .shade700,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                          // Show action buttons only for pending vehicles
+                                          if (isPending) ...[
+                                            // Refuel Icon
+                                            IconButton(
+                                              onPressed:
+                                                  () => _handleVehicleRefuel(
+                                                    context,
+                                                    assignment,
+                                                    stop,
+                                                    vehicleId,
+                                                    plateNo,
+                                                  ),
+                                              icon: const Icon(
+                                                Icons.local_gas_station,
+                                              ),
+                                              color: Colors.orange,
+                                              tooltip: 'Refuel Vehicle',
+                                              style: IconButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.orange.shade50,
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            // Make Unavailable Icon
+                                            IconButton(
+                                              onPressed:
+                                                  () =>
+                                                      _handleVehicleUnavailable(
+                                                        context,
+                                                        assignment,
+                                                        stop,
+                                                        vehicleId,
+                                                        plateNo,
+                                                      ),
+                                              icon: const Icon(Icons.block),
+                                              color: Colors.red,
+                                              tooltip: 'Mark Unavailable',
+                                              style: IconButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.red.shade50,
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
                                     ),
                                   );
                                 }).toList(),
@@ -1317,7 +1564,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             ),
                           ),
                         ],
-
                         const SizedBox(height: 12),
                         Row(
                           children: [
