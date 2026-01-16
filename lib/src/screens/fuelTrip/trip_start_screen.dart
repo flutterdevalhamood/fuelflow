@@ -23,6 +23,10 @@ class TripStartedScreen extends StatefulWidget {
   final int currentStopIndex;
   final int totalStops;
 
+  final int driverId;
+  final String? siteName;
+  final List<dynamic>? stopVehicles;
+
   const TripStartedScreen({
     super.key,
     required this.tripId,
@@ -37,6 +41,9 @@ class TripStartedScreen extends StatefulWidget {
     required this.stopOrder,
     required this.currentStopIndex,
     required this.totalStops,
+    required this.driverId, // NEW
+    this.siteName, // NEW
+    this.stopVehicles,
   });
 
   @override
@@ -821,6 +828,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     );
   }
 
+  // Replace the _handleArrival method in TripStartedScreen with this complete implementation:
+
   Future<void> _handleArrival(BuildContext context) async {
     if (_isNavigating) return;
 
@@ -828,6 +837,12 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       await _setupTripWithLocation();
       return;
     }
+
+    debugPrint('🎯 Handle Arrival called');
+    debugPrint('Stop Vehicles: ${widget.stopVehicles}');
+    debugPrint('Stop Vehicles Length: ${widget.stopVehicles?.length ?? 0}');
+    debugPrint('Customer: ${widget.customerName}');
+    debugPrint('Site: ${widget.siteName}');
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -858,16 +873,32 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'You will proceed to fuel delivery',
-                          style: TextStyle(fontSize: 14),
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.blue),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Customer: ${widget.customerName}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      if (widget.stopVehicles != null &&
+                          widget.stopVehicles!.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Vehicles to service: ${widget.stopVehicles!.length}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -889,8 +920,228 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     if (confirmed != true || !context.mounted) return;
 
-    await _showDeliveryConfirmationDialog(context);
+    // Log arrival event
+    try {
+      final controller = context.read<TripTrackingController>();
+      await controller.logManualTripEvent(
+        eventType: 'arrived_at_stop',
+        description: 'Driver confirmed arrival at ${widget.customerName}',
+      );
+      debugPrint('✅ Logged: arrived_at_stop');
+    } catch (e) {
+      debugPrint('❌ Error logging arrival: $e');
+    }
+
+    // Navigate to Vehicle List Screen
+    await _navigateToVehicleListScreen();
   }
+
+  Future<void> _navigateToVehicleListScreen() async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.customerStopVehicleScreen,
+      arguments: {
+        'stopVehicles': widget.stopVehicles ?? [],
+        'assignment': {
+          'assignment_id': widget.assignmentId,
+          'trip_id': widget.tripId,
+          'available_qty': widget.availableQty,
+          'driver_id': widget.driverId,
+        },
+        'stop': {
+          'stop_id': widget.tripStopId,
+          'expected_qty': widget.requiredQty,
+          'stop_order': widget.stopOrder,
+        },
+        'customerName': widget.customerName,
+        'siteName': widget.siteName ?? widget.customerName,
+      },
+    );
+
+    if (result == true && mounted) {
+      // All vehicles processed, navigate back to accepted assignments
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  // // Update the _navigateToVehicleListScreen method:
+  // Future<void> _navigateToVehicleListScreen() async {
+  //   debugPrint('🚀 Starting navigation to CustomerStopVehicleScreen');
+  //   debugPrint('Stop Vehicles Data: ${widget.stopVehicles}');
+  //
+  //   // Ensure stopVehicles is properly formatted
+  //   final stopVehicles = widget.stopVehicles ?? [];
+  //
+  //   if (stopVehicles.isEmpty) {
+  //     debugPrint('⚠️ No vehicles found for this stop');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('No vehicles assigned to this stop'),
+  //           backgroundColor: Colors.orange,
+  //         ),
+  //       );
+  //       // Navigate back since there are no vehicles to process
+  //       Navigator.of(context).pop(true);
+  //     }
+  //     return;
+  //   }
+  //
+  //   try {
+  //     debugPrint(
+  //       '📍 Attempting navigation with ${stopVehicles.length} vehicles',
+  //     );
+  //
+  //     // Method 1: Using NavigationService (primary method)
+  //     final result = await NavigationService().pushNavigation(
+  //       Screenroutes.customerStopVehicleScreen,
+  //       arguments: {
+  //         'stopVehicles': stopVehicles,
+  //         'assignment': {
+  //           'assignment_id': widget.assignmentId,
+  //           'trip_id': widget.tripId,
+  //           'available_qty': widget.availableQty,
+  //           'driver_id': widget.driverId,
+  //         },
+  //         'stop': {
+  //           'stop_id': widget.tripStopId,
+  //           'expected_qty': widget.requiredQty,
+  //           'stop_order': widget.stopOrder,
+  //         },
+  //         'customerName': widget.customerName,
+  //         'siteName': widget.siteName ?? widget.customerName,
+  //       },
+  //     );
+  //
+  //     debugPrint('✅ Navigation returned with result: $result');
+  //
+  //     // Handle result
+  //     if (result == true && mounted) {
+  //       debugPrint('✅ All vehicles processed successfully');
+  //       Navigator.of(context).pop(true);
+  //     }
+  //   } catch (e) {
+  //     debugPrint('❌ NavigationService error: $e');
+  //
+  //     // Method 2: Fallback to direct Navigator.push if NavigationService fails
+  //     if (mounted) {
+  //       try {
+  //         debugPrint('🔄 Attempting fallback navigation with direct Navigator');
+  //
+  //         final result = await Navigator.push(
+  //           context,
+  //           MaterialPageRoute(
+  //             builder:
+  //                 (context) => CustomerStopVehicleScreen(
+  //                   stopVehicles: stopVehicles,
+  //                   assignment: {
+  //                     'assignment_id': widget.assignmentId,
+  //                     'trip_id': widget.tripId,
+  //                     'available_qty': widget.availableQty,
+  //                     'driver_id': widget.driverId,
+  //                   },
+  //                   stop: {
+  //                     'stop_id': widget.tripStopId,
+  //                     'expected_qty': widget.requiredQty,
+  //                     'stop_order': widget.stopOrder,
+  //                   },
+  //                   customerName: widget.customerName,
+  //                   siteName: widget.siteName ?? widget.customerName,
+  //                 ),
+  //           ),
+  //         );
+  //
+  //         debugPrint('✅ Fallback navigation returned with result: $result');
+  //
+  //         if (result == true && mounted) {
+  //           debugPrint('✅ All vehicles processed successfully (fallback)');
+  //           Navigator.of(context).pop(true);
+  //         }
+  //       } catch (fallbackError) {
+  //         debugPrint('❌ Fallback navigation also failed: $fallbackError');
+  //         if (mounted) {
+  //           ScaffoldMessenger.of(context).showSnackBar(
+  //             SnackBar(
+  //               content: Text('Navigation failed: $fallbackError'),
+  //               backgroundColor: Colors.red,
+  //               duration: const Duration(seconds: 3),
+  //             ),
+  //           );
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  // Future<void> _handleArrival(BuildContext context) async {
+  //   if (_isNavigating) return;
+  //
+  //   if (!_isLocationReady) {
+  //     await _setupTripWithLocation();
+  //     return;
+  //   }
+  //
+  //   final confirmed = await showDialog<bool>(
+  //     context: context,
+  //     builder:
+  //         (context) => AlertDialog(
+  //           shape: RoundedRectangleBorder(
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           title: const Row(
+  //             children: [
+  //               Icon(Icons.location_on, color: Colors.green),
+  //               SizedBox(width: 12),
+  //               Text('Confirm Arrival'),
+  //             ],
+  //           ),
+  //           content: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               const Text(
+  //                 'Have you arrived at the customer location?',
+  //                 style: TextStyle(fontSize: 16),
+  //               ),
+  //               const SizedBox(height: 16),
+  //               Container(
+  //                 padding: const EdgeInsets.all(12),
+  //                 decoration: BoxDecoration(
+  //                   color: Colors.blue.shade50,
+  //                   borderRadius: BorderRadius.circular(8),
+  //                 ),
+  //                 child: const Row(
+  //                   children: [
+  //                     Icon(Icons.info_outline, color: Colors.blue),
+  //                     SizedBox(width: 12),
+  //                     Expanded(
+  //                       child: Text(
+  //                         'You will proceed to fuel delivery',
+  //                         style: TextStyle(fontSize: 14),
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           actions: [
+  //             TextButton(
+  //               onPressed: () => Navigator.pop(context, false),
+  //               child: const Text('Not Yet'),
+  //             ),
+  //             ElevatedButton(
+  //               onPressed: () => Navigator.pop(context, true),
+  //               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+  //               child: const Text('Yes, Arrived'),
+  //             ),
+  //           ],
+  //         ),
+  //   );
+  //
+  //   if (confirmed != true || !context.mounted) return;
+  //
+  //   await _showDeliveryConfirmationDialog(context);
+  // }
 
   Future<void> _showDeliveryConfirmationDialog(BuildContext context) async {
     bool dialogProcessing = false;

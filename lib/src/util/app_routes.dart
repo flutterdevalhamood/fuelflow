@@ -19,9 +19,11 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
 import 'package:sample/src/screens/fuelTrip/customer_fuel_delivery_screen.dart';
+import 'package:sample/src/screens/fuelTrip/customer_stop_vehicle_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
+import 'package:sample/src/screens/fuelTrip/stop_vehicle_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
@@ -114,6 +116,9 @@ class Screenroutes {
   static const String userViewScreen = "userViewScreen";
   static const String userRegistrationScreen = "userRegistrationScreen";
   static const String vehicleUnavailableScreen = "vehicleUnavailableScreen";
+
+  static const String stopVehicleListScreen = "stopVehicleListScreen";
+  static const String customerStopVehicleScreen = "customerStopVehicleScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -518,6 +523,9 @@ class Screenroutes {
               stopOrder: args?['stopOrder'] as String? ?? '1',
               currentStopIndex: args?['currentStopIndex'] as int? ?? 0,
               totalStops: args?['totalStops'] as int? ?? 1,
+              driverId: args?['driverId'] as int? ?? 0,
+              siteName: args?['siteName'] as String?,
+              stopVehicles: args?['stopVehicles'] as List<dynamic>?,
             );
           },
         );
@@ -578,6 +586,42 @@ class Screenroutes {
               tripStopId: args?['tripStopId'] as int? ?? 0,
               customerName: args?['customerName'] as String? ?? '',
               siteName: args?['customerName'] as String? ?? '',
+            );
+          },
+        );
+
+      case Screenroutes.stopVehicleListScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.stopVehicleListScreen,
+          ),
+          builder: (BuildContext context) {
+            return StopVehicleListScreen(
+              stopVehicles: args?['stopVehicles'] as List<dynamic>? ?? [],
+              assignment: args?['assignment'] as Map<String, dynamic>? ?? {},
+              stop: args?['stop'] as Map<String, dynamic>? ?? {},
+              customerName:
+                  args?['customerName'] as String? ?? 'Unknown Customer',
+              siteName: args?['siteName'] as String? ?? 'Unknown Site',
+            );
+          },
+        );
+
+      case Screenroutes.customerStopVehicleScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.customerStopVehicleScreen,
+          ),
+          builder: (BuildContext context) {
+            return CustomerStopVehicleScreen(
+              stopVehicles: args?['stopVehicles'] as List<dynamic>? ?? [],
+              assignment: args?['assignment'] as Map<String, dynamic>? ?? {},
+              stop: args?['stop'] as Map<String, dynamic>? ?? {},
+              customerName:
+                  args?['customerName'] as String? ?? 'Unknown Customer',
+              siteName: args?['siteName'] as String? ?? 'Unknown Site',
             );
           },
         );

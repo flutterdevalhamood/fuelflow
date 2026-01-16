@@ -467,53 +467,75 @@ class _CustomerFuelDeliveryScreenState
                       ],
                     ],
                   ),
+
                   actions: [
                     if (!_dialogProcessing)
                       ElevatedButton(
                         onPressed: () async {
-                          setDialogState(() {
-                            _dialogProcessing = true;
-                          });
-
-                          try {
-                            if (isLastStop) {
-                              await Future.wait([
-                                _trackingController.logCriticalTripEvent(
-                                  eventType: 'moving_towards_base',
-                                ),
-                                _trackingController.logCriticalTripEvent(
-                                  eventType: 'returned_to_base',
-                                ),
-                              ]);
-
-                              await _trackingController.stopTripTracking();
-
-                              debugPrint('✅ All last stop events logged');
-                            } else {
-                              await _trackingController.logManualTripEvent(
-                                eventType: 'moving_towards_next_stop',
-                              );
-                              debugPrint('✅ Moving to next stop event logged');
-                            }
-                          } catch (e) {
-                            debugPrint('❌ Error in completion: $e');
-                          }
+                          // ... existing code ...
 
                           if (mounted && Navigator.of(ctx).canPop()) {
                             Navigator.of(ctx).pop();
-
                             await Future.delayed(
                               const Duration(milliseconds: 100),
                             );
 
                             if (mounted) {
-                              _navigateToAcceptedAssignmentScreen();
+                              // Return true to indicate completion
+                              Navigator.of(context).pop(true);
                             }
                           }
                         },
                         child: const Text('OK'),
                       ),
                   ],
+                  // actions: [
+                  //   if (!_dialogProcessing)
+                  //     ElevatedButton(
+                  //       onPressed: () async {
+                  //         setDialogState(() {
+                  //           _dialogProcessing = true;
+                  //         });
+                  //
+                  //         try {
+                  //           if (isLastStop) {
+                  //             await Future.wait([
+                  //               _trackingController.logCriticalTripEvent(
+                  //                 eventType: 'moving_towards_base',
+                  //               ),
+                  //               _trackingController.logCriticalTripEvent(
+                  //                 eventType: 'returned_to_base',
+                  //               ),
+                  //             ]);
+                  //
+                  //             await _trackingController.stopTripTracking();
+                  //
+                  //             debugPrint('✅ All last stop events logged');
+                  //           } else {
+                  //             await _trackingController.logManualTripEvent(
+                  //               eventType: 'moving_towards_next_stop',
+                  //             );
+                  //             debugPrint('✅ Moving to next stop event logged');
+                  //           }
+                  //         } catch (e) {
+                  //           debugPrint('❌ Error in completion: $e');
+                  //         }
+                  //
+                  //         if (mounted && Navigator.of(ctx).canPop()) {
+                  //           Navigator.of(ctx).pop();
+                  //
+                  //           await Future.delayed(
+                  //             const Duration(milliseconds: 100),
+                  //           );
+                  //
+                  //           if (mounted) {
+                  //             _navigateToAcceptedAssignmentScreen();
+                  //           }
+                  //         }
+                  //       },
+                  //       child: const Text('OK'),
+                  //     ),
+                  // ],
                 ),
               );
             },
@@ -699,266 +721,352 @@ class _CustomerFuelDeliveryScreenState
                             ),
                             const SizedBox(height: 16),
 
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPhotoSection(
-                                      'Start Meter Photo',
-                                      _startMeterPhoto,
-                                      () => _pickImage((file) {
-                                        _startMeterPhoto = file;
-                                        _onStartMeterChanged();
-                                      }, _startMeterFocusNode),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Start Meter Reading',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                            // START METER SECTION - Hidden after delivery started
+                            if (!_deliveryStarted) ...[
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildPhotoSection(
+                                        'Start Meter Photo',
+                                        _startMeterPhoto,
+                                        () => _pickImage((file) {
+                                          _startMeterPhoto = file;
+                                          _onStartMeterChanged();
+                                        }, _startMeterFocusNode),
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: _startMeterController,
-                                      focusNode: _startMeterFocusNode,
-                                      enabled: !_deliveryStarted,
-                                      decoration: InputDecoration(
-                                        labelText: 'Reading Value',
-                                        prefixIcon: const Icon(Icons.speed),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Start Meter Reading',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        filled: true,
-                                        fillColor:
-                                            _deliveryStarted
-                                                ? Colors.grey.shade200
-                                                : Colors.grey.shade50,
                                       ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter start meter reading';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // START DELIVERY BUTTON
-                                    // START DELIVERY BUTTON
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed:
-                                            (_deliveryStarted || _isSubmitting)
-                                                ? null
-                                                : _handleStartDelivery,
-                                        icon:
-                                            _isSubmitting && !_deliveryStarted
-                                                ? const SizedBox.shrink()
-                                                : Icon(
-                                                  _deliveryStarted
-                                                      ? Icons.check_circle
-                                                      : Icons.play_arrow,
-                                                ),
-                                        label:
-                                            _isSubmitting && !_deliveryStarted
-                                                ? const SizedBox(
-                                                  height: 20,
-                                                  width: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    valueColor:
-                                                        AlwaysStoppedAnimation<
-                                                          Color
-                                                        >(Colors.white),
-                                                  ),
-                                                )
-                                                : Text(
-                                                  _deliveryStarted
-                                                      ? 'Refueling Started'
-                                                      : 'Start Refueling',
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              (_deliveryStarted ||
-                                                      _isSubmitting)
-                                                  ? Colors.grey
-                                                  : Colors.blue,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                          shape: RoundedRectangleBorder(
+                                      const SizedBox(height: 12),
+                                      TextFormField(
+                                        controller: _startMeterController,
+                                        focusNode: _startMeterFocusNode,
+                                        decoration: InputDecoration(
+                                          labelText: 'Reading Value',
+                                          prefixIcon: const Icon(Icons.speed),
+                                          border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
                                           ),
+                                          filled: true,
+                                          fillColor: Colors.grey.shade50,
                                         ),
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter start meter reading';
+                                          }
+                                          return null;
+                                        },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                                      const SizedBox(height: 16),
 
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildPhotoSection(
-                                      'End Meter Photo',
-                                      _endMeterPhoto,
-                                      _deliveryStarted
-                                          ? () => _pickImage((file) {
-                                            _endMeterPhoto = file;
-                                            _onEndMeterChanged();
-                                          }, _endMeterFocusNode)
-                                          : null,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'End Meter Reading',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextFormField(
-                                      controller: _endMeterController,
-                                      focusNode: _endMeterFocusNode,
-                                      enabled:
-                                          _deliveryStarted && !_deliveryEnded,
-                                      decoration: InputDecoration(
-                                        labelText: 'Reading Value',
-                                        prefixIcon: const Icon(Icons.speed),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        filled: true,
-                                        fillColor:
-                                            (!_deliveryStarted ||
-                                                    _deliveryEnded)
-                                                ? Colors.grey.shade200
-                                                : Colors.grey.shade50,
-                                      ),
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(),
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter end meter reading';
-                                        }
-                                        final endValue = int.tryParse(value);
-                                        final startValue = int.tryParse(
-                                          _startMeterController.text,
-                                        );
-                                        if (endValue != null &&
-                                            startValue != null &&
-                                            endValue <= startValue) {
-                                          return 'End reading must be greater than start';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // END DELIVERY BUTTON
-                                    // END DELIVERY BUTTON
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed:
-                                            (_deliveryStarted &&
-                                                    !_deliveryEnded &&
-                                                    !_isSubmitting)
-                                                ? _handleEndDelivery
-                                                : null,
-                                        icon:
-                                            _isSubmitting &&
-                                                    _deliveryStarted &&
-                                                    !_deliveryEnded
-                                                ? const SizedBox.shrink()
-                                                : Icon(
-                                                  _deliveryEnded
-                                                      ? Icons.check_circle
-                                                      : Icons.stop,
-                                                ),
-                                        label:
-                                            _isSubmitting &&
-                                                    _deliveryStarted &&
-                                                    !_deliveryEnded
-                                                ? const SizedBox(
-                                                  height: 20,
-                                                  width: 20,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    valueColor:
-                                                        AlwaysStoppedAnimation<
-                                                          Color
-                                                        >(Colors.white),
+                                      // START DELIVERY BUTTON
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              _isSubmitting
+                                                  ? null
+                                                  : _handleStartDelivery,
+                                          icon:
+                                              _isSubmitting
+                                                  ? const SizedBox.shrink()
+                                                  : const Icon(
+                                                    Icons.play_arrow,
                                                   ),
-                                                )
-                                                : Text(
-                                                  _deliveryEnded
-                                                      ? 'Refueling Ended'
-                                                      : 'End Refueling',
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
+                                          label:
+                                              _isSubmitting
+                                                  ? const SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.white),
+                                                    ),
+                                                  )
+                                                  : const Text(
+                                                    'Start Refueling',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                   ),
-                                                ),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              (_deliveryEnded || _isSubmitting)
-                                                  ? Colors.grey
-                                                  : Colors.orange,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 14,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                _isSubmitting
+                                                    ? Colors.grey
+                                                    : Colors.blue,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // START METER SUMMARY - Shown after delivery started
+                            if (_deliveryStarted) ...[
+                              Card(
+                                elevation: 2,
+                                color: Colors.green.shade50,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.green.shade200,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green.shade700,
+                                        size: 28,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Start Meter Reading',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_startMeterController.text} IG',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // END METER SECTION - Only shown after delivery started but before delivery ended
+                            if (_deliveryStarted && !_deliveryEnded) ...[
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildPhotoSection(
+                                        'End Meter Photo',
+                                        _endMeterPhoto,
+                                        () => _pickImage((file) {
+                                          _endMeterPhoto = file;
+                                          _onEndMeterChanged();
+                                        }, _endMeterFocusNode),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'End Meter Reading',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      TextFormField(
+                                        controller: _endMeterController,
+                                        focusNode: _endMeterFocusNode,
+                                        decoration: InputDecoration(
+                                          labelText: 'Reading Value',
+                                          prefixIcon: const Icon(Icons.speed),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey.shade50,
+                                        ),
+                                        keyboardType:
+                                            const TextInputType.numberWithOptions(),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter end meter reading';
+                                          }
+                                          final endValue = int.tryParse(value);
+                                          final startValue = int.tryParse(
+                                            _startMeterController.text,
+                                          );
+                                          if (endValue != null &&
+                                              startValue != null &&
+                                              endValue <= startValue) {
+                                            return 'End reading must be greater than start';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 16),
+
+                                      // END DELIVERY BUTTON
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              _isSubmitting
+                                                  ? null
+                                                  : _handleEndDelivery,
+                                          icon:
+                                              _isSubmitting
+                                                  ? const SizedBox.shrink()
+                                                  : const Icon(Icons.stop),
+                                          label:
+                                              _isSubmitting
+                                                  ? const SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.white),
+                                                    ),
+                                                  )
+                                                  : const Text(
+                                                    'End Refueling',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                _isSubmitting
+                                                    ? Colors.grey
+                                                    : Colors.orange,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            // END METER SUMMARY - Shown after delivery ended
+                            if (_deliveryEnded) ...[
+                              Card(
+                                elevation: 2,
+                                color: Colors.green.shade50,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.green.shade200,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green.shade700,
+                                        size: 28,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'End Meter Reading',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_endMeterController.text} IG',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
 
                             // Meter Reading Difference Display
                             if (_startMeterController.text.isNotEmpty &&
                                 _endMeterController.text.isNotEmpty &&
-                                _meterReadingDifference > 0)
+                                _meterReadingDifference > 0 &&
+                                _deliveryStarted)
                               Card(
                                 elevation: 2,
                                 color: Colors.orange.shade50,
@@ -983,7 +1091,6 @@ class _CustomerFuelDeliveryScreenState
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
-
                                           children: [
                                             Text(
                                               'Meter Reading Difference',
@@ -1011,151 +1118,159 @@ class _CustomerFuelDeliveryScreenState
                               ),
                             if (_startMeterController.text.isNotEmpty &&
                                 _endMeterController.text.isNotEmpty &&
-                                _meterReadingDifference > 0)
+                                _meterReadingDifference > 0 &&
+                                _deliveryStarted)
                               const SizedBox(height: 24),
 
-                            const Text(
-                              'Delivery Quantity',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _deliveryQuantityController,
-                              decoration: InputDecoration(
-                                labelText: 'Quantity (IG)',
-                                prefixIcon: const Icon(Icons.local_shipping),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                                helperText:
-                                    _isQuantityMismatch
-                                        ? '⚠️ Quantity differs from meter reading difference'
-                                        : null,
-                                helperStyle: TextStyle(
-                                  color: Colors.orange.shade700,
-                                  fontWeight: FontWeight.w600,
+                            // Delivery Quantity and Notes sections only shown after delivery started
+                            if (_deliveryStarted) ...[
+                              const Text(
+                                'Delivery Quantity',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _deliveryQuantityController,
+                                decoration: InputDecoration(
+                                  labelText: 'Quantity (IG)',
+                                  prefixIcon: const Icon(Icons.local_shipping),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter delivery quantity';
-                                }
-                                final qty = double.tryParse(value);
-                                if (qty == null || qty <= 0) {
-                                  return 'Please enter a valid quantity';
-                                }
-                                if (qty > widget.availableQty) {
-                                  return 'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
-                                }
-                                if (qty < widget.requiredQty) {
-                                  return 'Quantity cannot be less than required (${widget.requiredQty.toStringAsFixed(2)} IG)';
-                                }
-                                return null;
-                              },
-                              onChanged: (value) {
-                                setState(() {});
-                              },
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            TextFormField(
-                              controller: _noteController,
-                              decoration: InputDecoration(
-                                labelText:
-                                    _isQuantityMismatch
-                                        ? 'Reason for Quantity Difference *'
-                                        : 'Note (Optional)',
-                                prefixIcon: Icon(
-                                  Icons.note,
-                                  color:
+                                  filled: true,
+                                  fillColor: Colors.grey.shade50,
+                                  helperText:
                                       _isQuantityMismatch
-                                          ? Colors.orange.shade700
+                                          ? '⚠️ Quantity differs from meter reading difference'
                                           : null,
+                                  helperStyle: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide:
-                                      _isQuantityMismatch
-                                          ? BorderSide(
-                                            color: Colors.orange.shade700,
-                                            width: 1.5,
-                                          )
-                                          : const BorderSide(),
-                                ),
-                                filled: true,
-                                fillColor:
-                                    _isQuantityMismatch
-                                        ? Colors.orange.shade50
-                                        : Colors.grey.shade50,
-                                helperText:
-                                    _isQuantityMismatch
-                                        ? 'Please explain why the delivery quantity differs from meter reading'
-                                        : null,
-                                helperStyle: TextStyle(
-                                  color: Colors.orange.shade700,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter delivery quantity';
+                                  }
+                                  final qty = double.tryParse(value);
+                                  if (qty == null || qty <= 0) {
+                                    return 'Please enter a valid quantity';
+                                  }
+                                  if (qty > widget.availableQty) {
+                                    return 'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
+                                  }
+                                  if (qty < widget.requiredQty) {
+                                    return 'Quantity cannot be less than required (${widget.requiredQty.toStringAsFixed(2)} IG)';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (value) {
+                                  setState(() {});
+                                },
                               ),
-                              maxLines: 3,
-                              validator: (value) {
-                                if (_isQuantityMismatch &&
-                                    (value == null || value.trim().isEmpty)) {
-                                  return 'Please provide a reason for the quantity difference';
-                                }
-                                return null;
-                              },
-                            ),
+
+                              const SizedBox(height: 24),
+
+                              TextFormField(
+                                controller: _noteController,
+                                decoration: InputDecoration(
+                                  labelText:
+                                      _isQuantityMismatch
+                                          ? 'Reason for Quantity Difference *'
+                                          : 'Note (Optional)',
+                                  prefixIcon: Icon(
+                                    Icons.note,
+                                    color:
+                                        _isQuantityMismatch
+                                            ? Colors.orange.shade700
+                                            : null,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        _isQuantityMismatch
+                                            ? BorderSide(
+                                              color: Colors.orange.shade700,
+                                              width: 1.5,
+                                            )
+                                            : const BorderSide(),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                      _isQuantityMismatch
+                                          ? Colors.orange.shade50
+                                          : Colors.grey.shade50,
+                                  helperText:
+                                      _isQuantityMismatch
+                                          ? 'Please explain why the delivery quantity differs from meter reading'
+                                          : null,
+                                  helperStyle: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                maxLines: 3,
+                                validator: (value) {
+                                  if (_isQuantityMismatch &&
+                                      (value == null || value.trim().isEmpty)) {
+                                    return 'Please provide a reason for the quantity difference';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ),
 
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submitFuelDelivery,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                    // Complete Delivery Button - Only shown after delivery started
+                    if (_deliveryStarted)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed:
+                                _isSubmitting ? null : _submitFuelDelivery,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          child:
-                              _isSubmitting
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                            child:
+                                _isSubmitting
+                                    ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Complete Delivery',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  )
-                                  : const Text(
-                                    'Complete Delivery',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               );
@@ -1215,7 +1330,7 @@ class _CustomerFuelDeliveryScreenState
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Tap to capture',
+                          onTap == null ? 'Photo captured' : 'Tap to capture',
                           style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ],

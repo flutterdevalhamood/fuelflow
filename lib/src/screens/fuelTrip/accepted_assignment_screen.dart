@@ -507,9 +507,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 child: const Text('Cancel'),
               ),
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(dialogContext).pop();
-                  Navigator.push(
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder:
@@ -539,9 +539,31 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             stopOrder: stop['stop_order'] ?? '1',
                             currentStopIndex: stopIndex,
                             totalStops: totalStops,
+                            driverId: assignment['driver_id'] ?? 0,
+                            siteName: stop['site_name'],
+                            stopVehicles:
+                                stop['stop_vehicles'] as List<dynamic>?,
                           ),
                     ),
                   );
+
+                  // If stop was completed, refresh the assignments
+                  if (result == true && mounted) {
+                    debugPrint(
+                      '🔄 Refreshing assignments after stop completion...',
+                    );
+                    await _refreshAssignments();
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Stop marked as delivered!'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Start Trip'),
@@ -1269,66 +1291,115 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                           ],
                         ),
 
-                        // Vehicle Count Section
                         if (stopVehicles.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           InkWell(
-                            onTap: () {
-                              setState(() {
-                                _expandedStopIndex = isExpanded ? null : index;
-                              });
+                            onTap: () async {
+                              // Navigate to VehicleListScreen using proper route
+                              final result = await NavigationService()
+                                  .pushNavigation(
+                                    Screenroutes.stopVehicleListScreen,
+                                    arguments: {
+                                      'stopVehicles': stopVehicles,
+                                      'assignment': assignment,
+                                      'stop': stop,
+                                      'customerName':
+                                          assignment['customer_name'] ??
+                                          'Unknown Customer',
+                                      'siteName':
+                                          stop['site_name'] ?? 'Unknown Site',
+                                    },
+                                  );
+
+                              // Refresh if any action was completed on vehicles
+                              if (result == true && mounted) {
+                                debugPrint(
+                                  '🔄 Auto-refreshing after vehicle action...',
+                                );
+                                await _refreshAssignments();
+
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Vehicles updated successfully!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              }
                             },
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.purple.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.purple.shade200,
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.black87,
+                                    Colors.purple.shade500,
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
                                 ),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.purple.shade200,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.directions_car,
-                                    size: 20,
-                                    color: Colors.purple.shade700,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Vehicles',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.purple.shade700,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
+                                    padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.purple.shade700,
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
+                                    child: const Icon(
+                                      Icons.directions_car,
+                                      size: 20,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
                                     child: Text(
-                                      '${stopVehicles.length}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                      'View Vehicles',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
                                         color: Colors.white,
                                       ),
                                     ),
                                   ),
-                                  const Spacer(),
-                                  Icon(
-                                    isExpanded
-                                        ? Icons.keyboard_arrow_up
-                                        : Icons.keyboard_arrow_down,
-                                    color: Colors.purple.shade700,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${stopVehicles.length}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.purple.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: Colors.white,
+                                    size: 16,
                                   ),
                                 ],
                               ),
