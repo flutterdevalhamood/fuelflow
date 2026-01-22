@@ -213,7 +213,7 @@ class FuelTripController with ChangeNotifier {
   }
 
   Future<bool> postVehicleNotAvailable({
-    required int vehicleId,
+    required List<int> vehicleId,
     required String description,
     required int tripStopId,
   }) async {
@@ -228,53 +228,46 @@ class FuelTripController with ChangeNotifier {
         throw Exception("No token found - user not authenticated");
       }
 
-      print(
-        '🔑 Marking vehicle unavailable with token: ${currentToken.substring(0, 20)}...',
+      debugPrint(
+        '🔑 Marking vehicles unavailable: $vehicleId, Stop: $tripStopId',
       );
-      print('Vehicle ID: $vehicleId, Trip Stop ID: $tripStopId');
 
       final response = await restApi.postVehicleNotAvailable(
         token: 'Bearer $currentToken',
-        vehicleId: vehicleId,
+        vehicleId: vehicleId, // ✅ LIST
         description: description,
         tripStopId: tripStopId,
       );
 
-      print('API Response: $response');
+      debugPrint('📦 API Response: $response');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('✅ Vehicle marked as unavailable successfully');
           isLoading = false;
           notifyListeners();
           return true;
         } else {
           errorMessage =
-              response['Message'] ?? 'Failed to mark vehicle as unavailable';
-          print('❌ API call failed: ${response['Message']}');
-          isLoading = false;
-          notifyListeners();
-          return false;
+              response['Message'] ?? 'Failed to mark vehicles as unavailable';
         }
       } else {
         errorMessage = 'Unexpected API response format';
-        print('❌ Unexpected API response format');
-        isLoading = false;
-        notifyListeners();
-        return false;
       }
     } catch (e) {
-      errorMessage = 'Failed to mark vehicle as unavailable';
-      print('❌ Exception: $e');
+      errorMessage = 'Failed to mark vehicle(s) as unavailable';
+      debugPrint('❌ Exception: $e');
+
       if (e is DioException) {
-        print('Dio error: ${e.message}');
-        print('Response: ${e.response?.data}');
-        print('Status code: ${e.response?.statusCode}');
+        debugPrint('Dio error: ${e.message}');
+        debugPrint('Response: ${e.response?.data}');
+        debugPrint('Status code: ${e.response?.statusCode}');
       }
+    } finally {
       isLoading = false;
       notifyListeners();
-      return false;
     }
+
+    return false;
   }
 
   void clearError() {

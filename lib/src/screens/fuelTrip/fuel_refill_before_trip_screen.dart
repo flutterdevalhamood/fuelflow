@@ -55,11 +55,28 @@ class _FuelRefillBeforeTripScreenState
   final _startMeterFocusNode = FocusNode();
   final _endMeterFocusNode = FocusNode();
 
+  // Calculate meter reading difference
+  int get _meterReadingDifference {
+    final startValue = int.tryParse(_startMeterController.text) ?? 0;
+    final endValue = int.tryParse(_endMeterController.text) ?? 0;
+    return endValue - startValue;
+  }
+
+  // Check if quantity matches meter difference
+  bool get _isQuantityMismatch {
+    if (_refillQuantityController.text.isEmpty) return false;
+    final refillQty = double.tryParse(_refillQuantityController.text) ?? 0;
+    return refillQty != _meterReadingDifference.toDouble();
+  }
+
   @override
   void initState() {
     super.initState();
-    final deficit = widget.requiredQty - widget.availableQty;
-    _refillQuantityController.text = deficit.toStringAsFixed(2);
+
+    // Add listeners to update UI when values change
+    _startMeterController.addListener(() => setState(() {}));
+    _endMeterController.addListener(() => setState(() {}));
+    _refillQuantityController.addListener(() => setState(() {}));
   }
 
   @override
@@ -116,29 +133,6 @@ class _FuelRefillBeforeTripScreenState
     }
   }
 
-  // Future<void> _pickImage(bool isStartMeter) async {
-  //   try {
-  //     final XFile? image = await _picker.pickImage(
-  //       source: ImageSource.camera,
-  //       imageQuality: 80,
-  //     );
-  //
-  //     if (image != null) {
-  //       setState(() {
-  //         if (isStartMeter) {
-  //           _startMeterPhoto = File(image.path);
-  //         } else {
-  //           _endMeterPhoto = File(image.path);
-  //         }
-  //       });
-  //     }
-  //   } catch (e) {
-  //     ScaffoldMessenger.of(
-  //       context,
-  //     ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
-  //   }
-  // }
-
   Future<void> _submitFuelRefill() async {
     if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
@@ -188,6 +182,26 @@ class _FuelRefillBeforeTripScreenState
       // Log refuel started
       await trackingController.logManualTripEvent(eventType: 'refuel_started');
 
+      // ========== LOG API REQUEST DATA ==========
+      debugPrint('📤 ===== FUEL REFILL API REQUEST =====');
+      debugPrint('vehicleId: ${widget.vehicleId}');
+      debugPrint('tripId: ${widget.tripId}');
+      debugPrint('tripStopId: ${widget.tripStopId}');
+      debugPrint('type: inflow');
+      debugPrint('quantity: $refillQty');
+      debugPrint('beforeQuantity: ${widget.availableQty}');
+      debugPrint('afterQuantity: ${widget.availableQty + refillQty}');
+      debugPrint('customerStartMeterReadingValue: 0');
+      debugPrint('customerEndMeterReadingValue: 0');
+      debugPrint('vehicleTankStartReadingValue: $startValue');
+      debugPrint('vehicleTankEndReadingValue: $endValue');
+      debugPrint('startMeterPhoto path: ${_startMeterPhoto!.path}');
+      debugPrint('endMeterPhoto path: ${_endMeterPhoto!.path}');
+      debugPrint(
+        'note: ${_noteController.text.trim().isEmpty ? 'null' : _noteController.text.trim()}',
+      );
+      debugPrint('📤 ====================================');
+
       // Submit fuel refill
       final success = await refillController.postFuelVehicleWithMeterReading(
         vehicleId: widget.vehicleId,
@@ -211,9 +225,14 @@ class _FuelRefillBeforeTripScreenState
                 : _noteController.text.trim(),
       );
 
+      // Log API response
+      debugPrint('📥 API Response - Success: $success');
+
       if (!mounted) return;
 
       if (success) {
+        debugPrint('✅ Fuel refill completed successfully');
+
         // Log critical events
         await trackingController.logCriticalTripEvent(
           eventType: 'refuel_completed',
@@ -244,10 +263,12 @@ class _FuelRefillBeforeTripScreenState
       } else {
         final errorMsg =
             refillController.errorMessage ?? 'Failed to complete refill';
+        debugPrint('❌ API Error: $errorMsg');
         _showSnackBar(errorMsg);
       }
     } catch (e) {
       debugPrint('❌ Refill error: $e');
+      debugPrint('❌ Stack trace: ${StackTrace.current}');
       _showSnackBar('An error occurred. Please try again.');
     } finally {
       if (mounted) {
@@ -507,12 +528,69 @@ class _FuelRefillBeforeTripScreenState
                       _buildFuelSummary(),
                       const SizedBox(height: 24),
 
-                      // Refill Quantity
-
                       // Meter Readings
                       _buildMeterReadings(),
                       const SizedBox(height: 24),
 
+                      // Meter Reading Difference Display
+                      if (_startMeterController.text.isNotEmpty &&
+                          _endMeterController.text.isNotEmpty &&
+                          _meterReadingDifference > 0)
+                        Card(
+                          elevation: 2,
+                          color: Colors.blue.shade50,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: Colors.blue.shade200,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calculate,
+                                  color: Colors.blue.shade700,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Meter Reading Difference',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${_meterReadingDifference.toStringAsFixed(2)} IG',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (_startMeterController.text.isNotEmpty &&
+                          _endMeterController.text.isNotEmpty &&
+                          _meterReadingDifference > 0)
+                        const SizedBox(height: 24),
+
+                      // Refill Quantity
                       _buildRefillQuantityField(),
                       const SizedBox(height: 24),
 
@@ -629,17 +707,30 @@ class _FuelRefillBeforeTripScreenState
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.grey),
+              borderSide: BorderSide(
+                color:
+                    _isQuantityMismatch ? Colors.orange.shade700 : Colors.grey,
+                width: _isQuantityMismatch ? 1.5 : 1,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Colors.orange, width: 2),
             ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor:
+                _isQuantityMismatch ? Colors.orange.shade50 : Colors.white,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
+            ),
+            helperText:
+                _isQuantityMismatch
+                    ? '⚠️ Quantity differs from meter reading difference'
+                    : null,
+            helperStyle: TextStyle(
+              color: Colors.orange.shade700,
+              fontWeight: FontWeight.w600,
             ),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -833,9 +924,11 @@ class _FuelRefillBeforeTripScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Additional Notes (Optional)',
-          style: TextStyle(
+        Text(
+          _isQuantityMismatch
+              ? 'Reason for Quantity Difference *'
+              : 'Additional Notes (Optional)',
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.black87,
@@ -845,12 +938,55 @@ class _FuelRefillBeforeTripScreenState
         TextFormField(
           controller: _noteController,
           decoration: InputDecoration(
-            hintText: 'Enter any notes here...',
-            prefixIcon: const Icon(Icons.note_add, color: Colors.blueGrey),
+            hintText:
+                _isQuantityMismatch
+                    ? 'Please explain the quantity difference...'
+                    : 'Enter any notes here...',
+            prefixIcon: Icon(
+              Icons.note_add,
+              color:
+                  _isQuantityMismatch
+                      ? Colors.orange.shade700
+                      : Colors.blueGrey,
+            ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color:
+                    _isQuantityMismatch ? Colors.orange.shade700 : Colors.grey,
+                width: _isQuantityMismatch ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color:
+                    _isQuantityMismatch ? Colors.orange.shade700 : Colors.blue,
+                width: 2,
+              ),
+            ),
+            filled: true,
+            fillColor:
+                _isQuantityMismatch ? Colors.orange.shade50 : Colors.white,
+            helperText:
+                _isQuantityMismatch
+                    ? 'Please explain why the refill quantity differs from meter reading'
+                    : null,
+            helperStyle: TextStyle(
+              color: Colors.orange.shade700,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           maxLines: 3,
           textInputAction: TextInputAction.done,
+          validator: (value) {
+            if (_isQuantityMismatch &&
+                (value == null || value.trim().isEmpty)) {
+              return 'Please provide a reason for the quantity difference';
+            }
+            return null;
+          },
         ),
       ],
     );

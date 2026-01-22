@@ -828,8 +828,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     );
   }
 
-  // Replace the _handleArrival method in TripStartedScreen with this complete implementation:
-
   Future<void> _handleArrival(BuildContext context) async {
     if (_isNavigating) return;
 
@@ -841,8 +839,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     debugPrint('🎯 Handle Arrival called');
     debugPrint('Stop Vehicles: ${widget.stopVehicles}');
     debugPrint('Stop Vehicles Length: ${widget.stopVehicles?.length ?? 0}');
-    debugPrint('Customer: ${widget.customerName}');
-    debugPrint('Site: ${widget.siteName}');
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -932,8 +928,135 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       debugPrint('❌ Error logging arrival: $e');
     }
 
-    // Navigate to Vehicle List Screen
-    await _navigateToVehicleListScreen();
+    // ✅ Check if there are vehicles
+    if (widget.stopVehicles == null || widget.stopVehicles!.isEmpty) {
+      debugPrint('⚠️ No vehicles found - showing start delivery dialog');
+      await _showStartDeliveryDialog();
+    } else {
+      debugPrint('✅ Vehicles found - navigating to vehicle list');
+      await _navigateToVehicleListScreen();
+    }
+  }
+
+  Future<void> _showStartDeliveryDialog() async {
+    if (!mounted) return;
+
+    final startDelivery = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.local_shipping, color: Colors.orange),
+                SizedBox(width: 12),
+                Text('Start Delivery'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Do you want to start the fuel delivery now?',
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.blue),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Customer: ${widget.customerName}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.local_gas_station,
+                            color: Colors.blue,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Delivery Quantity: ${widget.requiredQty.toStringAsFixed(2)} IG',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Start Delivery'),
+              ),
+            ],
+          ),
+    );
+
+    if (startDelivery == true && mounted) {
+      debugPrint('✅ Starting fuel delivery');
+      await _navigateToFuelDeliveryScreen();
+    } else {
+      debugPrint('⚠️ Delivery cancelled by user');
+    }
+  }
+
+  Future<void> _navigateToFuelDeliveryScreen() async {
+    final result = await NavigationService().pushNavigation(
+      Screenroutes.customerFuelDeliveryScreen,
+      arguments: {
+        'assignmentId': widget.assignmentId,
+        'vehicleId': widget.vehicleId,
+        'tripId': widget.tripId.toString(),
+        'tripStopId': widget.tripStopId ?? 0,
+        'requiredQty': widget.requiredQty,
+        'availableQty': widget.availableQty,
+        'vehicleName': widget.vehicleName,
+        'customerName': widget.customerName,
+        'stopOrder': widget.stopOrder,
+        'currentStopIndex': widget.currentStopIndex,
+        'totalStops': widget.totalStops,
+        'driverId': widget.driverId,
+      },
+    );
+
+    if (result == true && mounted) {
+      // Delivery completed, navigate back to accepted assignments
+      debugPrint(
+        '✅ Fuel delivery completed - returning to accepted assignments',
+      );
+      Navigator.of(context).pop(true);
+    }
   }
 
   Future<void> _navigateToVehicleListScreen() async {

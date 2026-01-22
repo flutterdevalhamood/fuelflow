@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
-import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
@@ -627,43 +626,43 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     }
   }
 
-  void _handleVehicleUnavailable(
-    BuildContext context,
-    Map<String, dynamic> assignment,
-    Map<String, dynamic> stop,
-    int vehicleId,
-    String plateNo,
-  ) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => VehicleUnavailableScreen(
-              vehicleId: vehicleId,
-              plateNo: plateNo,
-              tripStopId: int.tryParse(stop['stop_id']?.toString() ?? '0') ?? 0,
-              customerName: stop['customer_name']?.toString() ?? 'Unknown',
-              siteName: stop['site_name']?.toString() ?? 'Unknown',
-            ),
-      ),
-    );
-
-    // Refresh if vehicle was marked unavailable
-    if (result == true && mounted) {
-      debugPrint('🔄 Auto-refreshing after marking vehicle unavailable...');
-      await _refreshAssignments();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Vehicle $plateNo marked as unavailable'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
+  // void _handleVehicleUnavailable(
+  //   BuildContext context,
+  //   Map<String, dynamic> assignment,
+  //   Map<String, dynamic> stop,
+  //   int vehicleId,
+  //   String plateNo,
+  // ) async {
+  //   final result = await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder:
+  //           (context) => BulkVehicleUnavailableScreen(
+  //             vehicleId: vehicleId,
+  //             plateNo: plateNo,
+  //             tripStopId: int.tryParse(stop['stop_id']?.toString() ?? '0') ?? 0,
+  //             customerName: stop['customer_name']?.toString() ?? 'Unknown',
+  //             siteName: stop['site_name']?.toString() ?? 'Unknown',
+  //           ),
+  //     ),
+  //   );
+  //
+  //   // Refresh if vehicle was marked unavailable
+  //   if (result == true && mounted) {
+  //     debugPrint('🔄 Auto-refreshing after marking vehicle unavailable...');
+  //     await _refreshAssignments();
+  //
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Vehicle $plateNo marked as unavailable'),
+  //           backgroundColor: Colors.orange,
+  //           duration: const Duration(seconds: 2),
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 
   Widget _buildQuantityRow(String label, double quantity, Color color) {
     return Row(
@@ -1604,27 +1603,27 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                             ),
                                             const SizedBox(width: 8),
                                             // Make Unavailable Icon
-                                            IconButton(
-                                              onPressed:
-                                                  () =>
-                                                      _handleVehicleUnavailable(
-                                                        context,
-                                                        assignment,
-                                                        stop,
-                                                        vehicleId,
-                                                        plateNo,
-                                                      ),
-                                              icon: const Icon(Icons.block),
-                                              color: Colors.red,
-                                              tooltip: 'Mark Unavailable',
-                                              style: IconButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.red.shade50,
-                                                padding: const EdgeInsets.all(
-                                                  8,
-                                                ),
-                                              ),
-                                            ),
+                                            // IconButton(
+                                            //   onPressed:
+                                            //       () =>
+                                            //           _handleVehicleUnavailable(
+                                            //             context,
+                                            //             assignment,
+                                            //             stop,
+                                            //             vehicleId,
+                                            //             plateNo,
+                                            //           ),
+                                            //   icon: const Icon(Icons.block),
+                                            //   color: Colors.red,
+                                            //   tooltip: 'Mark Unavailable',
+                                            //   style: IconButton.styleFrom(
+                                            //     backgroundColor:
+                                            //         Colors.red.shade50,
+                                            //     padding: const EdgeInsets.all(
+                                            //       8,
+                                            //     ),
+                                            //   ),
+                                            // ),
                                           ],
                                         ],
                                       ),

@@ -121,12 +121,6 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
             ),
       ),
     );
-
-    if (result == true && mounted) {
-      if (_allVehiclesProcessed) {
-        _showCompletionDialog();
-      }
-    }
   }
 
   Future<void> _handleVehicleRefuel(Map<String, dynamic> vehicle) async {
@@ -172,10 +166,6 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
           backgroundColor: Colors.green,
         ),
       );
-
-      if (_allVehiclesProcessed) {
-        _showCompletionDialog();
-      }
     }
   }
 
@@ -188,9 +178,9 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => VehicleUnavailableScreen(
-              vehicleId: vehicleId,
-              plateNo: plateNo,
+            (context) => BulkVehicleUnavailableScreen(
+              vehicleIds: [],
+              vehicles: [],
               tripStopId: widget.stop['stop_id'] ?? 0,
               customerName: widget.customerName,
               siteName: widget.siteName,
@@ -216,10 +206,6 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
           backgroundColor: Colors.orange,
         ),
       );
-
-      if (_allVehiclesProcessed) {
-        _showCompletionDialog();
-      }
     }
   }
 
@@ -317,111 +303,6 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
         });
       }
     }
-  }
-
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder:
-          (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.check_circle, color: Colors.green.shade700),
-                ),
-                const SizedBox(width: 12),
-                const Flexible(
-                  child: Text(
-                    'All Vehicles Processed',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.done_all, color: Colors.green.shade700, size: 60),
-                const SizedBox(height: 16),
-                Text(
-                  'Stop delivery completed successfully!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildSummaryRow(
-                        'Completed',
-                        _completedCount,
-                        Colors.green,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildSummaryRow(
-                        'Unavailable',
-                        _unavailableCount,
-                        Colors.orange,
-                      ),
-                      const Divider(height: 16),
-                      _buildSummaryRow('Total', _vehicles.length, Colors.blue),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(dialogContext).pop();
-                      _handleCompleteStop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Complete Stop',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-    );
   }
 
   Widget _buildSummaryRow(String label, int count, Color color) {
@@ -654,68 +535,68 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
               ),
             ),
 
-            // Complete Stop Button
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade300,
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isCompletingStop ? null : _handleCompleteStop,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child:
-                        _isCompletingStop
-                            ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                            : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.check_circle_outline,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _allVehiclesProcessed
-                                      ? 'Complete Stop'
-                                      : 'Complete Stop ($_pendingCount Pending)',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                  ),
-                ),
-              ),
-            ),
+            // // Complete Stop Button
+            // Container(
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.white,
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Colors.grey.shade300,
+            //         blurRadius: 10,
+            //         offset: const Offset(0, -2),
+            //       ),
+            //     ],
+            //   ),
+            //   child: SafeArea(
+            //     child: SizedBox(
+            //       width: double.infinity,
+            //       child: ElevatedButton(
+            //         onPressed: _isCompletingStop ? null : _handleCompleteStop,
+            //         style: ElevatedButton.styleFrom(
+            //           backgroundColor: Colors.green,
+            //           foregroundColor: Colors.white,
+            //           padding: const EdgeInsets.symmetric(vertical: 16),
+            //           shape: RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.circular(12),
+            //           ),
+            //           elevation: 2,
+            //         ),
+            //         child:
+            //             _isCompletingStop
+            //                 ? const SizedBox(
+            //                   height: 20,
+            //                   width: 20,
+            //                   child: CircularProgressIndicator(
+            //                     strokeWidth: 2,
+            //                     valueColor: AlwaysStoppedAnimation<Color>(
+            //                       Colors.white,
+            //                     ),
+            //                   ),
+            //                 )
+            //                 : Row(
+            //                   mainAxisAlignment: MainAxisAlignment.center,
+            //                   children: [
+            //                     const Icon(
+            //                       Icons.check_circle_outline,
+            //                       size: 24,
+            //                     ),
+            //                     const SizedBox(width: 8),
+            //                     Text(
+            //                       _allVehiclesProcessed
+            //                           ? 'Complete Stop'
+            //                           : 'Complete Stop ($_pendingCount Pending)',
+            //                       style: const TextStyle(
+            //                         fontSize: 16,
+            //                         fontWeight: FontWeight.w600,
+            //                       ),
+            //                     ),
+            //                   ],
+            //                 ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -789,99 +670,85 @@ class _CustomerStopVehicleScreenState extends State<CustomerStopVehicleScreen> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: borderColor, width: 2),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Vehicle Icon
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: borderColor, width: 2),
+      child: InkWell(
+        onTap: isPending ? () => _handleVehicleRefuel(vehicle) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Vehicle Icon
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: borderColor, width: 2),
+                  ),
+                  child: Icon(Icons.directions_car, color: iconColor, size: 28),
                 ),
-                child: Icon(Icons.directions_car, color: iconColor, size: 28),
-              ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
 
-              // Vehicle Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plateNo,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: iconColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(statusIcon, size: 16, color: iconColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          statusLabel,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: iconColor,
-                          ),
+                // Vehicle Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        plateNo,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: iconColor,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(statusIcon, size: 16, color: iconColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: iconColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Action Icons (only show for pending vehicles)
-              if (isPending) ...[
-                const SizedBox(width: 8),
-                // Refuel Icon Button
-                Material(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(8),
-                  child: InkWell(
-                    onTap: () => _handleVehicleRefuel(vehicle),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      child: const Icon(
-                        Icons.local_gas_station,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Unavailable Icon Button
-                Material(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(8),
-                  child: InkWell(
-                    onTap: () => _handleVehicleUnavailable(vehicle),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      child: const Icon(
-                        Icons.block,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
+                // // Action Icons (only show for pending vehicles)
+                // if (isPending) ...[
+                //   const SizedBox(width: 8),
+                //   // Unavailable Icon Button
+                //   Material(
+                //     color: Colors.red,
+                //     borderRadius: BorderRadius.circular(8),
+                //     child: InkWell(
+                //       onTap: () => _handleVehicleUnavailable(vehicle),
+                //       borderRadius: BorderRadius.circular(8),
+                //       child: Container(
+                //         padding: const EdgeInsets.all(12),
+                //         child: const Icon(
+                //           Icons.block,
+                //           color: Colors.white,
+                //           size: 24,
+                //         ),
+                //       ),
+                //     ),
+                //   ),
+                // ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -2066,11 +2066,9 @@ class _RestClient implements RestClient {
   @override
   Future<dynamic> postVehicleNotAvailable({
     String? token,
-    int? vehicleId,
+    List<int>? vehicleId,
     String? description,
-    int? tripId,
     int? tripStopId,
-    String? status,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -2080,9 +2078,7 @@ class _RestClient implements RestClient {
     final _data = {
       'vehicle_id': vehicleId,
       'description': description,
-      'trip_id': tripId,
       'trip_stop_id': tripStopId,
-      'status': status,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(

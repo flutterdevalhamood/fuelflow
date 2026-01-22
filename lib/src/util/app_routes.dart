@@ -574,18 +574,20 @@ class Screenroutes {
 
       case Screenroutes.vehicleUnavailableScreen:
         final args = settings.arguments as Map<String, dynamic>?;
+
         return MaterialPageRoute(
           settings: const RouteSettings(
             name: Screenroutes.vehicleUnavailableScreen,
           ),
           builder: (BuildContext context) {
-            return VehicleUnavailableScreen(
-              vehicleId: args?['vehicleID'] as int? ?? 0,
-              plateNo: args?['plateNo'] as String? ?? '',
-
+            return BulkVehicleUnavailableScreen(
+              vehicleIds: List<int>.from(args?['vehicleIds'] ?? []),
+              vehicles: List<Map<String, dynamic>>.from(
+                args?['vehicles'] ?? [],
+              ),
               tripStopId: args?['tripStopId'] as int? ?? 0,
               customerName: args?['customerName'] as String? ?? '',
-              siteName: args?['customerName'] as String? ?? '',
+              siteName: args?['siteName'] as String? ?? '',
             );
           },
         );

@@ -467,75 +467,22 @@ class _CustomerFuelDeliveryScreenState
                       ],
                     ],
                   ),
-
                   actions: [
                     if (!_dialogProcessing)
                       ElevatedButton(
-                        onPressed: () async {
-                          // ... existing code ...
-
-                          if (mounted && Navigator.of(ctx).canPop()) {
+                        onPressed: () {
+                          if (Navigator.of(ctx).canPop()) {
                             Navigator.of(ctx).pop();
-                            await Future.delayed(
-                              const Duration(milliseconds: 100),
-                            );
+                          }
 
-                            if (mounted) {
-                              // Return true to indicate completion
-                              Navigator.of(context).pop(true);
-                            }
+                          if (mounted) {
+                            // ✅ Return true to indicate completion
+                            Navigator.of(context).pop(true);
                           }
                         },
                         child: const Text('OK'),
                       ),
                   ],
-                  // actions: [
-                  //   if (!_dialogProcessing)
-                  //     ElevatedButton(
-                  //       onPressed: () async {
-                  //         setDialogState(() {
-                  //           _dialogProcessing = true;
-                  //         });
-                  //
-                  //         try {
-                  //           if (isLastStop) {
-                  //             await Future.wait([
-                  //               _trackingController.logCriticalTripEvent(
-                  //                 eventType: 'moving_towards_base',
-                  //               ),
-                  //               _trackingController.logCriticalTripEvent(
-                  //                 eventType: 'returned_to_base',
-                  //               ),
-                  //             ]);
-                  //
-                  //             await _trackingController.stopTripTracking();
-                  //
-                  //             debugPrint('✅ All last stop events logged');
-                  //           } else {
-                  //             await _trackingController.logManualTripEvent(
-                  //               eventType: 'moving_towards_next_stop',
-                  //             );
-                  //             debugPrint('✅ Moving to next stop event logged');
-                  //           }
-                  //         } catch (e) {
-                  //           debugPrint('❌ Error in completion: $e');
-                  //         }
-                  //
-                  //         if (mounted && Navigator.of(ctx).canPop()) {
-                  //           Navigator.of(ctx).pop();
-                  //
-                  //           await Future.delayed(
-                  //             const Duration(milliseconds: 100),
-                  //           );
-                  //
-                  //           if (mounted) {
-                  //             _navigateToAcceptedAssignmentScreen();
-                  //           }
-                  //         }
-                  //       },
-                  //       child: const Text('OK'),
-                  //     ),
-                  // ],
                 ),
               );
             },
