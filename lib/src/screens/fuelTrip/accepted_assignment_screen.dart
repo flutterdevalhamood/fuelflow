@@ -88,6 +88,23 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     };
   }
 
+  bool _isStopDelivered(Map<String, dynamic> stop) {
+    final stopVehicles = stop['stop_vehicles'] as List<dynamic>? ?? [];
+
+    if (stopVehicles.isEmpty) {
+      final status = stop['status']?.toString().toLowerCase() ?? '';
+      return status == 'delivered' || status == 'completed';
+    }
+
+    bool allVehiclesProcessed = stopVehicles.every((vehicle) {
+      final statusValue =
+          int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
+      return statusValue != 0; // Not pending
+    });
+
+    return allVehiclesProcessed;
+  }
+
   void _handleStopSelection(
     BuildContext context,
     Map<String, dynamic> assignment,
@@ -1021,17 +1038,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                               >.from(
                                 tripStops.map((e) => e as Map<String, dynamic>),
                               )..sort((a, b) {
-                                final aStatus =
-                                    a['status']?.toString().toLowerCase() ?? '';
-                                final bStatus =
-                                    b['status']?.toString().toLowerCase() ?? '';
-
-                                final aCompleted =
-                                    aStatus == 'delivered' ||
-                                    aStatus == 'completed';
-                                final bCompleted =
-                                    bStatus == 'delivered' ||
-                                    bStatus == 'completed';
+                                // ✅ Use the helper method for sorting
+                                final aCompleted = _isStopDelivered(a);
+                                final bCompleted = _isStopDelivered(b);
 
                                 // Incomplete stops come first
                                 if (!aCompleted && bCompleted) return -1;
@@ -1125,8 +1134,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     final availableQty = _toDouble(assignment['available_qty']);
     final hasEnoughFuel = availableQty >= expectedQty;
 
-    final status = stop['status']?.toString().toLowerCase() ?? '';
-    final isCompleted = status == 'delivered' || status == 'completed';
+    // ✅ Use the new helper method instead of just checking backend status
+    final isCompleted = _isStopDelivered(stop);
 
     // Find the original index in the unsorted list for "previous stop" check
     final tripStops = assignment['trip_stops'] as List<dynamic>;
@@ -1135,9 +1144,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     bool isPreviousCompleted = true;
     if (originalIndex > 0) {
       final previousStop = tripStops[originalIndex - 1];
-      final prevStatus = previousStop['status']?.toString().toLowerCase() ?? '';
-      isPreviousCompleted =
-          prevStatus == 'delivered' || prevStatus == 'completed';
+      // ✅ Also use helper method for previous stop
+      isPreviousCompleted = _isStopDelivered(previousStop);
     }
 
     final isEnabled = isPreviousCompleted && !isCompleted;

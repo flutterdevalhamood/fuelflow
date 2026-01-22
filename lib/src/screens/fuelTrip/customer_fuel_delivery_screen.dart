@@ -386,6 +386,30 @@ class _CustomerFuelDeliveryScreenState
     try {
       await Future.delayed(const Duration(milliseconds: 300));
 
+      // ✅ LOG REQUEST DATA BEFORE API CALL
+      debugPrint('========================================');
+      debugPrint('📤 FUEL DELIVERY REQUEST');
+      debugPrint('========================================');
+      debugPrint('Vehicle ID: ${widget.vehicleId}');
+      debugPrint('Trip ID: ${widget.tripId}');
+      debugPrint('Trip Stop ID: ${widget.tripStopId}');
+      debugPrint('Type: outflow');
+      debugPrint('Quantity: ${double.parse(_deliveryQuantityController.text)}');
+      debugPrint('Before Quantity: ${widget.availableQty}');
+      debugPrint(
+        'After Quantity: ${widget.availableQty - double.parse(_deliveryQuantityController.text)}',
+      );
+      debugPrint(
+        'Customer Start Meter: ${int.tryParse(_startMeterController.text) ?? 0}',
+      );
+      debugPrint(
+        'Customer End Meter: ${int.tryParse(_endMeterController.text) ?? 0}',
+      );
+      debugPrint('Note: ${_noteController.text}');
+      debugPrint('Start Meter Photo Path: ${_startMeterPhoto!.path}');
+      debugPrint('End Meter Photo Path: ${_endMeterPhoto!.path}');
+      debugPrint('========================================');
+
       final success = await _refillController.postFuelVehicleWithMeterReading(
         vehicleId: widget.vehicleId,
         tripId: widget.tripId,
@@ -409,6 +433,13 @@ class _CustomerFuelDeliveryScreenState
         vehicleEndMeterFiles: const [],
       );
 
+      // ✅ LOG RESPONSE
+      debugPrint('========================================');
+      debugPrint('📥 FUEL DELIVERY RESPONSE');
+      debugPrint('========================================');
+      debugPrint('Success: $success');
+      debugPrint('========================================');
+
       if (!success || !mounted) {
         _showSnackBar('Delivery failed', backgroundColor: Colors.red);
         setState(() => _isSubmitting = false);
@@ -427,7 +458,14 @@ class _CustomerFuelDeliveryScreenState
         _showCompletionDialog(isLastStop);
       }
     } catch (e) {
-      debugPrint('❌ Error occurred: $e');
+      // ✅ LOG ERROR
+      debugPrint('========================================');
+      debugPrint('❌ FUEL DELIVERY ERROR');
+      debugPrint('========================================');
+      debugPrint('Error: $e');
+      debugPrint('Stack Trace: ${StackTrace.current}');
+      debugPrint('========================================');
+
       _showSnackBar('Error occurred', backgroundColor: Colors.red);
       if (mounted) setState(() => _isSubmitting = false);
     }

@@ -170,23 +170,36 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
     try {
       // Log the moving_towards_base event
-      final success = await _trackingController.logManualTripEvent(
+      final movingSuccess = await _trackingController.logManualTripEvent(
         eventType: 'moving_towards_base',
         description:
             'Moving towards base from ${widget.customerName} ($_completedCount completed, $_unavailableCount unavailable)',
       );
 
-      if (!success) {
+      if (!movingSuccess) {
         debugPrint('⚠️ Failed to log moving_towards_base event');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Warning: Failed to log event'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+      }
+
+      // Log the returned_to_base event
+      final returnedSuccess = await _trackingController.logManualTripEvent(
+        eventType: 'returned_to_base',
+        description:
+            'Returned to base from ${widget.customerName} ($_completedCount completed, $_unavailableCount unavailable)',
+      );
+
+      if (!returnedSuccess) {
+        debugPrint('⚠️ Failed to log returned_to_base event');
+      }
+
+      // Show warning if either event failed
+      if ((!movingSuccess || !returnedSuccess) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Warning: Failed to log one or more events'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
 
       if (mounted) {
@@ -199,7 +212,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Returning to base'),
+            content: Text('Returned to base'),
             backgroundColor: Colors.blue,
             duration: Duration(seconds: 2),
           ),
