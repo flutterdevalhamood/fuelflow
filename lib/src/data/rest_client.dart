@@ -473,6 +473,7 @@ abstract class RestClient {
     int? customerEndMeterReadingValue,
     @Part(name: 'customer_end_meter')
     List<MultipartFile>? customerEndMeterFiles,
+    @Part(name: 'files') List<MultipartFile>? additionalFiles,
   });
 
   @GET('/Driver/GetTripEvents')

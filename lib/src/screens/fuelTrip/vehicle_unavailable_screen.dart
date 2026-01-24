@@ -28,6 +28,31 @@ class _BulkVehicleUnavailableScreenState
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   bool _isSubmitting = false;
+  String? _selectedReason;
+
+  // Predefined reasons
+  final List<Map<String, dynamic>> _reasons = [
+    {
+      'label': 'Breakdown',
+      'icon': Icons.car_crash,
+      'text': 'Vehicle breakdown - requires immediate repair',
+    },
+    {
+      'label': 'Maintenance',
+      'icon': Icons.build,
+      'text': 'Scheduled maintenance service',
+    },
+    {
+      'label': 'Accident',
+      'icon': Icons.warning,
+      'text': 'Vehicle involved in an accident',
+    },
+    {
+      'label': 'Fuel Issue',
+      'icon': Icons.local_gas_station,
+      'text': 'Fuel system problem or fuel unavailability',
+    },
+  ];
 
   @override
   void dispose() {
@@ -48,6 +73,13 @@ class _BulkVehicleUnavailableScreenState
     );
   }
 
+  void _selectReason(String label, String text) {
+    setState(() {
+      _selectedReason = label;
+      _descriptionController.text = text;
+    });
+  }
+
   Future<void> _submitBulkUnavailable() async {
     if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
@@ -58,7 +90,7 @@ class _BulkVehicleUnavailableScreenState
       final controller = context.read<FuelTripController>();
 
       final success = await controller.postVehicleNotAvailable(
-        vehicleId: widget.vehicleIds, // ✅ ARRAY
+        vehicleId: widget.vehicleIds,
         description: _descriptionController.text.trim(),
         tripStopId: widget.tripStopId,
       );
@@ -161,8 +193,74 @@ class _BulkVehicleUnavailableScreenState
 
                 const SizedBox(height: 24),
 
+                // Quick Reason Selection
                 const Text(
-                  'Reason for Unavailability',
+                  'Select Reason',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      _reasons.map((reason) {
+                        final isSelected = _selectedReason == reason['label'];
+                        return InkWell(
+                          onTap:
+                              () => _selectReason(
+                                reason['label'] as String,
+                                reason['text'] as String,
+                              ),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.red : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    isSelected ? Colors.red : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  reason['icon'] as IconData,
+                                  size: 18,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : Colors.grey[700],
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  reason['label'] as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+
+                const SizedBox(height: 24),
+
+                const Text(
+                  'Reason Details',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
@@ -172,7 +270,7 @@ class _BulkVehicleUnavailableScreenState
                   maxLines: 4,
                   maxLength: 500,
                   decoration: InputDecoration(
-                    hintText: 'e.g., Breakdown, maintenance, accident, etc.',
+                    hintText: 'Provide detailed reason or select from above',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -189,6 +287,18 @@ class _BulkVehicleUnavailableScreenState
                       return 'Minimum 10 characters required';
                     }
                     return null;
+                  },
+                  onChanged: (value) {
+                    // Clear selection if user manually edits
+                    if (_selectedReason != null) {
+                      final selectedText =
+                          _reasons.firstWhere(
+                            (r) => r['label'] == _selectedReason,
+                          )['text'];
+                      if (value != selectedText) {
+                        setState(() => _selectedReason = null);
+                      }
+                    }
                   },
                 ),
 

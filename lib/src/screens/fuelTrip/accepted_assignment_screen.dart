@@ -117,17 +117,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
     final totalStops = tripStops.length;
 
-    final status = stop['status']?.toString().toLowerCase() ?? '';
-    if (status == 'delivered' || status == 'completed') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This stop has already been completed'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
+    // Removed the completed stop check - directly proceed with fuel check
     if (availableQty < requiredQty) {
       _showRefillDialog(
         context,
@@ -142,8 +132,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
       _showStartTripDialog(context, assignment, stop, stopIndex, totalStops);
     }
   }
-
-  // Update the _showRefillDialog method in AcceptedAssignmentScreen
 
   void _showRefillDialog(
     BuildContext context,
@@ -243,7 +231,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
 
-                  // ✅ Navigate and wait for result
                   final result = await NavigationService().pushNavigation(
                     Screenroutes.fuelRefillBeforeTripScreen,
                     arguments: {
@@ -711,7 +698,16 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Accepted Trips'), elevation: 0),
+      appBar: AppBar(
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back),
+        //   onPressed: () {
+        //     NavigationService().pushNavigation(Screenroutes.dashboard);
+        //   },
+        // ),
+        title: const Text('Accepted Trips'),
+        elevation: 0,
+      ),
       body: Consumer<FuelTripController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {

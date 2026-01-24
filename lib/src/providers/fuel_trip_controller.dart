@@ -20,7 +20,6 @@ class FuelTripController with ChangeNotifier {
   String? errorMessage;
 
   Future<void> getAssignedTrips({bool loadMore = false}) async {
-    // ✅ FIXED: Clear old data BEFORE making API call (only if not loading more)
     if (!loadMore) {
       assignedTripsData = null;
       currentPage = 1;

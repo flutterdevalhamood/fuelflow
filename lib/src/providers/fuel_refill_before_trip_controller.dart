@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:sample/src/util/image_compression.dart';
 
 import '../data/rest_client.dart';
 import '../repo/auth_repo.dart';
+// Import the helper
 
 class FuelRefillBeforeTripController extends ChangeNotifier {
   bool isLoading = false;
@@ -29,6 +31,7 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
     required List<File> vehicleStartMeterFiles,
     required int vehicleTankEndReadingValue,
     required List<File> vehicleEndMeterFiles,
+    List<File>? additionalFiles,
     String? note,
   }) async {
     isSubmittingRefill = true;
@@ -43,25 +46,56 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
       }
 
       debugPrint('🚀 Submitting fuel refill...');
+      debugPrint('📦 Compressing images before upload...');
 
-      // Prepare multipart files
+      // Compress all images before upload
+      final compressedCustomerStart =
+          await ImageCompressionHelper.compressMultipleImages(
+            customerStartMeterFiles,
+          );
+      final compressedCustomerEnd =
+          await ImageCompressionHelper.compressMultipleImages(
+            customerEndMeterFiles,
+          );
+      final compressedVehicleStart =
+          await ImageCompressionHelper.compressMultipleImages(
+            vehicleStartMeterFiles,
+          );
+      final compressedVehicleEnd =
+          await ImageCompressionHelper.compressMultipleImages(
+            vehicleEndMeterFiles,
+          );
+      final compressedAdditional =
+          additionalFiles != null
+              ? await ImageCompressionHelper.compressMultipleImages(
+                additionalFiles,
+              )
+              : <File>[];
+
+      debugPrint('✅ Image compression completed');
+
+      // Prepare multipart files with compressed images
       Future<List<MultipartFile>> prepareFiles(List<File> files) async {
         if (files.isEmpty) return [];
         return await Future.wait(
-          files.map(
-            (file) async => await MultipartFile.fromFile(
+          files.map((file) async {
+            final multipartFile = await MultipartFile.fromFile(
               file.path,
               filename: file.path.split('/').last,
-            ),
-          ),
+            );
+            debugPrint(
+              '📁 File: ${file.path.split('/').last}, Size: ${await file.length()} bytes',
+            );
+            return multipartFile;
+          }),
         );
       }
 
-      // ✅ FIXED: Prepare CUSTOMER meter files instead of vehicle files
-      final customerStartFiles = await prepareFiles(customerStartMeterFiles);
-      final customerEndFiles = await prepareFiles(customerEndMeterFiles);
-      final vehicleStartFiles = await prepareFiles(vehicleStartMeterFiles);
-      final vehicleEndFiles = await prepareFiles(vehicleEndMeterFiles);
+      final customerStartFiles = await prepareFiles(compressedCustomerStart);
+      final customerEndFiles = await prepareFiles(compressedCustomerEnd);
+      final vehicleStartFiles = await prepareFiles(compressedVehicleStart);
+      final vehicleEndFiles = await prepareFiles(compressedVehicleEnd);
+      final additionalMultipartFiles = await prepareFiles(compressedAdditional);
 
       debugPrint(
         '📁 Prepared ${customerStartFiles.length} customer start photos',
@@ -71,8 +105,27 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         '📁 Prepared ${vehicleStartFiles.length} vehicle start photos',
       );
       debugPrint('📁 Prepared ${vehicleEndFiles.length} vehicle end photos');
+      debugPrint(
+        '📁 Prepared ${additionalMultipartFiles.length} additional photos',
+      );
 
-      final response = await RestClient(Dio()).postFuelVehicleWithMeterReading(
+      // Create Dio with proper timeout configuration
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 120),
+          sendTimeout: const Duration(seconds: 120),
+        ),
+      );
+
+      // Add logging interceptor
+      dio.interceptors.add(
+        LogInterceptor(requestBody: false, responseBody: true, error: true),
+      );
+
+      debugPrint('🌐 Sending API request...');
+
+      final response = await RestClient(dio).postFuelVehicleWithMeterReading(
         token: 'Bearer $token',
         vehicleId: vehicleId,
         tripId: tripId,
@@ -86,26 +139,17 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         vehicleStartMeterFiles: vehicleStartFiles,
         vehicleTankEndReadingValue: vehicleTankEndReadingValue,
         vehicleEndMeterFiles: vehicleEndFiles,
-        // ✅ FIXED: Pass customer meter readings and files
         customerStartMeterReadingValue: customerStartMeterReadingValue,
         customerStartMeterFiles: customerStartFiles,
         customerEndMeterReadingValue: customerEndMeterReadingValue,
         customerEndMeterFiles: customerEndFiles,
+        additionalFiles: additionalMultipartFiles,
       );
 
       debugPrint('✅ API Response received');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          debugPrint(
-            '🔍 Vehicle Tank Start Reading: $vehicleTankStartReadingValue',
-          );
-          debugPrint(
-            '🔍 Vehicle Tank End Reading: $vehicleTankEndReadingValue',
-          );
-          debugPrint('🔍 Vehicle Start Files: ${vehicleStartFiles.length}');
-          debugPrint('🔍 Vehicle End Files: ${vehicleEndFiles.length}');
-
           successMessage =
               response['Message'] ?? 'Fuel refill completed successfully';
 
@@ -151,6 +195,8 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
           errorMessage = 'Connection timeout. Please check your internet.';
         } else if (e.type == DioExceptionType.receiveTimeout) {
           errorMessage = 'Server timeout. Please try again.';
+        } else if (e.type == DioExceptionType.sendTimeout) {
+          errorMessage = 'Upload timeout. Images may be too large.';
         } else if (e.type == DioExceptionType.connectionError) {
           errorMessage = 'No internet connection. Please check your network.';
         } else {

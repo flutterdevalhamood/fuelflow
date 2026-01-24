@@ -23,6 +23,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
   final int currentStopIndex;
   final int totalStops;
   final int driverId;
+  final List<dynamic>? stopVehicles;
 
   const CustomerFuelDeliveryScreen({
     Key? key,
@@ -38,6 +39,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
     required this.currentStopIndex,
     required this.totalStops,
     required this.driverId,
+    this.stopVehicles,
   }) : super(key: key);
 
   @override
@@ -60,6 +62,9 @@ class _CustomerFuelDeliveryScreenState
   File? _startMeterPhoto;
   File? _endMeterPhoto;
 
+  // NEW: List for additional images
+  List<File> _additionalImages = [];
+
   final ImagePicker _picker = ImagePicker();
 
   late TripTrackingController _trackingController;
@@ -78,20 +83,17 @@ class _CustomerFuelDeliveryScreenState
   bool _customerLoadingCompletedLogged = false;
   bool _driverNotesAddedLogged = false;
 
-  // New flags for delivery buttons
   bool _refuelStartedLogged = false;
   bool _refuelCompletedLogged = false;
   bool _deliveryStarted = false;
   bool _deliveryEnded = false;
 
-  // Calculate meter reading difference
   int get _meterReadingDifference {
     final startValue = int.tryParse(_startMeterController.text) ?? 0;
     final endValue = int.tryParse(_endMeterController.text) ?? 0;
     return endValue - startValue;
   }
 
-  // Check if quantity matches meter difference
   bool get _isQuantityMismatch {
     if (_deliveryQuantityController.text.isEmpty) return false;
     final deliveryQty = double.tryParse(_deliveryQuantityController.text) ?? 0;
@@ -208,11 +210,9 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // NEW: Start Delivery Button Handler
   Future<void> _handleStartDelivery() async {
     if (_deliveryStarted || _refuelStartedLogged) return;
 
-    // Validate start meter reading and photo
     if (_startMeterController.text.isEmpty) {
       _showSnackBar('Please enter start meter reading');
       return;
@@ -222,6 +222,57 @@ class _CustomerFuelDeliveryScreenState
       _showSnackBar('Please capture start meter photo');
       return;
     }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirm Start Refueling'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Please confirm the following details:'),
+                const SizedBox(height: 12),
+                Text(
+                  'Start Meter Reading: ${_startMeterController.text} IG',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Start meter photo has been captured',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Once confirmed, you cannot modify these details.',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm & Start'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) return;
 
     setState(() => _isSubmitting = true);
 
@@ -254,7 +305,6 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  // NEW: End Delivery Button Handler
   Future<void> _handleEndDelivery() async {
     if (_deliveryEnded || _refuelCompletedLogged) return;
 
@@ -263,7 +313,6 @@ class _CustomerFuelDeliveryScreenState
       return;
     }
 
-    // Validate end meter reading and photo
     if (_endMeterController.text.isEmpty) {
       _showSnackBar('Please enter end meter reading');
       return;
@@ -280,6 +329,73 @@ class _CustomerFuelDeliveryScreenState
       _showSnackBar('End reading must be greater than start reading');
       return;
     }
+
+    final meterDifference = endValue! - startValue!;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirm End Refueling'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Please confirm the following details:'),
+                const SizedBox(height: 12),
+                Text(
+                  'Start Meter Reading: ${_startMeterController.text} IG',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'End Meter Reading: ${_endMeterController.text} IG',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Meter Difference: $meterDifference IG',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'End meter photo has been captured',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Once confirmed, you cannot modify these details.',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm & End'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true) return;
 
     setState(() => _isSubmitting = true);
 
@@ -312,6 +428,65 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
+  Future<void> _pickAdditionalImages() async {
+    try {
+      final images = await _picker.pickMultiImage(
+        imageQuality: 60, // Reduced from 85
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      if (images.isNotEmpty && mounted) {
+        // Limit number of additional images
+        if (_additionalImages.length + images.length > 5) {
+          _showSnackBar(
+            'Maximum 5 additional images allowed',
+            backgroundColor: Colors.orange,
+          );
+          return;
+        }
+
+        // Check total file size
+        int totalSize = 0;
+        final newFiles = <File>[];
+
+        for (var img in images) {
+          final file = File(img.path);
+          final size = await file.length();
+          totalSize += size;
+          newFiles.add(file);
+        }
+
+        if (totalSize > 10 * 1024 * 1024) {
+          // 10MB total limit
+          _showSnackBar(
+            'Total image size too large. Please select fewer or smaller images.',
+            backgroundColor: Colors.orange,
+          );
+          return;
+        }
+
+        setState(() {
+          _additionalImages.addAll(newFiles);
+        });
+
+        _showSnackBar(
+          '${images.length} image(s) added',
+          backgroundColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      _showSnackBar('Failed to pick images');
+    }
+  }
+
+  // NEW: Remove an additional image
+  void _removeAdditionalImage(int index) {
+    setState(() {
+      _additionalImages.removeAt(index);
+    });
+  }
+
   @override
   void dispose() {
     _startMeterController.removeListener(_onStartMeterChanged);
@@ -341,13 +516,29 @@ class _CustomerFuelDeliveryScreenState
     try {
       final image = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        imageQuality: 60,
+        maxWidth: 1024,
+        maxHeight: 1024,
       );
 
       if (image != null && mounted) {
-        setState(() => onPicked(File(image.path)));
+        final file = File(image.path);
 
-        // Auto-focus the next text field after image is selected
+        // Check file size before accepting
+        final fileSize = await file.length();
+        debugPrint('📸 Selected image size: $fileSize bytes');
+
+        if (fileSize > 5 * 1024 * 1024) {
+          // 5MB limit
+          _showSnackBar(
+            'Image too large. Please select a smaller image.',
+            backgroundColor: Colors.orange,
+          );
+          return;
+        }
+
+        setState(() => onPicked(file));
+
         if (focusNode != null) {
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) {
@@ -386,7 +577,6 @@ class _CustomerFuelDeliveryScreenState
     try {
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // ✅ LOG REQUEST DATA BEFORE API CALL
       debugPrint('========================================');
       debugPrint('📤 FUEL DELIVERY REQUEST');
       debugPrint('========================================');
@@ -408,6 +598,7 @@ class _CustomerFuelDeliveryScreenState
       debugPrint('Note: ${_noteController.text}');
       debugPrint('Start Meter Photo Path: ${_startMeterPhoto!.path}');
       debugPrint('End Meter Photo Path: ${_endMeterPhoto!.path}');
+      debugPrint('Additional Images Count: ${_additionalImages.length}');
       debugPrint('========================================');
 
       final success = await _refillController.postFuelVehicleWithMeterReading(
@@ -431,9 +622,9 @@ class _CustomerFuelDeliveryScreenState
         vehicleStartMeterFiles: const [],
         vehicleTankEndReadingValue: 0,
         vehicleEndMeterFiles: const [],
+        additionalFiles: _additionalImages, // NEW PARAMETER
       );
 
-      // ✅ LOG RESPONSE
       debugPrint('========================================');
       debugPrint('📥 FUEL DELIVERY RESPONSE');
       debugPrint('========================================');
@@ -458,7 +649,6 @@ class _CustomerFuelDeliveryScreenState
         _showCompletionDialog(isLastStop);
       }
     } catch (e) {
-      // ✅ LOG ERROR
       debugPrint('========================================');
       debugPrint('❌ FUEL DELIVERY ERROR');
       debugPrint('========================================');
@@ -514,7 +704,6 @@ class _CustomerFuelDeliveryScreenState
                           }
 
                           if (mounted) {
-                            // ✅ Return true to indicate completion
                             Navigator.of(context).pop(true);
                           }
                         },
@@ -706,7 +895,7 @@ class _CustomerFuelDeliveryScreenState
                             ),
                             const SizedBox(height: 16),
 
-                            // START METER SECTION - Hidden after delivery started
+                            // START METER SECTION
                             if (!_deliveryStarted) ...[
                               Card(
                                 elevation: 2,
@@ -761,7 +950,6 @@ class _CustomerFuelDeliveryScreenState
                                       ),
                                       const SizedBox(height: 16),
 
-                                      // START DELIVERY BUTTON
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton.icon(
@@ -819,7 +1007,7 @@ class _CustomerFuelDeliveryScreenState
                               const SizedBox(height: 16),
                             ],
 
-                            // START METER SUMMARY - Shown after delivery started
+                            // START METER SUMMARY
                             if (_deliveryStarted) ...[
                               Card(
                                 elevation: 2,
@@ -873,7 +1061,7 @@ class _CustomerFuelDeliveryScreenState
                               const SizedBox(height: 16),
                             ],
 
-                            // END METER SECTION - Only shown after delivery started but before delivery ended
+                            // END METER SECTION
                             if (_deliveryStarted && !_deliveryEnded) ...[
                               Card(
                                 elevation: 2,
@@ -937,7 +1125,6 @@ class _CustomerFuelDeliveryScreenState
                                       ),
                                       const SizedBox(height: 16),
 
-                                      // END DELIVERY BUTTON
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton.icon(
@@ -993,7 +1180,7 @@ class _CustomerFuelDeliveryScreenState
                               const SizedBox(height: 24),
                             ],
 
-                            // END METER SUMMARY - Shown after delivery ended
+                            // END METER SUMMARY
                             if (_deliveryEnded) ...[
                               Card(
                                 elevation: 2,
@@ -1107,8 +1294,115 @@ class _CustomerFuelDeliveryScreenState
                                 _deliveryStarted)
                               const SizedBox(height: 24),
 
-                            // Delivery Quantity and Notes sections only shown after delivery started
+                            // NEW: Additional Images Section (Only after delivery started)
                             if (_deliveryStarted) ...[
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Additional Images (Optional)',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _pickAdditionalImages,
+                                    icon: const Icon(Icons.add_photo_alternate),
+                                    label: const Text('Add Images'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (_additionalImages.isNotEmpty)
+                                SizedBox(
+                                  height: 120,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: _additionalImages.length,
+                                    itemBuilder: (context, index) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 12,
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Image.file(
+                                                _additionalImages[index],
+                                                width: 120,
+                                                height: 120,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 4,
+                                              right: 4,
+                                              child: GestureDetector(
+                                                onTap:
+                                                    () =>
+                                                        _removeAdditionalImage(
+                                                          index,
+                                                        ),
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    4,
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 18,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                )
+                              else
+                                Card(
+                                  elevation: 1,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.photo_library_outlined,
+                                          color: Colors.grey.shade400,
+                                          size: 32,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'No additional images added',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 24),
+
+                              // Delivery Quantity
                               const Text(
                                 'Delivery Quantity',
                                 style: TextStyle(
@@ -1216,7 +1510,7 @@ class _CustomerFuelDeliveryScreenState
                       ),
                     ),
 
-                    // Complete Delivery Button - Only shown after delivery started
+                    // Complete Delivery Button
                     if (_deliveryStarted)
                       Padding(
                         padding: const EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
+import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -11,7 +12,7 @@ class AllVehiclesScreen extends StatefulWidget {
   final String siteName;
   final Map<String, dynamic> assignment;
   final Map<String, dynamic> stop;
-  final Function(List<Map<String, dynamic>>) onVehicleUpdated;
+  final Function(List<Map<String, dynamic>>)? onVehicleUpdated;
 
   const AllVehiclesScreen({
     Key? key,
@@ -20,7 +21,7 @@ class AllVehiclesScreen extends StatefulWidget {
     required this.siteName,
     required this.assignment,
     required this.stop,
-    required this.onVehicleUpdated,
+    this.onVehicleUpdated,
   }) : super(key: key);
 
   @override
@@ -39,6 +40,9 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   // Multi-select state
   bool _isMultiSelectMode = false;
   final Set<int> _selectedVehicleIds = {};
+
+  final int _initialDisplayCount = 1;
+  bool _showAllVehicles = false;
 
   @override
   void initState() {
@@ -152,7 +156,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         _isMultiSelectMode = false;
       });
 
-      widget.onVehicleUpdated(_vehicles);
+      widget.onVehicleUpdated?.call(_vehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -169,57 +173,28 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      // Log the moving_towards_base event
-      final movingSuccess = await _trackingController.logManualTripEvent(
-        eventType: 'moving_towards_base',
-        description:
-            'Moving towards base from ${widget.customerName} ($_completedCount completed, $_unavailableCount unavailable)',
+      // Navigate to TripReturnScreen
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => TripReturnScreen(
+                tripId:
+                    int.tryParse(
+                      widget.assignment['trip_id']?.toString() ?? '0',
+                    ) ??
+                    0,
+                assignmentId: widget.assignment['assignment_id'] ?? 0,
+                vehicleId: widget.assignment['vehicle_id'] ?? 0,
+                driverId: widget.assignment['driver_id'] ?? 0,
+                customerName: widget.customerName,
+                completedCount: _completedCount,
+                unavailableCount: _unavailableCount,
+              ),
+        ),
       );
-
-      if (!movingSuccess) {
-        debugPrint('⚠️ Failed to log moving_towards_base event');
-      }
-
-      // Log the returned_to_base event
-      final returnedSuccess = await _trackingController.logManualTripEvent(
-        eventType: 'returned_to_base',
-        description:
-            'Returned to base from ${widget.customerName} ($_completedCount completed, $_unavailableCount unavailable)',
-      );
-
-      if (!returnedSuccess) {
-        debugPrint('⚠️ Failed to log returned_to_base event');
-      }
-
-      // Show warning if either event failed
-      if ((!movingSuccess || !returnedSuccess) && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Warning: Failed to log one or more events'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-
-      if (mounted) {
-        // Navigate to AcceptedAssignment screen
-        // Clear all previous routes and navigate to AcceptedAssignment
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          Screenroutes.acceptedAssignmentScreen,
-          (route) => false,
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Returned to base'),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
-      debugPrint('❌ Error logging return to base: $e');
+      debugPrint('❌ Error navigating to return screen: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -314,7 +289,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         }
       });
 
-      widget.onVehicleUpdated(_vehicles);
+      widget.onVehicleUpdated?.call(_vehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -358,7 +333,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         _filterVehicles();
       });
 
-      widget.onVehicleUpdated(_vehicles);
+      widget.onVehicleUpdated?.call(_vehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -376,6 +351,53 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     return double.tryParse(value.toString()) ?? 0.0;
   }
 
+  Future<bool> onWillPop() async {
+    if (_isMultiSelectMode) {
+      setState(() {
+        _isMultiSelectMode = false;
+        _selectedVehicleIds.clear();
+      });
+      return false;
+    }
+
+    if (_pendingCount > 0) {
+      final shouldPop = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Incomplete Deliveries'),
+              content: Text(
+                'You have $_pendingCount vehicle(s) pending. '
+                'Are you sure you want to go back?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Stay'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+      );
+
+      if (shouldPop == true) {
+        NavigationService().navigateToUntil(
+          Screenroutes.acceptedAssignmentScreen,
+        );
+      }
+      return false;
+    }
+
+    NavigationService().navigateToUntil(Screenroutes.acceptedAssignmentScreen);
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -387,7 +409,47 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
           });
           return false;
         }
-        return true;
+
+        // ADD THIS: Check if there are pending vehicles
+        if (_pendingCount > 0) {
+          final shouldPop = await showDialog<bool>(
+            context: context,
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Incomplete Deliveries'),
+                  content: Text(
+                    'You have $_pendingCount vehicle(s) pending. '
+                    'Are you sure you want to go back?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Stay'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                      ),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+          );
+
+          if (shouldPop == true) {
+            NavigationService().navigateToUntil(
+              Screenroutes.acceptedAssignmentScreen,
+            );
+            return false;
+          }
+          return false;
+        }
+
+        NavigationService().pushAndRemoveUntilNavigation(
+          Screenroutes.acceptedAssignmentScreen,
+        );
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -397,6 +459,13 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                 : 'All Vehicles',
           ),
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              final shouldPop = await onWillPop();
+              // onWillPop handles everything, no need to pop again
+            },
+          ),
           actions: [
             if (_pendingCount > 0)
               IconButton(
@@ -522,7 +591,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
             const SizedBox(height: 16),
 
-            // Vehicle List
             Expanded(
               child:
                   _filteredVehicles.isEmpty
@@ -548,14 +616,65 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                       )
                       : ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredVehicles.length,
+                        itemCount:
+                            _showAllVehicles
+                                ? _filteredVehicles.length
+                                : (_filteredVehicles.length >
+                                        _initialDisplayCount
+                                    ? _initialDisplayCount + 1
+                                    : _filteredVehicles.length),
                         itemBuilder: (context, index) {
+                          // Show "View More" button after initial vehicles
+                          if (!_showAllVehicles &&
+                              _filteredVehicles.length > _initialDisplayCount &&
+                              index == _initialDisplayCount) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showAllVehicles = true;
+                                  });
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  side: BorderSide(
+                                    color: Colors.blue.shade400,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.expand_more,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'View All ${_filteredVehicles.length} Vehicles',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
                           final vehicle = _filteredVehicles[index];
                           return _buildVehicleCard(vehicle);
                         },
                       ),
             ),
-
             // Return to Base Button (show when all vehicles are processed)
             if (_pendingCount == 0 &&
                 _vehicles.isNotEmpty &&

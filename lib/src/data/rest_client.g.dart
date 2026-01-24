@@ -1768,6 +1768,7 @@ class _RestClient implements RestClient {
     List<MultipartFile>? customerStartMeterFiles,
     int? customerEndMeterReadingValue,
     List<MultipartFile>? customerEndMeterFiles,
+    List<MultipartFile>? additionalFiles,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1850,6 +1851,9 @@ class _RestClient implements RestClient {
       _data.files.addAll(
         customerEndMeterFiles.map((i) => MapEntry('customer_end_meter', i)),
       );
+    }
+    if (additionalFiles != null) {
+      _data.files.addAll(additionalFiles.map((i) => MapEntry('files', i)));
     }
     final _options = _setStreamType<dynamic>(
       Options(

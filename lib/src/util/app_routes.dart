@@ -24,6 +24,7 @@ import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart'
 import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
 import 'package:sample/src/screens/fuelTrip/stop_vehicle_screen.dart';
+import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
@@ -110,6 +111,8 @@ class Screenroutes {
   static const String acceptedAssignmentScreen = "acceptedAssignmentScreen";
 
   static const String tripStartedScreen = "tripStartedScreen";
+
+  static const String tripReturnScreen = "tripReturnScreen";
 
   static const String customerFuelDeliveryScreen = "customerFuelDeliveryScreen";
 
@@ -526,6 +529,23 @@ class Screenroutes {
               driverId: args?['driverId'] as int? ?? 0,
               siteName: args?['siteName'] as String?,
               stopVehicles: args?['stopVehicles'] as List<dynamic>?,
+            );
+          },
+        );
+
+      case Screenroutes.tripReturnScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.tripReturnScreen),
+          builder: (BuildContext context) {
+            return TripReturnScreen(
+              tripId: args?['tripId'] as int? ?? 0,
+              assignmentId: args?['assignmentId'] as int? ?? 0,
+              vehicleId: args?['vehicleId'] as int? ?? 0,
+              driverId: args?['driverId'] as int? ?? 0,
+              customerName: args?['customerName'] as String? ?? '',
+              completedCount: args?['completedCount'] as int? ?? 0,
+              unavailableCount: args?['unavailableCount'] as int? ?? 0,
             );
           },
         );
