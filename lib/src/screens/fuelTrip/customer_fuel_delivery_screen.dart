@@ -7,7 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
-import 'package:sample/src/util/app_navigation.dart';
+import 'package:sample/src/repo/auth_repo.dart';
+import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/util/app_routes.dart';
 
 class CustomerFuelDeliveryScreen extends StatefulWidget {
@@ -78,6 +79,8 @@ class _CustomerFuelDeliveryScreenState
 
   bool _isSubmitting = false;
 
+  bool _showDeliveryFields = false;
+
   bool _arrivedAtStopLogged = false;
   bool _customerLoadingStartedLogged = false;
   bool _customerLoadingCompletedLogged = false;
@@ -87,6 +90,8 @@ class _CustomerFuelDeliveryScreenState
   bool _refuelCompletedLogged = false;
   bool _deliveryStarted = false;
   bool _deliveryEnded = false;
+
+  bool _isStartMeterPreFilled = false;
 
   int get _meterReadingDifference {
     final startValue = int.tryParse(_startMeterController.text) ?? 0;
@@ -107,6 +112,16 @@ class _CustomerFuelDeliveryScreenState
     _trackingController = context.read<TripTrackingController>();
     _fuelTripController = context.read<FuelTripController>();
     _refillController = context.read<FuelRefillBeforeTripController>();
+
+    // UPDATED: Use AuthRepo and mark as pre-filled
+    if (AuthRepo.lastTripStopId == widget.tripStopId &&
+        AuthRepo.lastEndMeterReading != null) {
+      _startMeterController.text = AuthRepo.lastEndMeterReading!;
+      _isStartMeterPreFilled = true; // ADD THIS FLAG
+      debugPrint(
+        '✅ Pre-filled start meter from previous vehicle: ${_startMeterController.text}',
+      );
+    }
 
     _startMeterController.addListener(_onStartMeterChanged);
     _endMeterController.addListener(_onEndMeterChanged);
@@ -218,7 +233,8 @@ class _CustomerFuelDeliveryScreenState
       return;
     }
 
-    if (_startMeterPhoto == null) {
+    // UPDATED: Only check for photo if NOT pre-filled
+    if (!_isStartMeterPreFilled && _startMeterPhoto == null) {
       _showSnackBar('Please capture start meter photo');
       return;
     }
@@ -240,9 +256,12 @@ class _CustomerFuelDeliveryScreenState
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Start meter photo has been captured',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                // UPDATED: Conditional text based on pre-fill status
+                Text(
+                  _isStartMeterPreFilled
+                      ? 'Start meter reading from previous vehicle'
+                      : 'Start meter photo has been captured',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -408,6 +427,7 @@ class _CustomerFuelDeliveryScreenState
         setState(() {
           _refuelCompletedLogged = true;
           _deliveryEnded = true;
+          _showDeliveryFields = true;
         });
         _showSnackBar(
           'Delivery ended successfully',
@@ -562,8 +582,14 @@ class _CustomerFuelDeliveryScreenState
     if (!mounted || _isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
 
-    if (_startMeterPhoto == null || _endMeterPhoto == null) {
-      _showSnackBar('Please capture both meter photos');
+    // UPDATED: Only validate end meter photo and start meter photo if NOT pre-filled
+    if (!_isStartMeterPreFilled && _startMeterPhoto == null) {
+      _showSnackBar('Please capture start meter photo');
+      return;
+    }
+
+    if (_endMeterPhoto == null) {
+      _showSnackBar('Please capture end meter photo');
       return;
     }
 
@@ -596,7 +622,10 @@ class _CustomerFuelDeliveryScreenState
         'Customer End Meter: ${int.tryParse(_endMeterController.text) ?? 0}',
       );
       debugPrint('Note: ${_noteController.text}');
-      debugPrint('Start Meter Photo Path: ${_startMeterPhoto!.path}');
+      debugPrint('Start Meter Pre-filled: $_isStartMeterPreFilled');
+      debugPrint(
+        'Start Meter Photo Path: ${_startMeterPhoto?.path ?? "N/A (pre-filled)"}',
+      );
       debugPrint('End Meter Photo Path: ${_endMeterPhoto!.path}');
       debugPrint('Additional Images Count: ${_additionalImages.length}');
       debugPrint('========================================');
@@ -613,7 +642,8 @@ class _CustomerFuelDeliveryScreenState
             double.parse(_deliveryQuantityController.text),
         customerStartMeterReadingValue:
             int.tryParse(_startMeterController.text) ?? 0,
-        customerStartMeterFiles: [_startMeterPhoto!],
+        customerStartMeterFiles:
+            _isStartMeterPreFilled ? [] : [_startMeterPhoto!],
         customerEndMeterReadingValue:
             int.tryParse(_endMeterController.text) ?? 0,
         customerEndMeterFiles: [_endMeterPhoto!],
@@ -622,7 +652,7 @@ class _CustomerFuelDeliveryScreenState
         vehicleStartMeterFiles: const [],
         vehicleTankEndReadingValue: 0,
         vehicleEndMeterFiles: const [],
-        additionalFiles: _additionalImages, // NEW PARAMETER
+        additionalFiles: _additionalImages,
       );
 
       debugPrint('========================================');
@@ -636,6 +666,12 @@ class _CustomerFuelDeliveryScreenState
         setState(() => _isSubmitting = false);
         return;
       }
+
+      AuthRepo.lastEndMeterReading = _endMeterController.text;
+      AuthRepo.lastTripStopId = widget.tripStopId;
+      debugPrint(
+        '✅ Saved end meter reading for next vehicle: ${_endMeterController.text}',
+      );
 
       await _trackingController.logManualTripEvent(
         eventType: 'departed_from_stop',
@@ -666,6 +702,19 @@ class _CustomerFuelDeliveryScreenState
 
     _dialogProcessing = false;
 
+    // Check if this is a multi-vehicle stop
+    final isMultiVehicleStop =
+        widget.stopVehicles != null && widget.stopVehicles!.isNotEmpty;
+
+    // Check if there are pending vehicles
+    final hasPendingVehicles =
+        widget.stopVehicles?.any((vehicle) {
+          final status =
+              int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
+          return status == 0; // Pending status
+        }) ??
+        false;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -675,14 +724,16 @@ class _CustomerFuelDeliveryScreenState
               return PopScope(
                 canPop: !_dialogProcessing,
                 child: AlertDialog(
-                  title: const Text('Stop Completed'),
+                  title: const Text('Vehicle Delivery Completed'),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isLastStop
-                            ? 'All stops completed! Moving towards base.'
-                            : 'Moving towards next stop.',
+                        isMultiVehicleStop
+                            ? hasPendingVehicles
+                                ? 'Vehicle refueled. Continue with remaining vehicles.'
+                                : 'All vehicles completed! You can now return to base.'
+                            : 'Delivery completed successfully!',
                       ),
                       if (_dialogProcessing) ...[
                         const SizedBox(height: 16),
@@ -698,13 +749,14 @@ class _CustomerFuelDeliveryScreenState
                   actions: [
                     if (!_dialogProcessing)
                       ElevatedButton(
-                        onPressed: () {
-                          if (Navigator.of(ctx).canPop()) {
-                            Navigator.of(ctx).pop();
-                          }
+                        onPressed: () async {
+                          Navigator.of(ctx).pop(); // Close dialog first
 
                           if (mounted) {
+                            // Simply pop back to previous screen
                             Navigator.of(context).pop(true);
+                            // Removed all automatic navigation to TripReturnScreen
+                            // AllVehiclesScreen will handle "Return to Base" button
                           }
                         },
                         child: const Text('OK'),
@@ -717,11 +769,40 @@ class _CustomerFuelDeliveryScreenState
     );
   }
 
-  Future<void> _navigateToAcceptedAssignmentScreen() async {
-    NavigationService().pushAndRemoveUntilNavigation(
-      Screenroutes.acceptedAssignmentScreen,
-      removeUntilPageName: Screenroutes.dashboard,
-    );
+  Future<void> _navigateToReturnScreen() async {
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => TripReturnScreen(
+                tripId: int.tryParse(widget.tripId) ?? 0,
+                assignmentId: widget.assignmentId,
+                vehicleId: widget.vehicleId,
+                driverId: widget.driverId,
+                customerName: widget.customerName,
+                completedCount: 1,
+                unavailableCount: 0,
+              ),
+        ),
+      );
+
+      // After returning from TripReturnScreen, navigate back to accepted assignments
+      if (mounted) {
+        Navigator.of(context).popUntil(
+          (route) =>
+              route.settings.name == Screenroutes.acceptedAssignmentScreen ||
+              route.isFirst,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error navigating to return screen: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -911,10 +992,14 @@ class _CustomerFuelDeliveryScreenState
                                       _buildPhotoSection(
                                         'Start Meter Photo',
                                         _startMeterPhoto,
-                                        () => _pickImage((file) {
-                                          _startMeterPhoto = file;
-                                          _onStartMeterChanged();
-                                        }, _startMeterFocusNode),
+                                        _isStartMeterPreFilled // ADD THIS CONDITION
+                                            ? null // Disable photo capture if pre-filled
+                                            : () => _pickImage((file) {
+                                              _startMeterPhoto = file;
+                                              _onStartMeterChanged();
+                                            }, _startMeterFocusNode),
+                                        isLocked:
+                                            _isStartMeterPreFilled, // ADD THIS PARAMETER
                                       ),
                                       const SizedBox(height: 12),
                                       const Text(
@@ -928,16 +1013,39 @@ class _CustomerFuelDeliveryScreenState
                                       TextFormField(
                                         controller: _startMeterController,
                                         focusNode: _startMeterFocusNode,
+                                        enabled: !_isStartMeterPreFilled,
+                                        // ADD THIS LINE
                                         decoration: InputDecoration(
                                           labelText: 'Reading Value',
                                           prefixIcon: const Icon(Icons.speed),
+                                          suffixIcon:
+                                              _isStartMeterPreFilled // ADD THIS
+                                                  ? Icon(
+                                                    Icons.lock,
+                                                    color:
+                                                        Colors.orange.shade700,
+                                                    size: 20,
+                                                  )
+                                                  : null,
                                           border: OutlineInputBorder(
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
                                           ),
                                           filled: true,
-                                          fillColor: Colors.grey.shade50,
+                                          fillColor:
+                                              _isStartMeterPreFilled // ADD THIS
+                                                  ? Colors.orange.shade50
+                                                  : Colors.grey.shade50,
+                                          helperText:
+                                              _isStartMeterPreFilled // ADD THIS
+                                                  ? 'Pre-filled from previous vehicle'
+                                                  : null,
+                                          helperStyle: TextStyle(
+                                            // ADD THIS
+                                            color: Colors.orange.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         keyboardType:
                                             const TextInputType.numberWithOptions(),
@@ -1295,7 +1403,7 @@ class _CustomerFuelDeliveryScreenState
                               const SizedBox(height: 24),
 
                             // NEW: Additional Images Section (Only after delivery started)
-                            if (_deliveryStarted) ...[
+                            if (_showDeliveryFields) ...[
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1445,9 +1553,9 @@ class _CustomerFuelDeliveryScreenState
                                   if (qty > widget.availableQty) {
                                     return 'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
                                   }
-                                  if (qty < widget.requiredQty) {
-                                    return 'Quantity cannot be less than required (${widget.requiredQty.toStringAsFixed(2)} IG)';
-                                  }
+                                  // if (qty < widget.requiredQty) {
+                                  //   return 'Quantity cannot be less than required (${widget.requiredQty.toStringAsFixed(2)} IG)';
+                                  // }
                                   return null;
                                 },
                                 onChanged: (value) {
@@ -1511,7 +1619,7 @@ class _CustomerFuelDeliveryScreenState
                     ),
 
                     // Complete Delivery Button
-                    if (_deliveryStarted)
+                    if (_showDeliveryFields)
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: SizedBox(
@@ -1577,25 +1685,55 @@ class _CustomerFuelDeliveryScreenState
     );
   }
 
-  Widget _buildPhotoSection(String label, File? photo, VoidCallback? onTap) {
+  Widget _buildPhotoSection(
+    String label,
+    File? photo,
+    VoidCallback? onTap, {
+    bool isLocked = false, // ADD THIS PARAMETER
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        Row(
+          // WRAP Text in Row
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            if (isLocked) ...[
+              // ADD THIS
+              const SizedBox(width: 8),
+              Icon(Icons.lock, color: Colors.orange.shade700, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                '(From previous vehicle)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 8),
         InkWell(
-          onTap: onTap,
+          onTap: isLocked ? null : onTap, // UPDATED
           borderRadius: BorderRadius.circular(12),
           child: Container(
             height: 150,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: isLocked ? Colors.orange.shade50 : Colors.grey.shade100,
+              // UPDATED
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(
+                color:
+                    isLocked
+                        ? Colors.orange.shade300
+                        : Colors.grey.shade300, // UPDATED
+              ),
             ),
             child:
                 photo == null
@@ -1603,20 +1741,55 @@ class _CustomerFuelDeliveryScreenState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.camera_alt,
+                          isLocked ? Icons.lock : Icons.camera_alt, // UPDATED
                           size: 40,
-                          color: Colors.grey.shade400,
+                          color:
+                              isLocked
+                                  ? Colors.orange.shade400
+                                  : Colors.grey.shade400, // UPDATED
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          onTap == null ? 'Photo captured' : 'Tap to capture',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          isLocked // UPDATED
+                              ? 'Photo from previous vehicle'
+                              : (onTap == null
+                                  ? 'Photo captured'
+                                  : 'Tap to capture'),
+                          style: TextStyle(
+                            color:
+                                isLocked
+                                    ? Colors.orange.shade700
+                                    : Colors.grey.shade600, // UPDATED
+                            fontWeight:
+                                isLocked
+                                    ? FontWeight.w600
+                                    : FontWeight.normal, // UPDATED
+                          ),
                         ),
                       ],
                     )
-                    : ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.file(photo, fit: BoxFit.cover),
+                    : Stack(
+                      // UPDATED - Add lock overlay if locked
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(photo, fit: BoxFit.cover),
+                        ),
+                        if (isLocked)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.lock,
+                                size: 48,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
           ),
         ),

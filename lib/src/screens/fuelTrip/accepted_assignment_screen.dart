@@ -111,37 +111,47 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     Map<String, dynamic> stop,
     int stopIndex,
   ) {
-    final requiredQty = double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
-    final availableQty = _toDouble(assignment['available_qty']);
-
     final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
     final totalStops = tripStops.length;
 
-    // Removed the completed stop check - directly proceed with fuel check
-    if (availableQty < requiredQty) {
-      _showRefillDialog(
+    // Get the required_qty and available_qty from assignment level (not individual stops)
+    final totalRequiredQty = _toDouble(assignment['required_qty']);
+    final availableQty = _toDouble(assignment['available_qty']);
+    final isEnough = assignment['is_enough'] == true;
+
+    // Check if we have enough fuel for the entire trip based on assignment level check
+    if (!isEnough || availableQty < totalRequiredQty) {
+      // Show refill dialog - not enough fuel for complete trip
+      final currentStopQty =
+          double.tryParse(stop['expected_qty'].toString()) ?? 0.0;
+      _showRefillDialogForTrip(
         context,
         assignment,
         stop,
-        requiredQty,
+        totalRequiredQty,
         availableQty,
+        currentStopQty,
         stopIndex,
         totalStops,
       );
     } else {
+      // Only show start trip dialog if we have enough fuel for entire trip
       _showStartTripDialog(context, assignment, stop, stopIndex, totalStops);
     }
   }
 
-  void _showRefillDialog(
+  void _showRefillDialogForTrip(
     BuildContext context,
     Map<String, dynamic> assignment,
     Map<String, dynamic> stop,
-    double requiredQty,
+    double totalRequiredQty,
     double availableQty,
+    double currentStopQty,
     int stopIndex,
     int totalStops,
   ) {
+    final deficit = totalRequiredQty - availableQty;
+
     showDialog(
       context: context,
       builder:
@@ -189,7 +199,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'Insufficient Fuel',
+                              'Insufficient Fuel for Trip',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -199,26 +209,36 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildQuantityRow('Required', requiredQty, Colors.red),
-                      const SizedBox(height: 8),
                       _buildQuantityRow(
-                        'Available',
-                        availableQty,
-                        Colors.orange,
+                        'Current Stop Needs',
+                        currentStopQty,
+                        Colors.blue,
                       ),
                       const SizedBox(height: 8),
                       _buildQuantityRow(
-                        'Deficit',
-                        requiredQty - availableQty,
+                        'Total Trip Requirement',
+                        totalRequiredQty,
+                        Colors.red,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildQuantityRow(
+                        'Currently Available',
+                        availableQty,
+                        Colors.orange,
+                      ),
+                      const Divider(height: 20),
+                      _buildQuantityRow(
+                        'Deficit to Refill',
+                        deficit,
                         Colors.red,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'You need to refill fuel from the depot tank before starting this trip.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                Text(
+                  'Even though this stop needs only ${currentStopQty.toStringAsFixed(2)} IG, you must refill ${deficit.toStringAsFixed(2)} IG to meet the total trip requirement of ${totalRequiredQty.toStringAsFixed(2)} IG before starting any journey.',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
@@ -238,7 +258,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       'vehicleId': assignment['vehicle_id'] ?? 0,
                       'tripId': assignment['trip_id'] ?? '',
                       'tripStopId': stop['stop_id'] ?? 0,
-                      'requiredQty': requiredQty,
+                      'requiredQty': totalRequiredQty,
                       'availableQty': availableQty,
                       'vehicleName': assignment['vehicle'] ?? 'Unknown Vehicle',
                       'stopOrder': stop['stop_order'] ?? '1',
@@ -246,12 +266,10 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                     },
                   );
 
-                  // ✅ Auto-refresh if refill was completed successfully
                   if (result == true && mounted) {
                     debugPrint('🔄 Auto-refreshing after successful refill...');
                     await _refreshAssignments();
 
-                    // Show success feedback
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -1642,54 +1660,73 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                         Row(
                           children: [
                             Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed:
-                                    isEnabled
-                                        ? () => _handleStopSelection(
-                                          context,
-                                          assignment,
-                                          stop,
-                                          index,
-                                        )
-                                        : null,
-                                icon: Icon(
-                                  isCompleted
-                                      ? Icons.check_circle
-                                      : !isEnabled
-                                      ? Icons.lock
-                                      : hasEnoughFuel
-                                      ? Icons.play_arrow
-                                      : Icons.local_gas_station,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  isCompleted
-                                      ? 'Delivered'
-                                      : !isEnabled
-                                      ? 'Complete Previous Stop First'
-                                      : hasEnoughFuel
-                                      ? 'Start Journey'
-                                      : 'Refill First',
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
+                              child: Builder(
+                                builder: (context) {
+                                  // Check assignment level fuel availability
+                                  final totalRequiredQty = _toDouble(
+                                    assignment['required_qty'],
+                                  );
+                                  final availableQty = _toDouble(
+                                    assignment['available_qty'],
+                                  );
+                                  final isEnough =
+                                      assignment['is_enough'] == true;
+                                  final hasEnoughFuelForTrip =
+                                      isEnough &&
+                                      availableQty >= totalRequiredQty;
+
+                                  return ElevatedButton.icon(
+                                    onPressed:
+                                        isEnabled
+                                            ? () => _handleStopSelection(
+                                              context,
+                                              assignment,
+                                              stop,
+                                              index,
+                                            )
+                                            : null,
+                                    icon: Icon(
                                       isCompleted
-                                          ? Colors.green
+                                          ? Icons.check_circle
                                           : !isEnabled
-                                          ? Colors.grey
-                                          : hasEnoughFuel
-                                          ? Colors.green
-                                          : Colors.orange,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  disabledBackgroundColor: Colors.grey.shade300,
-                                  disabledForegroundColor: Colors.grey.shade600,
-                                ),
+                                          ? Icons.lock
+                                          : hasEnoughFuelForTrip
+                                          ? Icons.play_arrow
+                                          : Icons.local_gas_station,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      isCompleted
+                                          ? 'Delivered'
+                                          : !isEnabled
+                                          ? 'Complete Previous Stop First'
+                                          : hasEnoughFuelForTrip
+                                          ? 'Start Journey'
+                                          : 'Refill Required (${(totalRequiredQty - availableQty).toStringAsFixed(0)} IG)',
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          isCompleted
+                                              ? Colors.green
+                                              : !isEnabled
+                                              ? Colors.grey
+                                              : hasEnoughFuelForTrip
+                                              ? Colors.green
+                                              : Colors.orange,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      disabledBackgroundColor:
+                                          Colors.grey.shade300,
+                                      disabledForegroundColor:
+                                          Colors.grey.shade600,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ],

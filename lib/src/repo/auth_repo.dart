@@ -14,6 +14,9 @@ class AuthRepo {
   static const _prefCustomerIdKey = "customerId";
   static const _prefDriverIdKey = "driverId";
 
+  static const _prefLastEndMeterReadingKey = "lastEndMeterReading";
+  static const _prefLastTripStopIdKey = "lastTripStopId";
+
   static set token(String? token) {
     if (token == null) {
       prefs?.remove(_prefTokenKey);
@@ -32,6 +35,30 @@ class AuthRepo {
     } else {
       prefs?.setString(_prefRoleKey, role);
     }
+  }
+
+  static set lastEndMeterReading(String? reading) {
+    if (reading == null) {
+      prefs?.remove(_prefLastEndMeterReadingKey);
+    } else {
+      prefs?.setString(_prefLastEndMeterReadingKey, reading);
+    }
+  }
+
+  static String? get lastEndMeterReading {
+    return prefs?.getString(_prefLastEndMeterReadingKey);
+  }
+
+  static set lastTripStopId(int? stopId) {
+    if (stopId == null) {
+      prefs?.remove(_prefLastTripStopIdKey);
+    } else {
+      prefs?.setInt(_prefLastTripStopIdKey, stopId);
+    }
+  }
+
+  static int? get lastTripStopId {
+    return prefs?.getInt(_prefLastTripStopIdKey);
   }
 
   static String? get role {
@@ -113,6 +140,8 @@ class AuthRepo {
     user = null;
     loginType = null;
     customerId = null;
+    lastEndMeterReading = null; // ADD THIS
+    lastTripStopId = null;
 
     // Navigate to login screen
     NavigationService().pushNavigation(Screenroutes.login);
@@ -130,5 +159,7 @@ class AuthRepo {
     user = null;
     loginType = null;
     customerId = null;
+    lastEndMeterReading = null; // ADD THIS
+    lastTripStopId = null;
   }
 }

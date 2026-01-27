@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
@@ -173,6 +174,11 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     setState(() => _isProcessing = true);
 
     try {
+      // UPDATED: Clear stored meter reading using AuthRepo
+      AuthRepo.lastEndMeterReading = null;
+      AuthRepo.lastTripStopId = null;
+      debugPrint('✅ Cleared meter reading cache for new trip');
+
       // Navigate to TripReturnScreen
       final result = await Navigator.push(
         context,
