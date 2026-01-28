@@ -898,6 +898,16 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                           'Vehicles to service: ${widget.stopVehicles!.length}',
                           style: const TextStyle(fontSize: 14),
                         ),
+                      ] else ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Bulk delivery (no specific vehicles)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.orange,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -932,9 +942,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       debugPrint('❌ Error logging arrival: $e');
     }
 
-    // ✅ Check if there are vehicles
+    // ✅ CORRECTED: Check if stop_vehicles is empty for bulk delivery
     if (widget.stopVehicles == null || widget.stopVehicles!.isEmpty) {
-      debugPrint('⚠️ No vehicles found - showing start delivery dialog');
+      debugPrint(
+        '⚠️ Bulk delivery detected (no stop_vehicles) - showing start delivery dialog',
+      );
       await _showStartDeliveryDialog();
     } else {
       debugPrint('✅ Vehicles found - navigating to vehicle list');
@@ -1036,11 +1048,25 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _navigateToFuelDeliveryScreen() async {
+    // ✅ CORRECTED: Calculate currentStopIndex from stop_order
+    // stop_order is "1", "2", etc., so we need to subtract 1 to get the index
+    final stopOrder = int.tryParse(widget.stopOrder) ?? 1;
+    final currentStopIndex = stopOrder - 1; // Convert "1" -> 0, "2" -> 1, etc.
+
+    debugPrint('========================================');
+    debugPrint('📤 NAVIGATING TO FUEL DELIVERY');
+    debugPrint('========================================');
+    debugPrint('Stop Order: ${widget.stopOrder}');
+    debugPrint('Current Stop Index: $currentStopIndex');
+    debugPrint('Total Stops: ${widget.totalStops}');
+    debugPrint('Is Bulk Delivery: true');
+    debugPrint('========================================');
+
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignmentId,
-        'vehicleId': 0, // ✅ IMPORTANT: 0 means bulk delivery
+        'vehicleId': 0, // ✅ 0 means no specific customer vehicle
         'tripId': widget.tripId.toString(),
         'tripStopId': widget.tripStopId ?? 0,
         'requiredQty': widget.requiredQty,
@@ -1048,12 +1074,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         'vehicleName': widget.vehicleName,
         'customerName': widget.customerName,
         'stopOrder': widget.stopOrder,
-        'currentStopIndex': widget.currentStopIndex,
+        'currentStopIndex': currentStopIndex, // ✅ CORRECTED
         'totalStops': widget.totalStops,
         'driverId': widget.driverId,
-        'stopVehicles':
-            widget
-                .stopVehicles, // ✅ Pass stopVehicles (will be null or empty for bulk)
+        'stopVehicles': widget.stopVehicles,
+        'isBulkDelivery': true, // ✅ ADD THIS - explicitly mark as bulk delivery
       },
     );
 
@@ -1084,15 +1109,23 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 'trip_id': widget.tripId,
                 'available_qty': widget.availableQty,
                 'driver_id': widget.driverId,
+                'vehicle_id': widget.vehicleId, // ADD THIS
               },
               stop: {
                 'stop_id': widget.tripStopId,
                 'expected_qty': widget.requiredQty,
                 'stop_order': widget.stopOrder,
               },
+              totalStops: widget.totalStops, // ADD THIS
             ),
       ),
     );
+
+    // Handle result if needed
+    if (result == true && mounted) {
+      // Pop back to accepted assignments
+      Navigator.of(context).pop(true);
+    }
 
     // Future<void> _showDeliveryConfirmationDialog(BuildContext context) async {
     //   bool dialogProcessing = false;

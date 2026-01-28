@@ -9,6 +9,7 @@ import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
+import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
 class CustomerFuelDeliveryScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
   final int totalStops;
   final int driverId;
   final List<dynamic>? stopVehicles;
+  final bool? isBulkDelivery;
 
   const CustomerFuelDeliveryScreen({
     Key? key,
@@ -41,6 +43,7 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
     required this.totalStops,
     required this.driverId,
     this.stopVehicles,
+    this.isBulkDelivery,
   }) : super(key: key);
 
   @override
@@ -678,11 +681,11 @@ class _CustomerFuelDeliveryScreenState
       );
       debugPrint('✅ Logged: departed_from_stop');
 
-      final isLastStop = widget.currentStopIndex >= widget.totalStops - 1;
-
+      // ✅ CORRECTED: Determine if it's the last stop based on stop_order vs total trip_stops
+      // Pass both flags to the dialog
       if (mounted) {
         setState(() => _isSubmitting = false);
-        _showCompletionDialog(isLastStop);
+        _showCompletionDialog(widget.currentStopIndex, widget.totalStops);
       }
     } catch (e) {
       debugPrint('========================================');
@@ -697,46 +700,71 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
-  void _showCompletionDialog(bool isLastStop) {
+  void _showCompletionDialog(int currentStopIndex, int totalStops) {
     if (!mounted) return;
 
     _dialogProcessing = false;
+
+    // ✅ Calculate isLastStop correctly
+    final isLastStop = (currentStopIndex + 1) >= totalStops;
 
     debugPrint('========================================');
     debugPrint('🎯 SHOW COMPLETION DIALOG');
     debugPrint('========================================');
     debugPrint('widget.vehicleId: ${widget.vehicleId}');
     debugPrint('widget.stopVehicles: ${widget.stopVehicles}');
-    debugPrint('widget.stopVehicles == null: ${widget.stopVehicles == null}');
     debugPrint(
-      'widget.stopVehicles?.length: ${widget.stopVehicles?.length ?? 0}',
+      'widget.stopVehicles length: ${widget.stopVehicles?.length ?? 0}',
     );
-    debugPrint(
-      'widget.stopVehicles?.isEmpty: ${widget.stopVehicles?.isEmpty ?? true}',
-    );
+    debugPrint('widget.isBulkDelivery: ${widget.isBulkDelivery}');
+    debugPrint('isLastStop: $isLastStop');
+    debugPrint('currentStopIndex: $currentStopIndex');
+    debugPrint('totalStops: $totalStops');
     debugPrint('========================================');
 
-    // ✅ PRIMARY CHECK: Use vehicleId to determine delivery type
-    // vehicleId = 0 → Bulk delivery (from TripStartedScreen)
-    // vehicleId > 0 → Individual vehicle delivery (from AllVehiclesScreen)
-    final isBulkDelivery = widget.vehicleId == 0;
+    // ✅ CORRECTED LOGIC with multiple checks:
+    final bool isBulkDelivery;
 
-    debugPrint('🔍 isBulkDelivery (based on vehicleId): $isBulkDelivery');
+    if (widget.isBulkDelivery != null) {
+      // 1. If explicitly set by caller, use that value
+      isBulkDelivery = widget.isBulkDelivery!;
+      debugPrint('🔍 Using explicit isBulkDelivery flag: $isBulkDelivery');
+    } else if (widget.stopVehicles != null && widget.stopVehicles!.isNotEmpty) {
+      // 2. If stop_vehicles has data, it's individual vehicle delivery
+      isBulkDelivery = false;
+      debugPrint('🔍 stop_vehicles has data -> Individual delivery');
+    } else {
+      // 3. Fallback: if stop_vehicles is null or empty, check vehicleId
+      // If vehicleId > 0 but stopVehicles is null, it's likely an individual delivery
+      // where stopVehicles wasn't passed correctly
+      // If vehicleId == 0, it's definitely bulk delivery
+      isBulkDelivery = widget.vehicleId == 0;
+      debugPrint(
+        '🔍 Fallback check - vehicleId: ${widget.vehicleId} -> isBulkDelivery: $isBulkDelivery',
+      );
+    }
 
-    // ✅ SECONDARY CHECK: Verify with stopVehicles
-    final hasStopVehicles =
-        widget.stopVehicles != null && widget.stopVehicles!.isNotEmpty;
-    debugPrint('🔍 hasStopVehicles: $hasStopVehicles');
-    debugPrint('========================================');
-
-    // Check if there are pending vehicles (only relevant for multi-vehicle stops)
     final hasPendingVehicles =
         widget.stopVehicles?.any((vehicle) {
           final status =
               int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
-          return status == 0; // Pending status
+          return status == 0;
         }) ??
         false;
+
+    // ✅ Decision logic:
+    // 1. Individual vehicle delivery (stop_vehicles not empty OR vehicleId > 0) -> Always return to AllVehiclesScreen
+    // 2. Bulk delivery (stop_vehicles empty AND vehicleId == 0) + Last stop -> Navigate to Return to Base
+    // 3. Bulk delivery (stop_vehicles empty AND vehicleId == 0) + Not last stop -> Navigate to Accepted Assignments
+
+    final isIndividualVehicleDelivery = !isBulkDelivery;
+    final shouldShowReturnToBase = isBulkDelivery && isLastStop;
+
+    debugPrint('🔍 isBulkDelivery: $isBulkDelivery');
+    debugPrint('🔍 hasPendingVehicles: $hasPendingVehicles');
+    debugPrint('🔍 isIndividualVehicleDelivery: $isIndividualVehicleDelivery');
+    debugPrint('🔍 shouldShowReturnToBase: $shouldShowReturnToBase');
+    debugPrint('========================================');
 
     showDialog(
       context: context,
@@ -752,11 +780,11 @@ class _CustomerFuelDeliveryScreenState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isBulkDelivery
-                            ? 'Bulk delivery completed successfully!'
-                            : hasPendingVehicles
-                            ? 'Vehicle refueled. Continue with remaining vehicles.'
-                            : 'Vehicle refueled',
+                        isIndividualVehicleDelivery
+                            ? 'Vehicle refueled successfully!'
+                            : (isLastStop
+                                ? 'Bulk delivery completed! This was the final stop.'
+                                : 'Bulk delivery completed! Ready for next stop.'),
                       ),
                       if (_dialogProcessing) ...[
                         const SizedBox(height: 16),
@@ -771,32 +799,79 @@ class _CustomerFuelDeliveryScreenState
                   ),
                   actions: [
                     if (!_dialogProcessing)
-                      ElevatedButton(
+                      ElevatedButton.icon(
                         onPressed: () async {
                           debugPrint(
-                            '✅ Dialog OK pressed - isBulkDelivery: $isBulkDelivery',
+                            '✅ Dialog button pressed - isIndividualVehicleDelivery: $isIndividualVehicleDelivery, isLastStop: $isLastStop, shouldShowReturnToBase: $shouldShowReturnToBase',
                           );
 
-                          Navigator.of(ctx).pop(); // Close dialog first
+                          Navigator.of(ctx).pop();
 
                           if (mounted) {
-                            // ✅ UPDATED: Use vehicleId to determine navigation
-                            if (isBulkDelivery) {
-                              // Bulk delivery (vehicleId = 0) - navigate to Return to Base screen
+                            // ✅ PRIORITY 1: Individual vehicle delivery - ALWAYS return to AllVehiclesScreen
+                            if (isIndividualVehicleDelivery) {
                               debugPrint(
-                                '✅ Bulk delivery completed - navigating to Return to Base',
-                              );
-                              await _navigateToReturnScreen();
-                            } else {
-                              // Individual vehicle delivery (vehicleId > 0) - pop back to AllVehiclesScreen
-                              debugPrint(
-                                '✅ Individual vehicle delivery completed - returning to AllVehiclesScreen',
+                                '✅ Individual vehicle delivery - returning to AllVehiclesScreen with result=true',
                               );
                               Navigator.of(context).pop(true);
+                              return;
                             }
+
+                            // ✅ PRIORITY 2: Bulk delivery + Last stop = Navigate to Return to Base
+                            if (shouldShowReturnToBase) {
+                              debugPrint(
+                                '✅ Bulk delivery, last stop - navigating to Return to Base',
+                              );
+                              await _navigateToReturnScreen();
+                              return;
+                            }
+
+                            // ✅ PRIORITY 3: Bulk delivery + Not last stop = Go back to Accepted Assignments
+                            debugPrint(
+                              '✅ Bulk delivery, not last stop - returning to Accepted Assignments',
+                            );
+                            NavigationService().pushAndRemoveUntilNavigation(
+                              Screenroutes.acceptedAssignmentScreen,
+                            );
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Stop completed! Ready for next stop.',
+                                ),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
                           }
                         },
-                        child: const Text('OK'),
+                        icon: Icon(
+                          isIndividualVehicleDelivery
+                              ? Icons.check_circle
+                              : (shouldShowReturnToBase
+                                  ? Icons.home_outlined
+                                  : Icons.arrow_forward),
+                        ),
+                        label: Text(
+                          isIndividualVehicleDelivery
+                              ? 'OK'
+                              : (shouldShowReturnToBase
+                                  ? 'Return to Base'
+                                  : 'Next Stop'),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              isIndividualVehicleDelivery
+                                  ? Colors.green
+                                  : (shouldShowReturnToBase
+                                      ? Colors.blue
+                                      : Colors.green),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -808,7 +883,7 @@ class _CustomerFuelDeliveryScreenState
 
   Future<void> _navigateToReturnScreen() async {
     try {
-      await Navigator.push(
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder:
@@ -824,14 +899,10 @@ class _CustomerFuelDeliveryScreenState
         ),
       );
 
-      // After returning from TripReturnScreen, navigate back to accepted assignments
-      if (mounted) {
-        Navigator.of(context).popUntil(
-          (route) =>
-              route.settings.name == Screenroutes.acceptedAssignmentScreen ||
-              route.isFirst,
-        );
-      }
+      // ✅ CORRECTED: After returning from TripReturnScreen, don't automatically navigate
+      // The TripReturnScreen already handles navigation to acceptedAssignmentScreen
+      // when "Reached Base" is pressed, so we don't need to do anything here
+      debugPrint('✅ Returned from TripReturnScreen with result: $result');
     } catch (e) {
       debugPrint('❌ Error navigating to return screen: $e');
       if (mounted) {

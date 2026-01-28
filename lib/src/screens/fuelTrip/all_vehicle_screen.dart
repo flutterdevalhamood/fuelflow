@@ -14,6 +14,7 @@ class AllVehiclesScreen extends StatefulWidget {
   final Map<String, dynamic> assignment;
   final Map<String, dynamic> stop;
   final Function(List<Map<String, dynamic>>)? onVehicleUpdated;
+  final int? totalStops;
 
   const AllVehiclesScreen({
     Key? key,
@@ -23,6 +24,7 @@ class AllVehiclesScreen extends StatefulWidget {
     required this.assignment,
     required this.stop,
     this.onVehicleUpdated,
+    this.totalStops,
   }) : super(key: key);
 
   @override
@@ -44,6 +46,16 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
   final int _initialDisplayCount = 1;
   bool _showAllVehicles = false;
+
+  bool get _isLastStop {
+    // Check if this is the last stop in the trip
+    final currentStopOrder =
+        int.tryParse(widget.stop['stop_order']?.toString() ?? '0') ?? 0;
+
+    // You'll need to pass totalStops from the previous screen
+    // For now, we'll use a simple check - you should pass this in arguments
+    return currentStopOrder >= (widget.totalStops ?? 1);
+  }
 
   @override
   void initState() {
@@ -170,37 +182,70 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     }
   }
 
-  Future<void> _handleReturnToBase() async {
+  Future<void> _handleNextAction() async {
     setState(() => _isProcessing = true);
 
     try {
-      // UPDATED: Clear stored meter reading using AuthRepo
+      // Clear stored meter reading for new trip/stop
       AuthRepo.lastEndMeterReading = null;
       AuthRepo.lastTripStopId = null;
-      debugPrint('✅ Cleared meter reading cache for new trip');
+      debugPrint('✅ Cleared meter reading cache for new stop');
 
-      // Navigate to TripReturnScreen
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => TripReturnScreen(
-                tripId:
-                    int.tryParse(
-                      widget.assignment['trip_id']?.toString() ?? '0',
-                    ) ??
-                    0,
-                assignmentId: widget.assignment['assignment_id'] ?? 0,
-                vehicleId: widget.assignment['vehicle_id'] ?? 0,
-                driverId: widget.assignment['driver_id'] ?? 0,
-                customerName: widget.customerName,
-                completedCount: _completedCount,
-                unavailableCount: _unavailableCount,
-              ),
-        ),
-      );
+      if (_isLastStop) {
+        // Last stop - navigate to Return to Base screen
+        debugPrint('✅ Last stop completed - navigating to Return to Base');
+
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => TripReturnScreen(
+                  tripId:
+                      int.tryParse(
+                        widget.assignment['trip_id']?.toString() ?? '0',
+                      ) ??
+                      0,
+                  assignmentId: widget.assignment['assignment_id'] ?? 0,
+                  vehicleId: widget.assignment['vehicle_id'] ?? 0,
+                  driverId: widget.assignment['driver_id'] ?? 0,
+                  customerName: widget.customerName,
+                  completedCount: _completedCount,
+                  unavailableCount: _unavailableCount,
+                ),
+          ),
+        );
+
+        // After return to base, go back to accepted assignments
+        if (mounted && result == true) {
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.acceptedAssignmentScreen,
+          );
+        }
+      } else {
+        // Not last stop - move to next stop
+        debugPrint('✅ Stop completed - moving to next stop');
+
+        // Navigate back to accepted assignments to show next stop
+        if (mounted) {
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.acceptedAssignmentScreen,
+            // arguments: {
+            //   'refresh': true,
+            //   'tripId': widget.assignment['trip_id'],
+            // },
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Stop completed! Ready for next stop.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
     } catch (e) {
-      debugPrint('❌ Error navigating to return screen: $e');
+      debugPrint('❌ Error in next action: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -267,19 +312,17 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     debugPrint('========================================');
     debugPrint('📤 NAVIGATING TO CUSTOMER FUEL DELIVERY');
     debugPrint('========================================');
-    debugPrint(
-      'Vehicle ID: $vehicleId',
-    ); // ✅ This will be > 0 for individual vehicles
+    debugPrint('Vehicle ID: $vehicleId');
     debugPrint('Plate No: $plateNo');
     debugPrint('Stop Vehicles count: ${_vehicles.length}');
+    debugPrint('Vehicles list: $_vehicles'); // ADD THIS DEBUG
     debugPrint('========================================');
 
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignment['assignment_id'] ?? 0,
-        'vehicleId':
-            vehicleId, // ✅ IMPORTANT: Will be > 0 for individual vehicle
+        'vehicleId': vehicleId, // ✅ Individual vehicle ID (not 0)
         'tripId': widget.assignment['trip_id']?.toString() ?? '',
         'tripStopId': widget.stop['stop_id'] ?? 0,
         'requiredQty':
@@ -292,7 +335,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         'currentStopIndex': 0,
         'totalStops': 1,
         'driverId': widget.assignment['driver_id'] ?? 0,
-        'stopVehicles': _vehicles, // ✅ Pass the vehicles list
+        'stopVehicles': _vehicles, // ✅ Pass the full vehicles list
+        'isBulkDelivery': false, // ✅ EXPLICITLY mark as NOT bulk delivery
       },
     );
 
@@ -694,6 +738,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                       ),
             ),
             // Return to Base Button (show when all vehicles are processed)
+            // Return to Base / Move to Next Stop Button (show when all vehicles are processed)
             if (_pendingCount == 0 &&
                 _vehicles.isNotEmpty &&
                 !_isMultiSelectMode)
@@ -713,11 +758,15 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _handleReturnToBase,
+                      onPressed: _isProcessing ? null : _handleNextAction,
                       icon:
                           _isProcessing
                               ? const SizedBox.shrink()
-                              : const Icon(Icons.home_outlined),
+                              : Icon(
+                                _isLastStop
+                                    ? Icons.home_outlined
+                                    : Icons.arrow_forward,
+                              ),
                       label:
                           _isProcessing
                               ? const SizedBox(
@@ -730,15 +779,18 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                                   ),
                                 ),
                               )
-                              : const Text(
-                                'Return to Base',
-                                style: TextStyle(
+                              : Text(
+                                _isLastStop
+                                    ? 'Return to Base'
+                                    : 'Move to Next Stop',
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor:
+                            _isLastStop ? Colors.blue : Colors.green,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
