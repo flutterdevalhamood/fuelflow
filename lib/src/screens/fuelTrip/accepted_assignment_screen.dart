@@ -54,7 +54,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
 
   Future<void> _refreshAssignments() async {
     final controller = context.read<FuelTripController>();
-
     await controller.getAcceptedAssignments();
   }
 
@@ -504,12 +503,13 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Customer: ${stop['customer_name']}',
+                  'Customer: ${assignment['customer_name']}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+
                 const SizedBox(height: 4),
                 Text(
                   'Stop ${stopIndex + 1} of $totalStops',
@@ -543,8 +543,10 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             tripStopId: int.tryParse(
                               stop['stop_id'].toString(),
                             ),
-                            customerName: stop['customer_name'] ?? 'Unknown',
-                            arrivalTime: stop['arrival_time'] ?? 'N/A',
+                            customerName:
+                                assignment['customer_name'] ?? 'Unknown',
+                            arrivalTime:
+                                stop['expected_arrival_time'] ?? 'Not Set',
                             assignmentId: assignment['assignment_id'] ?? 0,
                             vehicleId: assignment['vehicle_id'] ?? 0,
                             requiredQty:

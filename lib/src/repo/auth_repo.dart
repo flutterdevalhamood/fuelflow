@@ -33,8 +33,15 @@ class AuthRepo {
     if (role == null) {
       prefs?.remove(_prefRoleKey);
     } else {
-      prefs?.setString(_prefRoleKey, role);
+      prefs?.setString(
+        _prefRoleKey,
+        role,
+      ); // This is correct, no need to jsonEncode for simple string
     }
+  }
+
+  static String? get role {
+    return prefs?.getString(_prefRoleKey);
   }
 
   static set lastEndMeterReading(String? reading) {
@@ -59,10 +66,6 @@ class AuthRepo {
 
   static int? get lastTripStopId {
     return prefs?.getInt(_prefLastTripStopIdKey);
-  }
-
-  static String? get role {
-    return prefs?.getString(_prefRoleKey);
   }
 
   static set user(String? user) {

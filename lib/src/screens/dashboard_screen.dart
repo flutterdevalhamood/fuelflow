@@ -143,7 +143,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       },
     ];
 
-    if (widget.userRole == "customer") {
+    if (_effectiveUserRole == "customer") {
       return allGridItems
           .where(
             (item) =>
@@ -156,11 +156,11 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 item['title'] == 'Reports',
           )
           .toList();
-    } else if (widget.userRole == "superadmin") {
+    } else if (_effectiveUserRole == "superadmin") {
       return allGridItems
           .where((item) => item['title'] != 'My Refilling Units')
           .toList();
-    } else if (widget.userRole == "operator") {
+    } else if (_effectiveUserRole == "operator") {
       return allGridItems
           .where(
             (item) =>
@@ -171,7 +171,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 item['title'] == 'Refilling Unit',
           )
           .toList();
-    } else if (widget.userRole == "driver") {
+    } else if (_effectiveUserRole == "driver") {
       return allGridItems
           .where(
             (item) =>
@@ -272,13 +272,15 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
   }
 
   String _getFormattedRole() {
-    switch (widget.userRole) {
+    switch (_effectiveUserRole) {
       case 'superadmin':
         return 'Super Admin';
       case 'customer':
         return 'Customer';
       case 'operator':
         return 'Operator';
+      case 'driver':
+        return 'Driver';
       default:
         return 'User';
     }
@@ -505,7 +507,20 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () {
-            NavigationService().pushNavigation(item['route']);
+            // Special handling for driver-specific routes
+            if (item['route'] == Screenroutes.acceptedAssignmentScreen) {
+              NavigationService().pushNavigation(
+                item['route'],
+                arguments: AuthRepo.driverId,
+              );
+            } else if (item['route'] == Screenroutes.notificationScreen) {
+              NavigationService().pushNavigation(
+                item['route'],
+                arguments: AuthRepo.driverId,
+              );
+            } else {
+              NavigationService().pushNavigation(item['route']);
+            }
           },
           child: Ink(
             decoration: BoxDecoration(

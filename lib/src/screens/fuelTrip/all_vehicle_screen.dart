@@ -264,11 +264,22 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     final vehicleId =
         int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
 
+    debugPrint('========================================');
+    debugPrint('📤 NAVIGATING TO CUSTOMER FUEL DELIVERY');
+    debugPrint('========================================');
+    debugPrint(
+      'Vehicle ID: $vehicleId',
+    ); // ✅ This will be > 0 for individual vehicles
+    debugPrint('Plate No: $plateNo');
+    debugPrint('Stop Vehicles count: ${_vehicles.length}');
+    debugPrint('========================================');
+
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignment['assignment_id'] ?? 0,
-        'vehicleId': vehicleId,
+        'vehicleId':
+            vehicleId, // ✅ IMPORTANT: Will be > 0 for individual vehicle
         'tripId': widget.assignment['trip_id']?.toString() ?? '',
         'tripStopId': widget.stop['stop_id'] ?? 0,
         'requiredQty':
@@ -281,6 +292,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         'currentStopIndex': 0,
         'totalStops': 1,
         'driverId': widget.assignment['driver_id'] ?? 0,
+        'stopVehicles': _vehicles, // ✅ Pass the vehicles list
       },
     );
 
@@ -299,7 +311,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Delivery completed for $plateNo'),
+          content: Text('Refueling Completed $plateNo'),
           backgroundColor: Colors.green,
         ),
       );

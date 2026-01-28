@@ -378,6 +378,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       final controller = context.read<TripTrackingController>();
       final driverId = AuthRepo.driverId;
 
+      // FIX: Pass widget.vehicleId which is the driver's vehicle (truck ID: 2)
+      // NOT the customer's vehicle from stop_vehicles
       await controller.startTripTracking(
         tripId: widget.tripId,
         tripStopId: widget.tripStopId,
@@ -760,7 +762,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Destination',
+            'Customer Name',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey,
@@ -770,7 +772,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.location_on, color: Colors.red, size: 24),
+              const Icon(Icons.business, color: Colors.blue, size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -789,7 +791,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           _buildInfoItem(
             icon: Icons.access_time,
             label: 'Expected Arrival',
-            value: widget.arrivalTime,
+            value:
+                widget.arrivalTime.isNotEmpty ? widget.arrivalTime : 'Not Set',
           ),
           const SizedBox(height: 12),
           _buildInfoItem(
@@ -1037,7 +1040,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignmentId,
-        'vehicleId': 0,
+        'vehicleId': 0, // ✅ IMPORTANT: 0 means bulk delivery
         'tripId': widget.tripId.toString(),
         'tripStopId': widget.tripStopId ?? 0,
         'requiredQty': widget.requiredQty,
@@ -1048,7 +1051,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         'currentStopIndex': widget.currentStopIndex,
         'totalStops': widget.totalStops,
         'driverId': widget.driverId,
-        'stopVehicles': widget.stopVehicles, // ✅ ADD THIS LINE
+        'stopVehicles':
+            widget
+                .stopVehicles, // ✅ Pass stopVehicles (will be null or empty for bulk)
       },
     );
 

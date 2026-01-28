@@ -28,9 +28,6 @@ class AuthController with ChangeNotifier {
     try {
       print('Attempting login...');
 
-      // Clear any existing auth data before new login
-      AuthRepo.clearAuthData();
-
       final loginResponse = await restApi.login(
         email: email,
         password: password,
@@ -42,8 +39,8 @@ class AuthController with ChangeNotifier {
         );
 
         // Set new auth data with the response
-        AuthRepo.loginType = loginType;
         AuthRepo.token = loginResponse.Token; // Set the new token first
+        AuthRepo.loginType = loginType;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
@@ -53,7 +50,7 @@ class AuthController with ChangeNotifier {
         print('Customer ID: ${AuthRepo.customerId}');
         print('Login type: ${AuthRepo.loginType}');
         print('Role: ${AuthRepo.role}');
-        print('Role: ${AuthRepo.driverId}');
+        print('Driver ID: ${AuthRepo.driverId}');
 
         // Verify token is properly set
         if (AuthRepo.token != null && AuthRepo.token!.isNotEmpty) {
@@ -71,7 +68,6 @@ class AuthController with ChangeNotifier {
       log('Login error: $e');
       if (e is DioException) {
         log("DioException: ${e.message}", stackTrace: e.stackTrace);
-        // Handle specific HTTP errors if needed
         if (e.response?.statusCode == 401) {
           showErrorSnack('Invalid credentials');
         } else {

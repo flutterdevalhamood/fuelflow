@@ -232,9 +232,17 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    if (_driverId == null || _vehicleId == null) {
-      debugPrint('⚠️ Driver ID or Vehicle ID not set for location logging');
+    // FIX: Use AuthRepo.driverId as fallback
+    final driverId = _driverId ?? AuthRepo.driverId;
+
+    if (driverId == null) {
+      debugPrint('❌ Driver ID not available for location logging');
       return false;
+    }
+
+    // FIX: Don't block if vehicle ID is null - just log warning
+    if (_vehicleId == null) {
+      debugPrint('⚠️ Vehicle ID not set for location logging');
     }
 
     final locationKey =
@@ -262,7 +270,7 @@ class TripTrackingController with ChangeNotifier {
       await api.postLogTripLocations(
         tripId: tripId,
         token: 'Bearer $token',
-        driverId: _driverId,
+        driverId: driverId,
         vehicleId: _vehicleId,
         latitude: position.latitude.toString(),
         longitude: position.longitude.toString(),

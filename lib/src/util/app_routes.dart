@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_unit_screen.dart';
@@ -183,10 +184,13 @@ class Screenroutes {
 
       case Screenroutes.dashboard:
         final data = settings.arguments as Map<String, dynamic>?;
+        final role = data?['role']?.toString();
         return MaterialPageRoute(
           settings: const RouteSettings(name: Screenroutes.dashboard),
           builder: (BuildContext context) {
-            return DashBoardScreen(userRole: data?['role']?.toString() ?? '');
+            return DashBoardScreen(
+              userRole: role ?? AuthRepo.role?.toLowerCase(),
+            );
           },
         );
 

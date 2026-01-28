@@ -702,11 +702,34 @@ class _CustomerFuelDeliveryScreenState
 
     _dialogProcessing = false;
 
-    // Check if this is a multi-vehicle stop
-    final isMultiVehicleStop =
-        widget.stopVehicles != null && widget.stopVehicles!.isNotEmpty;
+    debugPrint('========================================');
+    debugPrint('🎯 SHOW COMPLETION DIALOG');
+    debugPrint('========================================');
+    debugPrint('widget.vehicleId: ${widget.vehicleId}');
+    debugPrint('widget.stopVehicles: ${widget.stopVehicles}');
+    debugPrint('widget.stopVehicles == null: ${widget.stopVehicles == null}');
+    debugPrint(
+      'widget.stopVehicles?.length: ${widget.stopVehicles?.length ?? 0}',
+    );
+    debugPrint(
+      'widget.stopVehicles?.isEmpty: ${widget.stopVehicles?.isEmpty ?? true}',
+    );
+    debugPrint('========================================');
 
-    // Check if there are pending vehicles
+    // ✅ PRIMARY CHECK: Use vehicleId to determine delivery type
+    // vehicleId = 0 → Bulk delivery (from TripStartedScreen)
+    // vehicleId > 0 → Individual vehicle delivery (from AllVehiclesScreen)
+    final isBulkDelivery = widget.vehicleId == 0;
+
+    debugPrint('🔍 isBulkDelivery (based on vehicleId): $isBulkDelivery');
+
+    // ✅ SECONDARY CHECK: Verify with stopVehicles
+    final hasStopVehicles =
+        widget.stopVehicles != null && widget.stopVehicles!.isNotEmpty;
+    debugPrint('🔍 hasStopVehicles: $hasStopVehicles');
+    debugPrint('========================================');
+
+    // Check if there are pending vehicles (only relevant for multi-vehicle stops)
     final hasPendingVehicles =
         widget.stopVehicles?.any((vehicle) {
           final status =
@@ -724,16 +747,16 @@ class _CustomerFuelDeliveryScreenState
               return PopScope(
                 canPop: !_dialogProcessing,
                 child: AlertDialog(
-                  title: const Text('Vehicle Delivery Completed'),
+                  title: const Text('Delivery Completed'),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isMultiVehicleStop
-                            ? hasPendingVehicles
-                                ? 'Vehicle refueled. Continue with remaining vehicles.'
-                                : 'All vehicles completed! You can now return to base.'
-                            : 'Delivery completed successfully!',
+                        isBulkDelivery
+                            ? 'Bulk delivery completed successfully!'
+                            : hasPendingVehicles
+                            ? 'Vehicle refueled. Continue with remaining vehicles.'
+                            : 'Vehicle refueled',
                       ),
                       if (_dialogProcessing) ...[
                         const SizedBox(height: 16),
@@ -750,13 +773,27 @@ class _CustomerFuelDeliveryScreenState
                     if (!_dialogProcessing)
                       ElevatedButton(
                         onPressed: () async {
+                          debugPrint(
+                            '✅ Dialog OK pressed - isBulkDelivery: $isBulkDelivery',
+                          );
+
                           Navigator.of(ctx).pop(); // Close dialog first
 
                           if (mounted) {
-                            // Simply pop back to previous screen
-                            Navigator.of(context).pop(true);
-                            // Removed all automatic navigation to TripReturnScreen
-                            // AllVehiclesScreen will handle "Return to Base" button
+                            // ✅ UPDATED: Use vehicleId to determine navigation
+                            if (isBulkDelivery) {
+                              // Bulk delivery (vehicleId = 0) - navigate to Return to Base screen
+                              debugPrint(
+                                '✅ Bulk delivery completed - navigating to Return to Base',
+                              );
+                              await _navigateToReturnScreen();
+                            } else {
+                              // Individual vehicle delivery (vehicleId > 0) - pop back to AllVehiclesScreen
+                              debugPrint(
+                                '✅ Individual vehicle delivery completed - returning to AllVehiclesScreen',
+                              );
+                              Navigator.of(context).pop(true);
+                            }
                           }
                         },
                         child: const Text('OK'),
@@ -881,9 +918,9 @@ class _CustomerFuelDeliveryScreenState
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Customer Delivery',
-                                      style: TextStyle(
+                                    Text(
+                                      widget.customerName,
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -891,7 +928,7 @@ class _CustomerFuelDeliveryScreenState
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      widget.customerName,
+                                      widget.vehicleName,
                                       style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 14,
@@ -1649,7 +1686,7 @@ class _CustomerFuelDeliveryScreenState
                                       ),
                                     )
                                     : const Text(
-                                      'Complete Delivery',
+                                      'Refueling Completed',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,

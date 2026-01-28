@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 import 'package:sample/src/util/app_theme.dart';
@@ -15,6 +16,13 @@ class BaseScreen extends StatefulWidget {
 GlobalKey<NavigatorState>? navigatorKey = GlobalKey();
 
 class _BaseScreenState extends State<BaseScreen> {
+  String _getInitialRoute() {
+    if (AuthRepo.isAuthenticated && AuthRepo.token != null) {
+      return Screenroutes.dashboard;
+    }
+    return Screenroutes.login;
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -22,7 +30,7 @@ class _BaseScreenState extends State<BaseScreen> {
       debugShowCheckedModeBanner: false,
       theme: appTheme,
       onGenerateRoute: Screenroutes.routes,
-      initialRoute: Screenroutes.login,
+      initialRoute: _getInitialRoute(),
       navigatorObservers: [Screenroutes.routeobserver],
       navigatorKey: NavigationService().navigatorKey,
     );
