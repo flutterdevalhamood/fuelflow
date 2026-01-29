@@ -16,6 +16,7 @@ class AuthRepo {
 
   static const _prefLastEndMeterReadingKey = "lastEndMeterReading";
   static const _prefLastTripStopIdKey = "lastTripStopId";
+  static const _prefLastAvailableQtyKey = "lastAvailableQty";
 
   static set token(String? token) {
     if (token == null) {
@@ -135,6 +136,18 @@ class AuthRepo {
     return driverIdJson;
   }
 
+  static set lastAvailableQty(double? qty) {
+    if (qty == null) {
+      prefs?.remove(_prefLastAvailableQtyKey);
+    } else {
+      prefs?.setDouble(_prefLastAvailableQtyKey, qty);
+    }
+  }
+
+  static double? get lastAvailableQty {
+    return prefs?.getDouble(_prefLastAvailableQtyKey);
+  }
+
   // Fixed logout method - clear individual keys instead of clearing all prefs
   static logOut() {
     // Clear all auth-related data individually
@@ -145,6 +158,7 @@ class AuthRepo {
     customerId = null;
     lastEndMeterReading = null; // ADD THIS
     lastTripStopId = null;
+    lastAvailableQty = null;
 
     // Navigate to login screen
     NavigationService().pushNavigation(Screenroutes.login);
@@ -164,5 +178,6 @@ class AuthRepo {
     customerId = null;
     lastEndMeterReading = null; // ADD THIS
     lastTripStopId = null;
+    lastAvailableQty = null;
   }
 }

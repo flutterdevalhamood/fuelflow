@@ -119,7 +119,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
       {
         'title': 'Completed Trips',
         'icon': Icons.storage_rounded,
-        'route': '',
+        'route': Screenroutes.completedAssignmentScreen,
         'color': Colors.lime,
         'gradient': [Color(0xFFee0979), Color(0xFFff6a00)],
         'description': 'View Completed Trips',

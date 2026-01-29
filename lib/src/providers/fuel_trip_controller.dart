@@ -19,6 +19,11 @@ class FuelTripController with ChangeNotifier {
   Map<String, dynamic>? acceptedAssignmentData;
   String? errorMessage;
 
+  int completedCurrentPage = 1;
+  final int completedTotalPages = 10;
+  bool hasMoreCompleted = true;
+  List<Map<String, dynamic>>? completedAssignmentsData;
+
   Future<void> getAssignedTrips({bool loadMore = false}) async {
     if (!loadMore) {
       assignedTripsData = null;
@@ -152,6 +157,85 @@ class FuelTripController with ChangeNotifier {
     }
   }
 
+  Future<void> getCompletedAssignments({bool loadMore = false}) async {
+    if (!loadMore) {
+      completedAssignmentsData = null;
+      completedCurrentPage = 1;
+      hasMoreCompleted = true;
+    }
+
+    errorMessage = null;
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final currentToken = token;
+
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found - user not authenticated");
+      }
+
+      print(
+        '🔑 Fetching completed assignments - Page: $completedCurrentPage with token: ${currentToken.substring(0, 20)}...',
+      );
+
+      final response = await restApi.getCompletedAssignments(
+        completedCurrentPage,
+        completedTotalPages,
+        'Bearer $currentToken',
+      );
+      print('✅ Completed Assignments API Response: $response');
+
+      if (response is Map<String, dynamic>) {
+        if (response['IsSuccess'] == true) {
+          final data = response['Data'] as List<dynamic>?;
+          if (data != null) {
+            final newCompletedData =
+                data.map((v) => v as Map<String, dynamic>).toList();
+            print('📦 Completed assignments data: $newCompletedData');
+
+            if (loadMore) {
+              completedAssignmentsData ??= [];
+              completedAssignmentsData!.addAll(newCompletedData);
+            } else {
+              completedAssignmentsData = newCompletedData;
+            }
+            hasMoreCompleted = data.length == completedTotalPages;
+          } else {
+            hasMoreCompleted = false;
+            if (!loadMore) {
+              completedAssignmentsData = [];
+            }
+          }
+        } else {
+          errorMessage = response['Message'] ?? 'API call failed';
+          print('❌ API call failed: ${response['Message']}');
+        }
+      } else {
+        errorMessage = 'Unexpected API response format';
+        print('❌ Unexpected API response format');
+      }
+    } catch (e) {
+      errorMessage = 'Failed to load completed assignments';
+      print('❌ Exception: $e');
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+        print('Response: ${e.response?.data}');
+        print('Status code: ${e.response?.statusCode}');
+      }
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void loadMoreCompletedAssignments() {
+    if (hasMoreCompleted && !isLoading) {
+      completedCurrentPage++;
+      getCompletedAssignments(loadMore: true);
+    }
+  }
+
   Future<bool> postDriverResponse({
     required int assignmentId,
     required int driverId,
@@ -279,12 +363,22 @@ class FuelTripController with ChangeNotifier {
     notifyListeners();
   }
 
+  void clearCompletedAssignments() {
+    completedAssignmentsData = null;
+    completedCurrentPage = 1;
+    hasMoreCompleted = true;
+    notifyListeners();
+  }
+
   void clearAllData() {
     assignedTripsData = null;
     acceptedAssignmentData = null;
+    completedAssignmentsData = null;
     errorMessage = null;
     currentPage = 1;
     hasMore = true;
+    completedCurrentPage = 1;
+    hasMoreCompleted = true;
     isLoading = false;
     isSubmittingResponse = false;
     notifyListeners();

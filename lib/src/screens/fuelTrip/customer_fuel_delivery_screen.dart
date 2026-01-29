@@ -676,6 +676,11 @@ class _CustomerFuelDeliveryScreenState
         '✅ Saved end meter reading for next vehicle: ${_endMeterController.text}',
       );
 
+      final updatedAvailableQty =
+          widget.availableQty - double.parse(_deliveryQuantityController.text);
+      AuthRepo.lastAvailableQty = updatedAvailableQty;
+      debugPrint('✅ Updated available quantity: $updatedAvailableQty');
+
       await _trackingController.logManualTripEvent(
         eventType: 'departed_from_stop',
       );
@@ -775,7 +780,7 @@ class _CustomerFuelDeliveryScreenState
               return PopScope(
                 canPop: !_dialogProcessing,
                 child: AlertDialog(
-                  title: const Text('Delivery Completed'),
+                  title: const Text('Refueling Completed'),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

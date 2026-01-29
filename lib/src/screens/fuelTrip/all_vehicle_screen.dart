@@ -189,6 +189,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       // Clear stored meter reading for new trip/stop
       AuthRepo.lastEndMeterReading = null;
       AuthRepo.lastTripStopId = null;
+      AuthRepo.lastAvailableQty = null;
       debugPrint('✅ Cleared meter reading cache for new stop');
 
       if (_isLastStop) {
@@ -318,6 +319,10 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     debugPrint('Vehicles list: $_vehicles'); // ADD THIS DEBUG
     debugPrint('========================================');
 
+    final currentAvailableQty =
+        AuthRepo.lastAvailableQty ??
+        _toDouble(widget.assignment['available_qty']);
+
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
@@ -328,7 +333,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         'requiredQty':
             double.tryParse(widget.stop['expected_qty']?.toString() ?? '0') ??
             0.0,
-        'availableQty': _toDouble(widget.assignment['available_qty']),
+        'availableQty': currentAvailableQty,
         'vehicleName': plateNo,
         'customerName': widget.customerName,
         'stopOrder': widget.stop['stop_order'] ?? '1',

@@ -420,6 +420,13 @@ abstract class RestClient {
     @Header("Authorization") String? token,
   );
 
+  @GET('/Driver/GetCompletedAssignments/{page}/{limit}')
+  Future<dynamic> getCompletedAssignments(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
   @POST('/Driver/FuelVehicle')
   Future<dynamic> postFuelVehicle({
     @Header("Authorization") String? token,
@@ -474,6 +481,7 @@ abstract class RestClient {
     @Part(name: 'customer_end_meter')
     List<MultipartFile>? customerEndMeterFiles,
     @Part(name: 'files') List<MultipartFile>? additionalFiles,
+    @Part(name: "stop_vehicle_id") String? stopVehicleId,
   });
 
   @GET('/Driver/GetTripEvents')

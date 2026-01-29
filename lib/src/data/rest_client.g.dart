@@ -1649,6 +1649,33 @@ class _RestClient implements RestClient {
   }
 
   @override
+  Future<dynamic> getCompletedAssignments(
+    int page,
+    int limit,
+    String? token,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Driver/GetCompletedAssignments/${page}/${limit}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
   Future<dynamic> postFuelVehicle({
     String? token,
     int? vehicleId,
@@ -1769,6 +1796,7 @@ class _RestClient implements RestClient {
     int? customerEndMeterReadingValue,
     List<MultipartFile>? customerEndMeterFiles,
     List<MultipartFile>? additionalFiles,
+    String? stopVehicleId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1854,6 +1882,9 @@ class _RestClient implements RestClient {
     }
     if (additionalFiles != null) {
       _data.files.addAll(additionalFiles.map((i) => MapEntry('files', i)));
+    }
+    if (stopVehicleId != null) {
+      _data.fields.add(MapEntry('stop_vehicle_id', stopVehicleId));
     }
     final _options = _setStreamType<dynamic>(
       Options(
