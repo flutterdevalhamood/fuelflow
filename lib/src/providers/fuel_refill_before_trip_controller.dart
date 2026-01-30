@@ -15,8 +15,99 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
   String? successMessage;
   int? lastStockEventId;
 
+  Future<List<Map<String, dynamic>>> getRefillingStatusForStop({
+    required String tripId,
+    required int tripStopId,
+  }) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final token = AuthRepo.token;
+      if (token == null) {
+        throw Exception("No authentication token found");
+      }
+
+      debugPrint('🔍 Fetching refilling status...');
+      debugPrint('Trip ID: $tripId, Trip Stop ID: $tripStopId');
+
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
+
+      final response = await RestClient(dio).getRefillingStatusForStop(
+        token: 'Bearer $token',
+        tripId: tripId,
+        tripStopId: tripStopId,
+      );
+
+      debugPrint('✅ Refilling status response: $response');
+
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        final data = response['Data'];
+
+        if (data != null && data['trip_stops'] is List) {
+          final tripStops = data['trip_stops'] as List;
+
+          // Find the matching trip stop
+          final matchingStop = tripStops.firstWhere(
+            (stop) => stop['stop_id'] == tripStopId,
+            orElse: () => null,
+          );
+
+          if (matchingStop != null && matchingStop['stop_vehicles'] is List) {
+            final stopVehicles = matchingStop['stop_vehicles'] as List;
+
+            // Filter vehicles that have been refueled (status = "1" and has refueling data)
+            final refilledVehicles =
+                stopVehicles
+                    .where(
+                      (vehicle) =>
+                          vehicle['status'] == "1" &&
+                          vehicle['refueling'] != null,
+                    )
+                    .map(
+                      (vehicle) => {
+                        'plate_no': vehicle['plate_no'],
+                        'quantity': vehicle['refueling']['quantity'],
+                        'before_quantity':
+                            vehicle['refueling']['before_quantity'],
+                        'after_quantity':
+                            vehicle['refueling']['after_quantity'],
+                        'note': vehicle['refueling']['note'],
+                        'created_at': vehicle['refueling']['created_at'],
+                      },
+                    )
+                    .toList();
+
+            debugPrint('✅ Found ${refilledVehicles.length} refilled vehicles');
+            isLoading = false;
+            notifyListeners();
+            return List<Map<String, dynamic>>.from(refilledVehicles);
+          }
+        }
+      } else {
+        errorMessage =
+            response['Message'] ?? 'Failed to fetch refilling status';
+        debugPrint('❌ API Error: $errorMessage');
+      }
+    } catch (e) {
+      debugPrint('❌ Exception fetching refilling status: $e');
+      errorMessage = 'Failed to load refilling status';
+    }
+
+    isLoading = false;
+    notifyListeners();
+    return [];
+  }
+
   Future<bool> postFuelVehicleWithMeterReading({
     required int vehicleId,
+    int? stopVehicleId,
     required String tripId,
     required int tripStopId,
     required String type,
@@ -125,9 +216,13 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
 
       debugPrint('🌐 Sending API request...');
 
+      final stopVehicleIdString = (stopVehicleId ?? 0).toString();
+      debugPrint('🌐 Sending to API - stopVehicleId: $stopVehicleIdString');
+
       final response = await RestClient(dio).postFuelVehicleWithMeterReading(
         token: 'Bearer $token',
         vehicleId: vehicleId,
+        stopVehicleId: stopVehicleIdString,
         tripId: tripId,
         tripStopId: tripStopId,
         inFlow: type,

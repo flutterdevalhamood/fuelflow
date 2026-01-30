@@ -8,7 +8,7 @@ import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
 class AllVehiclesScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> vehicles;
+  final List<Map<String, dynamic>> stopVehicles;
   final String customerName;
   final String siteName;
   final Map<String, dynamic> assignment;
@@ -18,7 +18,7 @@ class AllVehiclesScreen extends StatefulWidget {
 
   const AllVehiclesScreen({
     Key? key,
-    required this.vehicles,
+    required this.stopVehicles,
     required this.customerName,
     required this.siteName,
     required this.assignment,
@@ -32,7 +32,7 @@ class AllVehiclesScreen extends StatefulWidget {
 }
 
 class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
-  late List<Map<String, dynamic>> _vehicles;
+  late List<Map<String, dynamic>> stopVehicles;
   List<Map<String, dynamic>> _filteredVehicles = [];
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'all';
@@ -57,14 +57,22 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     return currentStopOrder >= (widget.totalStops ?? 1);
   }
 
+  double _totalQuantityUsed = 0.0;
+
   @override
   void initState() {
     super.initState();
-    _vehicles = List.from(widget.vehicles);
-    _filteredVehicles = List.from(_vehicles);
+    stopVehicles = List.from(widget.stopVehicles);
+    _filteredVehicles = List.from(stopVehicles);
     _searchController.addListener(_filterVehicles);
 
-    // Initialize tracking controller
+    // ADD THIS: Clear any previous data when entering this screen
+    _totalQuantityUsed = 0.0;
+    AuthRepo.lastEndMeterReading = null;
+    AuthRepo.lastTripStopId = null;
+    AuthRepo.lastAvailableQty = null;
+    debugPrint('✅ Cleared AuthRepo data on screen entry');
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _trackingController = Provider.of<TripTrackingController>(
         context,
@@ -76,6 +84,13 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+
+    // ADD THIS: Clear data when leaving the screen
+    AuthRepo.lastEndMeterReading = null;
+    AuthRepo.lastTripStopId = null;
+    AuthRepo.lastAvailableQty = null;
+    debugPrint('✅ Cleared AuthRepo data on screen exit');
+
     super.dispose();
   }
 
@@ -131,7 +146,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     }
 
     final selectedVehicles =
-        _vehicles
+        stopVehicles
             .where(
               (v) => _selectedVehicleIds.contains(
                 int.tryParse(v['vehicle_id']?.toString() ?? '0'),
@@ -157,11 +172,11 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       setState(() {
         // Update status for all selected vehicles
         for (var vehicleId in _selectedVehicleIds) {
-          final index = _vehicles.indexWhere(
+          final index = stopVehicles.indexWhere(
             (v) => v['vehicle_id'].toString() == vehicleId.toString(),
           );
           if (index != -1) {
-            _vehicles[index]['status'] = '-1';
+            stopVehicles[index]['status'] = '-1';
           }
         }
         _filterVehicles();
@@ -169,7 +184,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         _isMultiSelectMode = false;
       });
 
-      widget.onVehicleUpdated?.call(_vehicles);
+      widget.onVehicleUpdated?.call(stopVehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -263,7 +278,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredVehicles =
-          _vehicles.where((vehicle) {
+          stopVehicles.where((vehicle) {
             final plateNo = vehicle['plate_no']?.toString().toLowerCase() ?? '';
             final status =
                 int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
@@ -285,21 +300,21 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   }
 
   int get _pendingCount {
-    return _vehicles.where((v) {
+    return stopVehicles.where((v) {
       final status = int.tryParse(v['status']?.toString() ?? '0') ?? 0;
       return status == 0;
     }).length;
   }
 
   int get _completedCount {
-    return _vehicles.where((v) {
+    return stopVehicles.where((v) {
       final status = int.tryParse(v['status']?.toString() ?? '0') ?? 0;
       return status == 1;
     }).length;
   }
 
   int get _unavailableCount {
-    return _vehicles.where((v) {
+    return stopVehicles.where((v) {
       final status = int.tryParse(v['status']?.toString() ?? '0') ?? 0;
       return status == -1;
     }).length;
@@ -307,27 +322,36 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
   Future<void> _handleVehicleRefuel(Map<String, dynamic> vehicle) async {
     final plateNo = vehicle['plate_no']?.toString() ?? 'N/A';
-    final vehicleId =
-        int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
 
+    final stopVehicleId =
+        int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
+    final stopVehiclePlateNumber =
+        int.tryParse(vehicle['plate_no']?.toString() ?? '0') ?? 0;
     debugPrint('========================================');
     debugPrint('📤 NAVIGATING TO CUSTOMER FUEL DELIVERY');
     debugPrint('========================================');
-    debugPrint('Vehicle ID: $vehicleId');
     debugPrint('Plate No: $plateNo');
-    debugPrint('Stop Vehicles count: ${_vehicles.length}');
-    debugPrint('Vehicles list: $_vehicles'); // ADD THIS DEBUG
+    debugPrint('Stop Vehicles count: ${stopVehicles.length}');
+    debugPrint('Stop Vehicle ID (vehicle_id field): $stopVehicleId');
+    debugPrint('Driver Vehicle ID: ${widget.assignment['vehicle_id']}');
+    debugPrint('Vehicle Object: $vehicle');
+    debugPrint('Vehicles list: $stopVehicles');
+
+    // ADD THIS DEBUG
     debugPrint('========================================');
 
-    final currentAvailableQty =
-        AuthRepo.lastAvailableQty ??
-        _toDouble(widget.assignment['available_qty']);
+    final originalAvailableQty = _toDouble(widget.assignment['available_qty']);
+    final currentAvailableQty = originalAvailableQty - _totalQuantityUsed;
+
+    debugPrint('Original Available Qty: $originalAvailableQty');
+    debugPrint('Total Quantity Used: $_totalQuantityUsed');
+    debugPrint('Current Available Qty: $currentAvailableQty');
 
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignment['assignment_id'] ?? 0,
-        'vehicleId': vehicleId, // ✅ Individual vehicle ID (not 0)
+        'vehicleId': widget.assignment['vehicle_id'],
         'tripId': widget.assignment['trip_id']?.toString() ?? '',
         'tripStopId': widget.stop['stop_id'] ?? 0,
         'requiredQty':
@@ -340,23 +364,34 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         'currentStopIndex': 0,
         'totalStops': 1,
         'driverId': widget.assignment['driver_id'] ?? 0,
-        'stopVehicles': _vehicles, // ✅ Pass the full vehicles list
-        'isBulkDelivery': false, // ✅ EXPLICITLY mark as NOT bulk delivery
+        'stopVehicles': stopVehicles, // ✅ Pass the full vehicles list
+        'isBulkDelivery': false,
+        'stopVehicleId': stopVehicleId,
+        'stopVehiclePlateNumber': stopVehiclePlateNumber,
       },
     );
 
     if (result == true && mounted) {
+      if (AuthRepo.lastAvailableQty != null) {
+        final quantityDelivered =
+            currentAvailableQty - AuthRepo.lastAvailableQty!;
+        setState(() {
+          _totalQuantityUsed += quantityDelivered;
+        });
+        debugPrint('✅ Quantity delivered: $quantityDelivered');
+        debugPrint('✅ Total quantity used so far: $_totalQuantityUsed');
+      }
       setState(() {
-        final index = _vehicles.indexWhere(
+        final index = stopVehicles.indexWhere(
           (v) => v['vehicle_id'].toString() == vehicle['vehicle_id'].toString(),
         );
         if (index != -1) {
-          _vehicles[index]['status'] = '1';
+          stopVehicles[index]['status'] = '1';
           _filterVehicles();
         }
       });
 
-      widget.onVehicleUpdated?.call(_vehicles);
+      widget.onVehicleUpdated?.call(stopVehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -391,16 +426,16 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
     if (result == true && mounted) {
       setState(() {
-        final index = _vehicles.indexWhere(
+        final index = stopVehicles.indexWhere(
           (v) => v['vehicle_id'].toString() == vehicleId.toString(),
         );
         if (index != -1) {
-          _vehicles[index]['status'] = '-1';
+          stopVehicles[index]['status'] = '-1';
         }
         _filterVehicles();
       });
 
-      widget.onVehicleUpdated?.call(_vehicles);
+      widget.onVehicleUpdated?.call(stopVehicles);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -640,7 +675,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterChip('All', 'all', _vehicles.length),
+                    _buildFilterChip('All', 'all', stopVehicles.length),
                     const SizedBox(width: 8),
                     _buildFilterChip('Pending', 'pending', _pendingCount),
                     const SizedBox(width: 8),
@@ -745,7 +780,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
             // Return to Base Button (show when all vehicles are processed)
             // Return to Base / Move to Next Stop Button (show when all vehicles are processed)
             if (_pendingCount == 0 &&
-                _vehicles.isNotEmpty &&
+                stopVehicles.isNotEmpty &&
                 !_isMultiSelectMode)
               Container(
                 padding: const EdgeInsets.all(16),

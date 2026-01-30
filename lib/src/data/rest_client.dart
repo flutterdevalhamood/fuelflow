@@ -538,4 +538,11 @@ abstract class RestClient {
     @Field("description") String? description,
     @Field("trip_stop_id") int? tripStopId,
   });
+
+  @POST('/Driver/GetRefillingStatusForStop')
+  Future<dynamic> getRefillingStatusForStop({
+    @Header("Authorization") String? token,
+    @Field("trip_id") String? tripId,
+    @Field("trip_stop_id") int? tripStopId,
+  });
 }

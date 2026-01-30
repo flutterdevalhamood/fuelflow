@@ -26,9 +26,11 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
   final int totalStops;
   final int driverId;
   final List<dynamic>? stopVehicles;
+  final int? stopVehicleId;
+  final int? stopVehiclePlateNumber;
   final bool? isBulkDelivery;
 
-  const CustomerFuelDeliveryScreen({
+  CustomerFuelDeliveryScreen({
     Key? key,
     required this.assignmentId,
     required this.vehicleId,
@@ -44,6 +46,8 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
     required this.driverId,
     this.stopVehicles,
     this.isBulkDelivery,
+    this.stopVehicleId,
+    this.stopVehiclePlateNumber,
   }) : super(key: key);
 
   @override
@@ -96,6 +100,11 @@ class _CustomerFuelDeliveryScreenState
 
   bool _isStartMeterPreFilled = false;
 
+  bool _isRefilledExpanded = false;
+
+  List<Map<String, dynamic>> _refillingHistory = [];
+  bool _isLoadingHistory = false;
+
   int get _meterReadingDifference {
     final startValue = int.tryParse(_startMeterController.text) ?? 0;
     final endValue = int.tryParse(_endMeterController.text) ?? 0;
@@ -121,9 +130,6 @@ class _CustomerFuelDeliveryScreenState
         AuthRepo.lastEndMeterReading != null) {
       _startMeterController.text = AuthRepo.lastEndMeterReading!;
       _isStartMeterPreFilled = true; // ADD THIS FLAG
-      debugPrint(
-        '✅ Pre-filled start meter from previous vehicle: ${_startMeterController.text}',
-      );
     }
 
     _startMeterController.addListener(_onStartMeterChanged);
@@ -132,7 +138,29 @@ class _CustomerFuelDeliveryScreenState
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeTracking();
+      _loadRefillingHistory();
     });
+  }
+
+  Future<void> _loadRefillingHistory() async {
+    setState(() => _isLoadingHistory = true);
+
+    try {
+      final historyData = await _refillController.getRefillingStatusForStop(
+        tripId: widget.tripId,
+        tripStopId: widget.tripStopId,
+      );
+
+      setState(() {
+        _refillingHistory = historyData;
+      });
+
+      debugPrint('✅ Loaded ${_refillingHistory.length} refilling records');
+    } catch (e) {
+      debugPrint('❌ Error loading refilling history: $e');
+    } finally {
+      setState(() => _isLoadingHistory = false);
+    }
   }
 
   Future<void> _initializeTracking() async {
@@ -146,10 +174,7 @@ class _CustomerFuelDeliveryScreenState
       );
 
       _arrivedAtStopLogged = true;
-      debugPrint('✅ Logged: arrived_at_stop');
-    } catch (e) {
-      debugPrint('❌ Tracking init failed: $e');
-    }
+    } catch (e) {}
   }
 
   void _onStartMeterChanged() {
@@ -171,11 +196,8 @@ class _CustomerFuelDeliveryScreenState
 
       if (success) {
         _customerLoadingStartedLogged = true;
-        debugPrint('✅ Logged: customer_loading_started');
       }
-    } catch (e) {
-      debugPrint('❌ Failed to log customer_loading_started: $e');
-    }
+    } catch (e) {}
   }
 
   void _onEndMeterChanged() {
@@ -606,9 +628,13 @@ class _CustomerFuelDeliveryScreenState
     try {
       await Future.delayed(const Duration(milliseconds: 300));
 
+      final stopVehicleIdToSubmit = widget.stopVehicleId ?? 0;
+
       debugPrint('========================================');
       debugPrint('📤 FUEL DELIVERY REQUEST');
       debugPrint('========================================');
+      debugPrint('Driver vehicle ID: ${widget.vehicleId}');
+      debugPrint('Stop Vehicle ID: $stopVehicleIdToSubmit');
       debugPrint('Vehicle ID: ${widget.vehicleId}');
       debugPrint('Trip ID: ${widget.tripId}');
       debugPrint('Trip Stop ID: ${widget.tripStopId}');
@@ -631,10 +657,13 @@ class _CustomerFuelDeliveryScreenState
       );
       debugPrint('End Meter Photo Path: ${_endMeterPhoto!.path}');
       debugPrint('Additional Images Count: ${_additionalImages.length}');
+      debugPrint('Is Bulk Delivery: ${widget.isBulkDelivery ?? false}');
+      debugPrint('widget.stopVehicleId received: ${widget.stopVehicleId}');
       debugPrint('========================================');
 
       final success = await _refillController.postFuelVehicleWithMeterReading(
         vehicleId: widget.vehicleId,
+        stopVehicleId: stopVehicleIdToSubmit,
         tripId: widget.tripId,
         tripStopId: widget.tripStopId,
         type: 'outflow',
@@ -765,6 +794,20 @@ class _CustomerFuelDeliveryScreenState
     final isIndividualVehicleDelivery = !isBulkDelivery;
     final shouldShowReturnToBase = isBulkDelivery && isLastStop;
 
+    String plateNumber = '';
+    if (isIndividualVehicleDelivery && widget.stopVehicles != null) {
+      try {
+        final currentVehicle = widget.stopVehicles!.firstWhere(
+          (vehicle) =>
+              vehicle['vehicle_id']?.toString() == widget.vehicleId.toString(),
+          orElse: () => null,
+        );
+        plateNumber = currentVehicle?['plate_no']?.toString() ?? '';
+      } catch (e) {
+        debugPrint('❌ Error getting plate number: $e');
+      }
+    }
+
     debugPrint('🔍 isBulkDelivery: $isBulkDelivery');
     debugPrint('🔍 hasPendingVehicles: $hasPendingVehicles');
     debugPrint('🔍 isIndividualVehicleDelivery: $isIndividualVehicleDelivery');
@@ -780,7 +823,11 @@ class _CustomerFuelDeliveryScreenState
               return PopScope(
                 canPop: !_dialogProcessing,
                 child: AlertDialog(
-                  title: const Text('Refueling Completed'),
+                  title: Text(
+                    isIndividualVehicleDelivery
+                        ? 'Refueling Completed for ${widget.stopVehiclePlateNumber}'
+                        : 'Bulk refueling Completed',
+                  ),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -918,6 +965,46 @@ class _CustomerFuelDeliveryScreenState
     }
   }
 
+  Widget _buildExpandedInfoRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.orange.shade700),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.orange.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  double get _totalRefilledQuantity {
+    double total = 0.0;
+
+    // Add quantity from current delivery if entered
+    if (_deliveryQuantityController.text.isNotEmpty) {
+      total += double.tryParse(_deliveryQuantityController.text) ?? 0.0;
+    }
+
+    // Add quantities from refilling history
+    for (var refill in _refillingHistory) {
+      final quantity = refill['quantity']?.toString() ?? '0';
+      total += double.tryParse(quantity) ?? 0.0;
+    }
+
+    return total;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -964,7 +1051,7 @@ class _CustomerFuelDeliveryScreenState
                   children: [
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Colors.blue, Colors.blue.shade300],
@@ -975,65 +1062,492 @@ class _CustomerFuelDeliveryScreenState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.local_shipping,
-                                  color: Colors.white,
-                                  size: 30,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      widget.customerName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      widget.vehicleName,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
+                          // Row(
+                          //   children: [
+                          //     Container(
+                          //       padding: const EdgeInsets.all(12),
+                          //       decoration: BoxDecoration(
+                          //         color: Colors.white.withOpacity(0.2),
+                          //         borderRadius: BorderRadius.circular(12),
+                          //       ),
+                          //       child: const Icon(
+                          //         Icons.local_shipping,
+                          //         color: Colors.white,
+                          //         size: 30,
+                          //       ),
+                          //     ),
+                          //     const SizedBox(width: 16),
+                          //     Expanded(
+                          //       child: Column(
+                          //         crossAxisAlignment: CrossAxisAlignment.start,
+                          //         children: [
+                          //           Text(
+                          //             widget.customerName,
+                          //             style: const TextStyle(
+                          //               color: Colors.white,
+                          //               fontSize: 20,
+                          //               fontWeight: FontWeight.bold,
+                          //             ),
+                          //           ),
+                          //           const SizedBox(height: 4),
+                          //           Text(
+                          //             widget.vehicleName,
+                          //             style: const TextStyle(
+                          //               color: Colors.white70,
+                          //               fontSize: 14,
+                          //             ),
+                          //           ),
+                          //         ],
+                          //       ),
+                          //     ),
+                          //   ],
+                          // ),
+
+                          // Replace the entire header Container (the gradient blue section) with this:
                           Container(
+                            width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 16,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
+                              gradient: LinearGradient(
+                                colors: [Colors.blue, Colors.blue.shade300],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                             ),
-                            child: Text(
-                              'Stop ${widget.currentStopIndex + 1} of ${widget.totalStops}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.local_shipping,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        $widget.customerName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        widget.vehicleName,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 18,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'Stop ${widget.currentStopIndex + 1}/${widget.totalStops}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Replace the Fuel Status Card section with this more compact version:
+                          Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Fuel Status',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Requested Quantity Card
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.blue.shade200,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.request_quote,
+                                          color: Colors.blue.shade700,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Requested',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${widget.requiredQty.toStringAsFixed(2)} IG',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blue.shade700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  // Available in Vehicle Card
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.green.shade200,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.local_shipping,
+                                          color: Colors.green.shade700,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Available',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${widget.availableQty.toStringAsFixed(2)} IG',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green.shade700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  // Refilled Quantity Card (Expandable)
+                                  // Refilled Quantity Card (Expandable)
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: Colors.orange.shade200,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              _isRefilledExpanded =
+                                                  !_isRefilledExpanded;
+                                            });
+                                          },
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.water_drop,
+                                                  color: Colors.orange.shade700,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Refilled',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${_totalRefilledQuantity.toStringAsFixed(2)} IG',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        Colors.orange.shade700,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  _isRefilledExpanded
+                                                      ? Icons.expand_less
+                                                      : Icons.expand_more,
+                                                  color: Colors.orange.shade700,
+                                                  size: 22,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (_isRefilledExpanded) ...[
+                                          Divider(
+                                            height: 1,
+                                            color: Colors.orange.shade200,
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // Current delivery meter info
+                                                // if (_startMeterController
+                                                //     .text
+                                                //     .isNotEmpty)
+                                                //   _buildExpandedInfoRow(
+                                                //     'Start Meter',
+                                                //     '${_startMeterController.text} IG',
+                                                //     Icons.start,
+                                                //   ),
+                                                // if (_startMeterController
+                                                //     .text
+                                                //     .isNotEmpty)
+                                                //   const SizedBox(height: 6),
+                                                // if (_endMeterController
+                                                //     .text
+                                                //     .isNotEmpty)
+                                                //   _buildExpandedInfoRow(
+                                                //     'End Meter',
+                                                //     '${_endMeterController.text} IG',
+                                                //     Icons.stop,
+                                                //   ),
+                                                // if (_endMeterController
+                                                //     .text
+                                                //     .isNotEmpty)
+                                                //   const SizedBox(height: 6),
+                                                // if (_meterReadingDifference > 0)
+                                                //   _buildExpandedInfoRow(
+                                                //     'Meter Difference',
+                                                //     '${_meterReadingDifference.toStringAsFixed(2)} IG',
+                                                //     Icons.calculate,
+                                                //   ),
+
+                                                // Refilling history section
+                                                if (_refillingHistory
+                                                    .isNotEmpty) ...[
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.history,
+                                                        size: 16,
+                                                        color:
+                                                            Colors
+                                                                .orange
+                                                                .shade700,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        'Previous Refills at this Stop',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Colors
+                                                                  .orange
+                                                                  .shade700,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  ..._refillingHistory.map((
+                                                    refill,
+                                                  ) {
+                                                    final plateNo =
+                                                        refill['plate_no'] ??
+                                                        'N/A';
+                                                    final quantity =
+                                                        refill['quantity']
+                                                            ?.toString() ??
+                                                        '0';
+
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            bottom: 6,
+                                                          ),
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .directions_car,
+                                                            size: 14,
+                                                            color:
+                                                                Colors
+                                                                    .grey
+                                                                    .shade600,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Expanded(
+                                                            child: Text(
+                                                              plateNo,
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color:
+                                                                    Colors
+                                                                        .grey
+                                                                        .shade700,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            '${double.tryParse(quantity)?.toStringAsFixed(2) ?? quantity} IG',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color:
+                                                                  Colors
+                                                                      .orange
+                                                                      .shade700,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                                ],
+
+                                                // Loading indicator
+                                                if (_isLoadingHistory) ...[
+                                                  const SizedBox(height: 8),
+                                                  Center(
+                                                    child: SizedBox(
+                                                      height: 20,
+                                                      width: 20,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        valueColor:
+                                                            AlwaysStoppedAnimation<
+                                                              Color
+                                                            >(
+                                                              Colors
+                                                                  .orange
+                                                                  .shade700,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+
+                                                // Empty state
+                                                if (_startMeterController
+                                                        .text
+                                                        .isEmpty &&
+                                                    _endMeterController
+                                                        .text
+                                                        .isEmpty &&
+                                                    _refillingHistory.isEmpty &&
+                                                    !_isLoadingHistory)
+                                                  Text(
+                                                    'Meter readings will appear here',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color:
+                                                          Colors.grey.shade600,
+                                                      fontStyle:
+                                                          FontStyle.italic,
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
+                          const SizedBox(height: 12),
                         ],
                       ),
                     ),
@@ -1045,41 +1559,6 @@ class _CustomerFuelDeliveryScreenState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Fuel Status',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildInfoRow(
-                                      'Required Quantity',
-                                      '${widget.requiredQty.toStringAsFixed(2)} IG',
-                                      Colors.blue,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _buildInfoRow(
-                                      'Available in Vehicle',
-                                      '${widget.availableQty.toStringAsFixed(2)} IG',
-                                      Colors.green,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
                             const Text(
                               'Customer Meter Readings',
                               style: TextStyle(
@@ -1087,7 +1566,6 @@ class _CustomerFuelDeliveryScreenState
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 16),
 
                             // START METER SECTION
                             if (!_deliveryStarted) ...[
@@ -1762,7 +2240,7 @@ class _CustomerFuelDeliveryScreenState
                                       ),
                                     )
                                     : const Text(
-                                      'Refueling Completed',
+                                      'Complete Refuel',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,

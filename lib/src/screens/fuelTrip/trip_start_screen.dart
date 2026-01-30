@@ -1066,7 +1066,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
         'assignmentId': widget.assignmentId,
-        'vehicleId': 0, // ✅ 0 means no specific customer vehicle
+        'vehicleId': widget.vehicleId,
         'tripId': widget.tripId.toString(),
         'tripStopId': widget.tripStopId ?? 0,
         'requiredQty': widget.requiredQty,
@@ -1078,6 +1078,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         'totalStops': widget.totalStops,
         'driverId': widget.driverId,
         'stopVehicles': widget.stopVehicles,
+        'stopVehicleId': 0,
         'isBulkDelivery': true, // ✅ ADD THIS - explicitly mark as bulk delivery
       },
     );
@@ -1097,7 +1098,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       MaterialPageRoute(
         builder:
             (context) => AllVehiclesScreen(
-              vehicles:
+              stopVehicles:
                   widget.stopVehicles
                       ?.map((v) => Map<String, dynamic>.from(v as Map))
                       .toList() ??
