@@ -18,6 +18,8 @@ class AuthRepo {
   static const _prefLastTripStopIdKey = "lastTripStopId";
   static const _prefLastAvailableQtyKey = "lastAvailableQty";
 
+  static String? lastEndMeterPhotoPath;
+
   static set token(String? token) {
     if (token == null) {
       prefs?.remove(_prefTokenKey);
@@ -159,6 +161,7 @@ class AuthRepo {
     lastEndMeterReading = null; // ADD THIS
     lastTripStopId = null;
     lastAvailableQty = null;
+    lastEndMeterPhotoPath = null;
 
     // Navigate to login screen
     NavigationService().pushNavigation(Screenroutes.login);
@@ -179,5 +182,6 @@ class AuthRepo {
     lastEndMeterReading = null; // ADD THIS
     lastTripStopId = null;
     lastAvailableQty = null;
+    lastEndMeterPhotoPath = null;
   }
 }

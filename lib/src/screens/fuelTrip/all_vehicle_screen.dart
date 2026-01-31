@@ -71,6 +71,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     AuthRepo.lastEndMeterReading = null;
     AuthRepo.lastTripStopId = null;
     AuthRepo.lastAvailableQty = null;
+    AuthRepo.lastEndMeterPhotoPath = null;
     debugPrint('✅ Cleared AuthRepo data on screen entry');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,6 +90,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     AuthRepo.lastEndMeterReading = null;
     AuthRepo.lastTripStopId = null;
     AuthRepo.lastAvailableQty = null;
+    AuthRepo.lastEndMeterPhotoPath = null;
     debugPrint('✅ Cleared AuthRepo data on screen exit');
 
     super.dispose();
@@ -205,6 +207,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       AuthRepo.lastEndMeterReading = null;
       AuthRepo.lastTripStopId = null;
       AuthRepo.lastAvailableQty = null;
+      AuthRepo.lastEndMeterPhotoPath = null;
       debugPrint('✅ Cleared meter reading cache for new stop');
 
       if (_isLastStop) {
@@ -297,6 +300,23 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
             return matchesSearch && matchesStatus;
           }).toList();
     });
+
+    // Auto-redirect when all vehicles are done and it's not the last stop
+    if (_pendingCount == 0 &&
+        stopVehicles.isNotEmpty &&
+        !_isLastStop &&
+        !_isProcessing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          debugPrint(
+            '✅ All vehicles completed - auto-navigating to accepted assignments',
+          );
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.acceptedAssignmentScreen,
+          );
+        }
+      });
+    }
   }
 
   int get _pendingCount {

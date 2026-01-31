@@ -99,6 +99,10 @@ class _CustomerFuelDeliveryScreenState
   bool _deliveryEnded = false;
 
   bool _isStartMeterPreFilled = false;
+  bool _isEditingStartMeter = false;
+  bool _isEditingEndMeter = false;
+  String _originalStartMeterValue = '';
+  String _originalEndMeterValue = '';
 
   bool _isRefilledExpanded = false;
 
@@ -125,11 +129,25 @@ class _CustomerFuelDeliveryScreenState
     _fuelTripController = context.read<FuelTripController>();
     _refillController = context.read<FuelRefillBeforeTripController>();
 
-    // UPDATED: Use AuthRepo and mark as pre-filled
     if (AuthRepo.lastTripStopId == widget.tripStopId &&
         AuthRepo.lastEndMeterReading != null) {
       _startMeterController.text = AuthRepo.lastEndMeterReading!;
-      _isStartMeterPreFilled = true; // ADD THIS FLAG
+      _isStartMeterPreFilled = true;
+
+      // Pre-fill start meter photo from previous vehicle's end meter photo
+      if (AuthRepo.lastEndMeterPhotoPath != null) {
+        final photoFile = File(AuthRepo.lastEndMeterPhotoPath!);
+        if (photoFile.existsSync()) {
+          _startMeterPhoto = photoFile;
+          debugPrint(
+            '✅ Pre-filled start meter photo from previous vehicle: ${AuthRepo.lastEndMeterPhotoPath}',
+          );
+        } else {
+          debugPrint(
+            '⚠️ Previous end meter photo file not found: ${AuthRepo.lastEndMeterPhotoPath}',
+          );
+        }
+      }
     }
 
     _startMeterController.addListener(_onStartMeterChanged);
@@ -329,6 +347,7 @@ class _CustomerFuelDeliveryScreenState
         setState(() {
           _refuelStartedLogged = true;
           _deliveryStarted = true;
+          _originalStartMeterValue = _startMeterController.text;
         });
         _showSnackBar(
           'Delivery started successfully',
@@ -453,6 +472,7 @@ class _CustomerFuelDeliveryScreenState
           _refuelCompletedLogged = true;
           _deliveryEnded = true;
           _showDeliveryFields = true;
+          _originalEndMeterValue = _endMeterController.text;
         });
         _showSnackBar(
           'Delivery ended successfully',
@@ -701,6 +721,7 @@ class _CustomerFuelDeliveryScreenState
 
       AuthRepo.lastEndMeterReading = _endMeterController.text;
       AuthRepo.lastTripStopId = widget.tripStopId;
+      AuthRepo.lastEndMeterPhotoPath = _endMeterPhoto!.path;
       debugPrint(
         '✅ Saved end meter reading for next vehicle: ${_endMeterController.text}',
       );
@@ -731,6 +752,41 @@ class _CustomerFuelDeliveryScreenState
 
       _showSnackBar('Error occurred', backgroundColor: Colors.red);
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _showEditMeterDialog({required bool isStartMeter}) async {
+    final currentValue =
+        isStartMeter ? _startMeterController.text : _endMeterController.text;
+    final originalValue =
+        isStartMeter ? _originalStartMeterValue : _originalEndMeterValue;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => _EditMeterDialog(
+            initialValue: currentValue,
+            originalValue: originalValue,
+            isStartMeter: isStartMeter,
+            endMeterValue: _endMeterController.text,
+            startMeterValue: _startMeterController.text,
+            availableQty: widget.availableQty,
+          ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        if (isStartMeter) {
+          _startMeterController.text = result;
+        } else {
+          _endMeterController.text = result;
+        }
+      });
+      _showSnackBar(
+        '${isStartMeter ? 'Start' : 'End'} meter reading updated to $result IG',
+        backgroundColor: Colors.green,
+      );
     }
   }
 
@@ -1133,33 +1189,53 @@ class _CustomerFuelDeliveryScreenState
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Column(
+                                  child: Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        $widget.customerName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                      /// Customer Name (normal text)
+                                      Expanded(
+                                        child: Text(
+                                          widget.customerName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        widget.vehicleName,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 18,
+
+                                      const SizedBox(width: 8),
+
+                                      /// Vehicle Name (white container)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          widget.vehicleName,
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
+
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -1753,6 +1829,19 @@ class _CustomerFuelDeliveryScreenState
                                           ],
                                         ),
                                       ),
+                                      // Edit Button
+                                      IconButton(
+                                        onPressed:
+                                            () => _showEditMeterDialog(
+                                              isStartMeter: true,
+                                            ),
+                                        icon: Icon(
+                                          Icons.edit_outlined,
+                                          color: Colors.green.shade700,
+                                          size: 22,
+                                        ),
+                                        tooltip: 'Edit Start Meter',
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1793,6 +1882,8 @@ class _CustomerFuelDeliveryScreenState
                                       TextFormField(
                                         controller: _endMeterController,
                                         focusNode: _endMeterFocusNode,
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         decoration: InputDecoration(
                                           labelText: 'Reading Value',
                                           prefixIcon: const Icon(Icons.speed),
@@ -1818,6 +1909,17 @@ class _CustomerFuelDeliveryScreenState
                                               startValue != null &&
                                               endValue <= startValue) {
                                             return 'End reading must be greater than start';
+                                          }
+                                          // NEW: Check if meter difference exceeds available quantity
+                                          if (endValue != null &&
+                                              startValue != null) {
+                                            final meterDiff =
+                                                (endValue - startValue)
+                                                    .toDouble();
+                                            if (meterDiff >
+                                                widget.availableQty) {
+                                              return 'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
+                                            }
                                           }
                                           return null;
                                         },
@@ -1925,6 +2027,19 @@ class _CustomerFuelDeliveryScreenState
                                             ),
                                           ],
                                         ),
+                                      ),
+                                      // Edit Button
+                                      IconButton(
+                                        onPressed:
+                                            () => _showEditMeterDialog(
+                                              isStartMeter: false,
+                                            ),
+                                        icon: Icon(
+                                          Icons.edit_outlined,
+                                          color: Colors.green.shade700,
+                                          size: 22,
+                                        ),
+                                        tooltip: 'Edit End Meter',
                                       ),
                                     ],
                                   ),
@@ -2364,7 +2479,12 @@ class _CustomerFuelDeliveryScreenState
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.file(photo, fit: BoxFit.cover),
+                          child: Image.file(
+                            photo,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 150,
+                          ),
                         ),
                         if (isLocked)
                           Container(
@@ -2383,6 +2503,163 @@ class _CustomerFuelDeliveryScreenState
                       ],
                     ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditMeterDialog extends StatefulWidget {
+  final String initialValue;
+  final String originalValue;
+  final bool isStartMeter;
+  final String endMeterValue;
+  final String startMeterValue;
+  final double availableQty;
+
+  const _EditMeterDialog({
+    required this.initialValue,
+    required this.originalValue,
+    required this.isStartMeter,
+    required this.endMeterValue,
+    required this.startMeterValue,
+    required this.availableQty,
+  });
+
+  @override
+  State<_EditMeterDialog> createState() => _EditMeterDialogState();
+}
+
+class _EditMeterDialogState extends State<_EditMeterDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+    _validate(_controller.text);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _validate(String value) {
+    setState(() {
+      _errorText = null;
+      if (value.isEmpty) {
+        _errorText = 'Please enter a reading value';
+      } else {
+        final newValue = int.tryParse(value);
+        if (newValue == null) {
+          _errorText = 'Please enter a valid number';
+        } else if (widget.isStartMeter) {
+          if (widget.endMeterValue.isNotEmpty) {
+            final endValue = int.tryParse(widget.endMeterValue);
+            if (endValue != null && newValue >= endValue) {
+              _errorText =
+                  'Start reading must be less than end reading (${widget.endMeterValue})';
+            }
+          }
+        } else {
+          final startValue = int.tryParse(widget.startMeterValue);
+          if (startValue != null && newValue <= startValue) {
+            _errorText =
+                'End reading must be greater than start reading (${widget.startMeterValue})';
+          } else if (startValue != null) {
+            final meterDiff = (newValue - startValue).toDouble();
+            if (meterDiff > widget.availableQty) {
+              _errorText =
+                  'Cannot exceed available quantity (${widget.availableQty.toStringAsFixed(2)} IG)';
+            }
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        widget.isStartMeter
+            ? 'Edit Start Meter Reading'
+            : 'Edit End Meter Reading',
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Original value: ${widget.originalValue} IG',
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            keyboardType: const TextInputType.numberWithOptions(),
+            decoration: InputDecoration(
+              labelText: 'New Reading Value',
+              prefixIcon: const Icon(Icons.speed),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              errorText: _errorText,
+            ),
+            onChanged: _validate,
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber,
+                  color: Colors.orange.shade700,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Editing meter readings may affect delivery quantity calculations.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed:
+              _errorText != null || _controller.text.isEmpty
+                  ? null
+                  : () => Navigator.pop(context, _controller.text),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: Colors.grey.shade400,
+          ),
+          child: const Text('Save'),
         ),
       ],
     );
