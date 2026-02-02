@@ -1932,7 +1932,42 @@ class _CustomerFuelDeliveryScreenState
                                           onPressed:
                                               _isSubmitting
                                                   ? null
-                                                  : _handleEndDelivery,
+                                                  : (_endMeterController
+                                                          .text
+                                                          .isNotEmpty &&
+                                                      _startMeterController
+                                                          .text
+                                                          .isNotEmpty)
+                                                  ? () {
+                                                    final endValue =
+                                                        int.tryParse(
+                                                          _endMeterController
+                                                              .text,
+                                                        );
+                                                    final startValue =
+                                                        int.tryParse(
+                                                          _startMeterController
+                                                              .text,
+                                                        );
+                                                    if (endValue != null &&
+                                                        startValue != null) {
+                                                      final meterDiff =
+                                                          (endValue -
+                                                                  startValue)
+                                                              .toDouble();
+                                                      if (meterDiff >
+                                                          widget.availableQty) {
+                                                        _showSnackBar(
+                                                          'Meter difference cannot exceed available quantity',
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                        );
+                                                        return;
+                                                      }
+                                                    }
+                                                    _handleEndDelivery();
+                                                  }
+                                                  : null,
                                           icon:
                                               _isSubmitting
                                                   ? const SizedBox.shrink()

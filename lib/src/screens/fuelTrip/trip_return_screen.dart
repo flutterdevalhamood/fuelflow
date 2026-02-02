@@ -15,6 +15,8 @@ class TripReturnScreen extends StatefulWidget {
   final String customerName;
   final int completedCount;
   final int unavailableCount;
+  final bool isDueToFuelDeficiency;
+  final bool isLastStop;
 
   const TripReturnScreen({
     super.key,
@@ -25,6 +27,8 @@ class TripReturnScreen extends StatefulWidget {
     required this.customerName,
     required this.completedCount,
     required this.unavailableCount,
+    this.isDueToFuelDeficiency = false,
+    this.isLastStop = true,
   });
 
   @override
@@ -102,17 +106,25 @@ class _TripReturnScreenState extends State<TripReturnScreen>
     try {
       final controller = context.read<TripTrackingController>();
 
+      // ADD THIS: Use different event type based on fuel deficiency
+      final eventType =
+          widget.isDueToFuelDeficiency
+              ? 'moving_towards_base_due_to_fuel_deficiency'
+              : 'moving_towards_base';
+
       final success = await controller.logManualTripEvent(
-        eventType: 'moving_towards_base',
+        eventType: eventType, // CHANGED: Use dynamic event type
         description:
             'Moving towards base from ${widget.customerName} (${widget.completedCount} completed, ${widget.unavailableCount} unavailable)',
       );
 
       if (success) {
         _movingTowardsBaseLogged = true;
-        debugPrint('✅ Logged: moving_towards_base');
+        debugPrint('✅ Logged: $eventType'); // CHANGED: Log dynamic event type
       } else {
-        debugPrint('⚠️ Failed to log moving_towards_base');
+        debugPrint(
+          '⚠️ Failed to log $eventType',
+        ); // CHANGED: Log dynamic event type
       }
     } catch (e) {
       debugPrint('❌ Error logging moving_towards_base: $e');
@@ -350,11 +362,17 @@ class _TripReturnScreenState extends State<TripReturnScreen>
     try {
       final controller = context.read<TripTrackingController>();
 
+      // ADD THIS: Use different event type based on fuel deficiency
+      final eventType =
+          widget.isDueToFuelDeficiency
+              ? 'moving_towards_base_due_to_fuel_deficiency'
+              : 'moving_towards_base';
+
       if (!controller.isTracking) {
         await controller.startTripTracking(
           tripId: widget.tripId,
           tripStopId: null,
-          eventType: 'moving_towards_base',
+          eventType: eventType, // CHANGED: Use dynamic event type
           driverId: widget.driverId,
           vehicleId: widget.vehicleId,
         );
@@ -396,10 +414,11 @@ class _TripReturnScreenState extends State<TripReturnScreen>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Row(
+            title: Row(
               children: [
-                Icon(Icons.home, color: Colors.green),
-                SizedBox(width: 12),
+                const Icon(Icons.home, color: Colors.green),
+                const SizedBox(width: 12),
+                // UPDATED: Change title based on isLastStop
                 Text('Confirm Arrival at Base'),
               ],
             ),
@@ -407,9 +426,12 @@ class _TripReturnScreenState extends State<TripReturnScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Have you arrived at the base?',
-                  style: TextStyle(fontSize: 16),
+                // UPDATED: Change question based on isLastStop
+                Text(
+                  widget.isLastStop
+                      ? 'Have you arrived at the base?'
+                      : 'Have you arrived at the base to refuel?',
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -471,25 +493,38 @@ class _TripReturnScreenState extends State<TripReturnScreen>
     try {
       final controller = context.read<TripTrackingController>();
 
+      // UPDATED: Fire different events based on isLastStop
+      String eventType;
+      String description;
+
+      if (widget.isLastStop) {
+        eventType = 'returned_to_base';
+        description =
+            'Returned to base from ${widget.customerName} (${widget.completedCount} completed, ${widget.unavailableCount} unavailable)';
+      } else {
+        eventType = 'reached_base_for_refuel';
+        description =
+            'Reached base for refuel from ${widget.customerName} (${widget.completedCount} completed, ${widget.unavailableCount} unavailable)';
+      }
+
       final success = await controller.logManualTripEvent(
-        eventType: 'returned_to_base',
-        description:
-            'Returned to base from ${widget.customerName} (${widget.completedCount} completed, ${widget.unavailableCount} unavailable)',
+        eventType: eventType,
+        description: description,
       );
 
       if (!success) {
-        debugPrint('⚠️ Failed to log returned_to_base event');
+        debugPrint('⚠️ Failed to log $eventType event');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Warning: Failed to log return event'),
+            SnackBar(
+              content: Text('Warning: Failed to log $eventType event'),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
       } else {
-        debugPrint('✅ Logged: returned_to_base');
+        debugPrint('✅ Logged: $eventType');
       }
 
       if (mounted) {
@@ -499,10 +534,14 @@ class _TripReturnScreenState extends State<TripReturnScreen>
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully returned to base'),
+          SnackBar(
+            content: Text(
+              widget.isLastStop
+                  ? 'Successfully returned to base'
+                  : 'Successfully reached base for refuel',
+            ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -598,21 +637,25 @@ class _TripReturnScreenState extends State<TripReturnScreen>
                           }
                         },
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Returning to Base',
-                              style: TextStyle(
+                              widget.isDueToFuelDeficiency
+                                  ? 'Returning to Base - Fuel Depleted' // ADD THIS
+                                  : 'Returning to Base',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              'Trip in progress',
-                              style: TextStyle(
+                              widget.isDueToFuelDeficiency
+                                  ? 'Refuel required to continue' // ADD THIS
+                                  : 'Trip in progress',
+                              style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
                               ),
@@ -690,7 +733,11 @@ class _TripReturnScreenState extends State<TripReturnScreen>
                                       ),
                                     ),
                                   )
-                                  : const Text('Reached Base'),
+                                  : Text(
+                                    widget.isLastStop
+                                        ? 'Reached Base'
+                                        : 'Reached Base for Refuel', // UPDATED
+                                  ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 _isLocationReady && !_isProcessing
@@ -895,10 +942,15 @@ class _TripReturnScreenState extends State<TripReturnScreen>
             children: [
               const Icon(Icons.home, color: Colors.green, size: 24),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Returning to Base',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  widget.isLastStop
+                      ? 'Returning to Base'
+                      : 'Returning to Base for Refuel', // UPDATED
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

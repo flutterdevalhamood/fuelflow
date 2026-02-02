@@ -199,72 +199,60 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     }
   }
 
-  Future<void> _handleNextAction() async {
+  Future<void> _handleReturnToBase() async {
     setState(() => _isProcessing = true);
 
     try {
-      // Clear stored meter reading for new trip/stop
+      final currentAvailableQty =
+          _toDouble(widget.assignment['available_qty']) - _totalQuantityUsed;
+      final isDueToFuelDeficiency =
+          currentAvailableQty <= 0 && _pendingCount > 0;
+
+      // ADD THIS: Log event if returning due to fuel deficiency
+      if (isDueToFuelDeficiency) {
+        await _trackingController.logManualTripEvent(
+          eventType: 'moving_towards_base_due_to_fuel_deficiency',
+        );
+        debugPrint('✅ Logged: moving_towards_base_due_to_fuel_deficiency');
+      }
+
       AuthRepo.lastEndMeterReading = null;
       AuthRepo.lastTripStopId = null;
       AuthRepo.lastAvailableQty = null;
       AuthRepo.lastEndMeterPhotoPath = null;
-      debugPrint('✅ Cleared meter reading cache for new stop');
+      debugPrint('✅ Cleared meter reading cache');
 
-      if (_isLastStop) {
-        // Last stop - navigate to Return to Base screen
-        debugPrint('✅ Last stop completed - navigating to Return to Base');
+      debugPrint('✅ Navigating to Return to Base');
 
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => TripReturnScreen(
-                  tripId:
-                      int.tryParse(
-                        widget.assignment['trip_id']?.toString() ?? '0',
-                      ) ??
-                      0,
-                  assignmentId: widget.assignment['assignment_id'] ?? 0,
-                  vehicleId: widget.assignment['vehicle_id'] ?? 0,
-                  driverId: widget.assignment['driver_id'] ?? 0,
-                  customerName: widget.customerName,
-                  completedCount: _completedCount,
-                  unavailableCount: _unavailableCount,
-                ),
-          ),
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => TripReturnScreen(
+                tripId:
+                    int.tryParse(
+                      widget.assignment['trip_id']?.toString() ?? '0',
+                    ) ??
+                    0,
+                assignmentId: widget.assignment['assignment_id'] ?? 0,
+                vehicleId: widget.assignment['vehicle_id'] ?? 0,
+                driverId: widget.assignment['driver_id'] ?? 0,
+                customerName: widget.customerName,
+                completedCount: _completedCount,
+                unavailableCount: _unavailableCount,
+                isLastStop: _isLastStop,
+              ),
+        ),
+      );
+
+      // After return to base, go back to accepted assignments
+      if (mounted && result == true) {
+        NavigationService().pushAndRemoveUntilNavigation(
+          Screenroutes.acceptedAssignmentScreen,
         );
-
-        // After return to base, go back to accepted assignments
-        if (mounted && result == true) {
-          NavigationService().pushAndRemoveUntilNavigation(
-            Screenroutes.acceptedAssignmentScreen,
-          );
-        }
-      } else {
-        // Not last stop - move to next stop
-        debugPrint('✅ Stop completed - moving to next stop');
-
-        // Navigate back to accepted assignments to show next stop
-        if (mounted) {
-          NavigationService().pushAndRemoveUntilNavigation(
-            Screenroutes.acceptedAssignmentScreen,
-            // arguments: {
-            //   'refresh': true,
-            //   'tripId': widget.assignment['trip_id'],
-            // },
-          );
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Stop completed! Ready for next stop.'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
       }
     } catch (e) {
-      debugPrint('❌ Error in next action: $e');
+      debugPrint('❌ Error in return to base: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -362,6 +350,19 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
     final originalAvailableQty = _toDouble(widget.assignment['available_qty']);
     final currentAvailableQty = originalAvailableQty - _totalQuantityUsed;
+
+    if (currentAvailableQty <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Insufficient fuel available in vehicle. Please return to base to refuel.',
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
 
     debugPrint('Original Available Qty: $originalAvailableQty');
     debugPrint('Total Quantity Used: $_totalQuantityUsed');
@@ -798,9 +799,10 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                       ),
             ),
             // Return to Base Button (show when all vehicles are processed)
-            // Return to Base / Move to Next Stop Button (show when all vehicles are processed)
-            if (_pendingCount == 0 &&
-                stopVehicles.isNotEmpty &&
+            if (((_pendingCount == 0 && stopVehicles.isNotEmpty) ||
+                    (_toDouble(widget.assignment['available_qty']) -
+                            _totalQuantityUsed <=
+                        0)) &&
                 !_isMultiSelectMode)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -815,49 +817,79 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                   ],
                 ),
                 child: SafeArea(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _handleNextAction,
-                      icon:
-                          _isProcessing
-                              ? const SizedBox.shrink()
-                              : Icon(
-                                _isLastStop
-                                    ? Icons.home_outlined
-                                    : Icons.arrow_forward,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Show warning if fuel depleted but vehicles pending
+                      if (_pendingCount > 0 &&
+                          (_toDouble(widget.assignment['available_qty']) -
+                                  _totalQuantityUsed <=
+                              0))
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber,
+                                color: Colors.orange.shade700,
                               ),
-                      label:
-                          _isProcessing
-                              ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Fuel depleted with $_pendingCount vehicle(s) pending. Please return to base.',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade900,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              )
-                              : Text(
-                                _isLastStop
-                                    ? 'Return to Base'
-                                    : 'Move to Next Stop',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
                               ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _isLastStop ? Colors.blue : Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                            ],
+                          ),
+                        ),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isProcessing ? null : _handleReturnToBase,
+                          icon:
+                              _isProcessing
+                                  ? const SizedBox.shrink()
+                                  : const Icon(Icons.home_outlined),
+                          label:
+                              _isProcessing
+                                  ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Return to Base',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
