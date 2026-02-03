@@ -44,7 +44,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   bool _isMultiSelectMode = false;
   final Set<int> _selectedVehicleIds = {};
 
-  final int _initialDisplayCount = 1;
+  final int _initialDisplayCount = 5;
   bool _showAllVehicles = false;
 
   bool get _isLastStop {

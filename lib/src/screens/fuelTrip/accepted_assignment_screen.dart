@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
+import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -57,7 +58,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     await controller.getAcceptedAssignments();
   }
 
-  // Replace the existing method with this:
   Map<String, dynamic> _calculateTotalRequirements(
     Map<String, dynamic> assignment,
     List<dynamic> tripStops,
@@ -65,10 +65,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     double totalRequired = 0.0;
     double availableQty = _toDouble(assignment['available_qty']);
 
-    // Sum up required quantities for all incomplete stops
+    // CHANGED: Sum up required quantities ONLY for incomplete/pending stops
     for (var stop in tripStops) {
-      final status = stop['status']?.toString().toLowerCase() ?? '';
-      final isCompleted = status == 'delivered' || status == 'completed';
+      final isCompleted = _isStopDelivered(stop); // Use helper method
 
       if (!isCompleted) {
         totalRequired +=
@@ -82,8 +81,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
       'totalRequired': totalRequired,
       'availableQty': availableQty,
       'deficit': deficit > 0 ? deficit : 0.0,
-      'hasDeficit':
-          deficit > 0, // This is now allowed because return type is dynamic
+      'hasDeficit': deficit > 0,
     };
   }
 
@@ -433,6 +431,13 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     int stopIndex,
     int totalStops,
   ) {
+    // Check if we're resuming
+    final tripTrackingController = context.read<TripTrackingController>();
+    final tripIdString = assignment['trip_id']?.toString() ?? '';
+    final isResuming =
+        tripTrackingController.isTracking &&
+        tripTrackingController.currentTripId?.toString() == tripIdString;
+
     showDialog(
       context: context,
       builder:
@@ -445,13 +450,20 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color:
+                        isResuming ? Colors.blue.shade50 : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.check_circle, color: Colors.green.shade700),
+                  child: Icon(
+                    isResuming ? Icons.play_circle_filled : Icons.check_circle,
+                    color:
+                        isResuming
+                            ? Colors.blue.shade700
+                            : Colors.green.shade700,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                const Text('Ready to Start'),
+                Text(isResuming ? 'Resume Journey' : 'Ready to Start'),
               ],
             ),
             content: Column(
@@ -461,24 +473,34 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color:
+                        isResuming ? Colors.blue.shade50 : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
+                    border: Border.all(
+                      color:
+                          isResuming
+                              ? Colors.blue.shade200
+                              : Colors.green.shade200,
+                    ),
                   ),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.check_circle_outline,
-                            color: Colors.green,
+                          Icon(
+                            isResuming
+                                ? Icons.play_circle_outline
+                                : Icons.check_circle_outline,
+                            color: isResuming ? Colors.blue : Colors.green,
                             size: 24,
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Sufficient Fuel Available',
-                              style: TextStyle(
+                              isResuming
+                                  ? 'Trip Tracking Active'
+                                  : 'Sufficient Fuel Available',
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -496,12 +518,42 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       _buildQuantityRow(
                         'Available',
                         _toDouble(assignment['available_qty']),
-                        Colors.green,
+                        isResuming ? Colors.blue : Colors.green,
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (isResuming) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.amber.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'You have refueled and can now continue your journey.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   'Customer: ${assignment['customer_name']}',
                   style: const TextStyle(
@@ -509,7 +561,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(height: 4),
                 Text(
                   'Stop ${stopIndex + 1} of $totalStops',
@@ -588,10 +639,12 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                     }
                   }
                 },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start Trip'),
+                icon: Icon(
+                  isResuming ? Icons.play_circle_filled : Icons.play_arrow,
+                ),
+                label: Text(isResuming ? 'Resume Journey' : 'Start Trip'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: isResuming ? Colors.blue : Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -975,7 +1028,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                               child: Column(
                                 children: [
                                   _buildQuantityRow(
-                                    'Total Req. (All Stops)',
+                                    'Total Req. (Remaining Stops)',
                                     totals['totalRequired']!,
                                     Colors.grey.shade700,
                                   ),
@@ -995,8 +1048,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                               ),
                             ),
                             const SizedBox(height: 12),
+
                             Text(
-                              'You need to refill ${totals['deficit']!.toStringAsFixed(2)} IG from the depot to complete all remaining stops.',
+                              'You need to refill ${totals['deficit']!.toStringAsFixed(2)} IG from the depot to complete all remaining stops.', // CHANGED: "all remaining stops" instead of "all stops"
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade700,
@@ -1077,11 +1131,15 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                               });
 
                               final stop = sortedStops[index];
+
+                              // ADD THIS: Find the original index from unsorted list
+                              final originalIndex = tripStops.indexOf(stop);
+
                               return _buildStopCard(
                                 context,
                                 assignment,
                                 stop,
-                                index,
+                                originalIndex, // CHANGED: Pass original index instead of sorted index
                                 tripStops.length,
                               );
                             },
@@ -1661,9 +1719,10 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                         const SizedBox(height: 12),
                         Row(
                           children: [
+                            // In _buildStopCard method, replace the button builder section:
                             Expanded(
-                              child: Builder(
-                                builder: (context) {
+                              child: Consumer<TripTrackingController>(
+                                builder: (context, tripTrackingController, _) {
                                   // Check assignment level fuel availability
                                   final totalRequiredQty = _toDouble(
                                     assignment['required_qty'],
@@ -1676,6 +1735,28 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                   final hasEnoughFuelForTrip =
                                       isEnough &&
                                       availableQty >= totalRequiredQty;
+
+                                  // CHANGED: Check if trip tracking is active and matches this trip
+                                  final tripIdString =
+                                      assignment['trip_id']?.toString() ?? '';
+                                  final isResuming =
+                                      tripTrackingController.isTracking &&
+                                      tripTrackingController.currentTripId
+                                              ?.toString() ==
+                                          tripIdString;
+
+                                  debugPrint('🔍 Button State Check:');
+                                  debugPrint('  - Trip ID: $tripIdString');
+                                  debugPrint(
+                                    '  - Is Tracking: ${tripTrackingController.isTracking}',
+                                  );
+                                  debugPrint(
+                                    '  - Current Trip ID: ${tripTrackingController.currentTripId}',
+                                  );
+                                  debugPrint('  - Is Resuming: $isResuming');
+                                  debugPrint(
+                                    '  - Has Enough Fuel: $hasEnoughFuelForTrip',
+                                  );
 
                                   return ElevatedButton.icon(
                                     onPressed:
@@ -1693,7 +1774,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                           : !isEnabled
                                           ? Icons.lock
                                           : hasEnoughFuelForTrip
-                                          ? Icons.play_arrow
+                                          ? (isResuming
+                                              ? Icons.play_circle_filled
+                                              : Icons.play_arrow)
                                           : Icons.local_gas_station,
                                       size: 18,
                                     ),
@@ -1703,7 +1786,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                           : !isEnabled
                                           ? 'Complete Previous Stop First'
                                           : hasEnoughFuelForTrip
-                                          ? 'Start Journey'
+                                          ? (isResuming
+                                              ? 'Resume Journey'
+                                              : 'Start Journey')
                                           : 'Refill Required (${(totalRequiredQty - availableQty).toStringAsFixed(0)} IG)',
                                     ),
                                     style: ElevatedButton.styleFrom(
@@ -1713,7 +1798,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                               : !isEnabled
                                               ? Colors.grey
                                               : hasEnoughFuelForTrip
-                                              ? Colors.green
+                                              ? (isResuming
+                                                  ? Colors.blue
+                                                  : Colors.green)
                                               : Colors.orange,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(

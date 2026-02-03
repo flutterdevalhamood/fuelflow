@@ -19,6 +19,7 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
+import 'package:sample/src/screens/fuelTrip/completed_assignment_screen.dart';
 import 'package:sample/src/screens/fuelTrip/customer_fuel_delivery_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
@@ -513,16 +514,16 @@ class Screenroutes {
           },
         );
 
-      // case Screenroutes.completedAssignmentScreen:
-      //   final data = settings.arguments as int?;
-      //   return MaterialPageRoute(
-      //     settings: const RouteSettings(
-      //       name: Screenroutes.completedAssignmentScreen,
-      //     ),
-      //     builder: (BuildContext context) {
-      //       return CompletedAssignmentsScreen();
-      //     },
-      //   );
+      case Screenroutes.completedAssignmentScreen:
+        final data = settings.arguments as int?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.completedAssignmentScreen,
+          ),
+          builder: (BuildContext context) {
+            return CompletedAssignmentsScreen();
+          },
+        );
 
       case Screenroutes.tripStartedScreen:
         final args = settings.arguments as Map<String, dynamic>?;

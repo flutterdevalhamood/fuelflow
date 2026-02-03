@@ -528,10 +528,17 @@ class _TripReturnScreenState extends State<TripReturnScreen>
       }
 
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          Screenroutes.acceptedAssignmentScreen,
-          (route) => false,
-        );
+        // UPDATED: Navigate based on isLastStop
+        if (widget.isLastStop) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil(Screenroutes.dashboard, (route) => false);
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            Screenroutes.acceptedAssignmentScreen,
+            (route) => false,
+          );
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
