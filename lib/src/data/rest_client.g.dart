@@ -20,12 +20,20 @@ class _RestClient implements RestClient {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<UserModel> login({String? email, String? password}) async {
+  Future<UserModel> login({
+    String? email,
+    String? password,
+    String? deviceToken,
+  }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = {'email': email, 'password': password};
+    final _data = {
+      'email': email,
+      'password': password,
+      'device_token': deviceToken,
+    };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<UserModel>(
       Options(method: 'POST', headers: _headers, extra: _extra)

@@ -13,6 +13,7 @@ class AuthRepo {
   static const _prefRoleKey = "role";
   static const _prefCustomerIdKey = "customerId";
   static const _prefDriverIdKey = "driverId";
+  static const _prefDeviceTokenKey = "deviceToken"; // ADD THIS
 
   static const _prefLastEndMeterReadingKey = "lastEndMeterReading";
   static const _prefLastTripStopIdKey = "lastTripStopId";
@@ -36,15 +37,25 @@ class AuthRepo {
     if (role == null) {
       prefs?.remove(_prefRoleKey);
     } else {
-      prefs?.setString(
-        _prefRoleKey,
-        role,
-      ); // This is correct, no need to jsonEncode for simple string
+      prefs?.setString(_prefRoleKey, role);
     }
   }
 
   static String? get role {
     return prefs?.getString(_prefRoleKey);
+  }
+
+  // ADD THIS - Device token getter and setter
+  static set deviceToken(String? token) {
+    if (token == null) {
+      prefs?.remove(_prefDeviceTokenKey);
+    } else {
+      prefs?.setString(_prefDeviceTokenKey, token);
+    }
+  }
+
+  static String? get deviceToken {
+    return prefs?.getString(_prefDeviceTokenKey);
   }
 
   static set lastEndMeterReading(String? reading) {
@@ -158,7 +169,9 @@ class AuthRepo {
     user = null;
     loginType = null;
     customerId = null;
-    lastEndMeterReading = null; // ADD THIS
+    driverId = null;
+    deviceToken = null; // ADD THIS
+    lastEndMeterReading = null;
     lastTripStopId = null;
     lastAvailableQty = null;
     lastEndMeterPhotoPath = null;
@@ -172,14 +185,16 @@ class AuthRepo {
     return token != null && token!.isNotEmpty;
   }
 
-  // Helper method to clear all auth data (alternative to logOut if you want to keep navigation separate)
+  // Helper method to clear all auth data
   static void clearAuthData() {
     token = null;
     role = null;
     user = null;
     loginType = null;
     customerId = null;
-    lastEndMeterReading = null; // ADD THIS
+    driverId = null;
+    deviceToken = null; // ADD THIS
+    lastEndMeterReading = null;
     lastTripStopId = null;
     lastAvailableQty = null;
     lastEndMeterPhotoPath = null;

@@ -17,6 +17,7 @@ abstract class RestClient {
   Future<UserModel> login({
     @Field("email") String? email,
     @Field("password") String? password,
+    @Field("device_token") String? deviceToken,
   });
 
   @GET('/Vehicle/paginate/{page}/{limit}')

@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:sample/firebase_services.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
@@ -28,9 +29,23 @@ class AuthController with ChangeNotifier {
     try {
       print('Attempting login...');
 
+      // Get FCM token
+      String? deviceToken = await FirebaseService().getFCMToken();
+
+      if (deviceToken == null) {
+        log('Warning: FCM token is null, proceeding without device token');
+        // You might want to retry getting the token or show a warning
+        // For now, we'll proceed with the login
+      } else {
+        log('FCM Token retrieved: $deviceToken');
+      }
+
+      log('Sending login request with device token: ${deviceToken ?? "null"}');
+
       final loginResponse = await restApi.login(
         email: email,
         password: password,
+        deviceToken: deviceToken, // Pass the device token to your API
       );
 
       if (loginResponse.IsSuccess == true) {
@@ -85,8 +100,11 @@ class AuthController with ChangeNotifier {
   // Method to handle logout
   Future<void> logout() async {
     try {
-      // You might want to call a logout API here if your backend requires it
-      // await restApi.logout();
+      // Delete FCM token on logout
+      await FirebaseService().deleteToken();
+
+      // You might want to call a logout API here to remove device token from server
+      // await restApi.logout(deviceToken: FirebaseService().fcmToken);
 
       AuthRepo.logOut();
       showSuccessSnack('Logged out successfully');
@@ -100,5 +118,20 @@ class AuthController with ChangeNotifier {
   // Method to check if user is currently authenticated
   bool get isAuthenticated {
     return AuthRepo.isAuthenticated;
+  }
+
+  // Method to update device token (useful if token refreshes while app is running)
+  Future<void> updateDeviceToken() async {
+    try {
+      String? deviceToken = await FirebaseService().getFCMToken();
+
+      if (deviceToken != null && AuthRepo.isAuthenticated) {
+        // Call API to update device token on server
+        // await restApi.updateDeviceToken(deviceToken: deviceToken);
+        log('Device token updated: $deviceToken');
+      }
+    } catch (e) {
+      log('Error updating device token: $e');
+    }
   }
 }
