@@ -545,4 +545,15 @@ abstract class RestClient {
     @Field("trip_id") String? tripId,
     @Field("trip_stop_id") int? tripStopId,
   });
+
+  @POST('/Driver/RequestAdminVehicleRefilingForShortage')
+  @FormUrlEncoded()
+  Future<dynamic> requestAdminVehicleRefilingForShortage({
+    @Header("Authorization") String? token,
+    @Field("latitude") String? latitude,
+    @Field("longitude") String? longitude,
+    @Field("expected_quantity") String? expectedQuantity,
+    @Field("notes") String? notes,
+    @Field("vehicle_id") String? vehicleId,
+  });
 }

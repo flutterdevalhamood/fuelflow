@@ -2159,6 +2159,48 @@ class _RestClient implements RestClient {
     return _value;
   }
 
+  @override
+  Future<dynamic> requestAdminVehicleRefilingForShortage({
+    String? token,
+    String? latitude,
+    String? longitude,
+    String? expectedQuantity,
+    String? notes,
+    String? vehicleId,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {
+      'latitude': latitude,
+      'longitude': longitude,
+      'expected_quantity': expectedQuantity,
+      'notes': notes,
+      'vehicle_id': vehicleId,
+    };
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
+          .compose(
+            _dio.options,
+            '/Driver/RequestAdminVehicleRefilingForShortage',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {
     if (T != dynamic &&
         !(requestOptions.responseType == ResponseType.bytes ||

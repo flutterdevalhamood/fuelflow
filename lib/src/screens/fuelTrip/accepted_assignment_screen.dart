@@ -5,6 +5,7 @@ import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
+import 'package:sample/src/util/refill_state.dart';
 
 class AcceptedAssignmentScreen extends StatefulWidget {
   final int driverId;
@@ -65,9 +66,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     double totalRequired = 0.0;
     double availableQty = _toDouble(assignment['available_qty']);
 
-    // CHANGED: Sum up required quantities ONLY for incomplete/pending stops
+    // FIXED: Sum up required quantities ONLY for incomplete/pending stops
     for (var stop in tripStops) {
-      final isCompleted = _isStopDelivered(stop); // Use helper method
+      final isCompleted = _isStopDelivered(stop);
 
       if (!isCompleted) {
         totalRequired +=
@@ -141,13 +142,26 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     BuildContext context,
     Map<String, dynamic> assignment,
     Map<String, dynamic> stop,
-    double totalRequiredQty,
+    double
+    totalRequiredQty, // This is the original total including delivered stops
     double availableQty,
     double currentStopQty,
     int stopIndex,
     int totalStops,
   ) {
-    final deficit = totalRequiredQty - availableQty;
+    // FIXED: Calculate remaining required quantity excluding delivered stops
+    final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
+    double remainingRequiredQty = 0.0;
+
+    for (var tripStop in tripStops) {
+      final isCompleted = _isStopDelivered(tripStop);
+      if (!isCompleted) {
+        remainingRequiredQty +=
+            double.tryParse(tripStop['expected_qty'].toString()) ?? 0.0;
+      }
+    }
+
+    final deficit = remainingRequiredQty - availableQty;
 
     showDialog(
       context: context,
@@ -196,7 +210,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'Insufficient Fuel for Trip',
+                              'Insufficient Fuel for Remaining Trip',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -213,8 +227,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       ),
                       const SizedBox(height: 8),
                       _buildQuantityRow(
-                        'Total Trip Requirement',
-                        totalRequiredQty,
+                        'Remaining Trip Req.', // CHANGED label
+                        remainingRequiredQty, // CHANGED value
                         Colors.red,
                       ),
                       const SizedBox(height: 8),
@@ -234,7 +248,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Even though this stop needs only ${currentStopQty.toStringAsFixed(2)} IG, you must refill ${deficit.toStringAsFixed(2)} IG to meet the total trip requirement of ${totalRequiredQty.toStringAsFixed(2)} IG before starting any journey.',
+                  // CHANGED message to reflect remaining stops only
+                  'Even though this stop needs only ${currentStopQty.toStringAsFixed(2)} IG, you must refill ${deficit.toStringAsFixed(2)} IG to meet the remaining trip requirement of ${remainingRequiredQty.toStringAsFixed(2)} IG before starting any journey.',
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
@@ -248,6 +263,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
 
+                  final isVehicleToVehicle = RefillState.isAwaitingAdminRefill;
+
                   final result = await NavigationService().pushNavigation(
                     Screenroutes.fuelRefillBeforeTripScreen,
                     arguments: {
@@ -255,11 +272,13 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       'vehicleId': assignment['vehicle_id'] ?? 0,
                       'tripId': assignment['trip_id'] ?? '',
                       'tripStopId': stop['stop_id'] ?? 0,
-                      'requiredQty': totalRequiredQty,
+                      'requiredQty':
+                          remainingRequiredQty, // CHANGED: Pass remaining required, not total
                       'availableQty': availableQty,
                       'vehicleName': assignment['vehicle'] ?? 'Unknown Vehicle',
                       'stopOrder': stop['stop_order'] ?? '1',
                       'customerName': stop['customer_name'] ?? '',
+                      'isVehicleToVehicleRefill': isVehicleToVehicle,
                     },
                   );
 
@@ -295,7 +314,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
           ),
     );
   }
-
   // void _showRefillDialog(
   //   BuildContext context,
   //   Map<String, dynamic> assignment,
@@ -1789,7 +1807,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                           ? (isResuming
                                               ? 'Resume Journey'
                                               : 'Start Journey')
-                                          : 'Refill Required (${(totalRequiredQty - availableQty).toStringAsFixed(0)} IG)',
+                                          : 'Refill Required ',
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:

@@ -418,6 +418,83 @@ class TripTrackingController with ChangeNotifier {
     );
   }
 
+  // Add this method to your TripTrackingController class
+  Future<Map<String, dynamic>> requestAdminVehicleRefilingForShortage({
+    required String vehicleId,
+    required double expectedQuantity,
+    required Position position,
+    String? notes,
+  }) async {
+    debugPrint('🚀 Requesting admin refill for vehicle $vehicleId');
+    debugPrint('   Expected quantity: $expectedQuantity G');
+    debugPrint('   Position: ${position.latitude}, ${position.longitude}');
+    debugPrint('   Notes: $notes');
+
+    if (token == null) {
+      debugPrint('❌ No token available for admin refill request');
+      return {
+        'success': false,
+        'message': 'Authentication token not available',
+      };
+    }
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        ),
+      );
+
+      final api = RestClient(dio);
+
+      final response = await api.requestAdminVehicleRefilingForShortage(
+        token: 'Bearer $token',
+        latitude: position.latitude.toString(),
+        longitude: position.longitude.toString(),
+        expectedQuantity: expectedQuantity.toString(),
+        notes: notes,
+        vehicleId: vehicleId,
+      );
+
+      debugPrint('✅ Admin refill request submitted successfully');
+      debugPrint('   Response: $response');
+
+      return {
+        'success': true,
+        'message': 'Admin refill request sent successfully',
+        'data': response,
+      };
+    } on DioException catch (e) {
+      debugPrint('❌ Admin refill request failed with DioException: $e');
+      debugPrint('❌ Response status: ${e.response?.statusCode}');
+      debugPrint('❌ Response data: ${e.response?.data}');
+
+      String errorMessage = 'Failed to send request to server';
+
+      if (e.response?.data != null && e.response?.data is Map) {
+        final Map<String, dynamic> errorData = e.response?.data;
+        errorMessage =
+            errorData['message']?.toString() ??
+            errorData['error']?.toString() ??
+            errorMessage;
+      }
+
+      return {'success': false, 'message': errorMessage, 'error': e.toString()};
+    } catch (e) {
+      debugPrint('❌ Admin refill request failed: $e');
+      return {
+        'success': false,
+        'message': 'Failed to send request. Please check your connection.',
+        'error': e.toString(),
+      };
+    }
+  }
+
   // ======================= CONTROL METHODS =======================
 
   void pauseTripTracking() {

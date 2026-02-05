@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
+import 'package:sample/src/util/refill_state.dart';
 
 class FuelRefillBeforeTripScreen extends StatefulWidget {
   final int assignmentId;
@@ -17,6 +18,7 @@ class FuelRefillBeforeTripScreen extends StatefulWidget {
   final String vehicleName;
   final String stopOrder;
   final String customerName;
+  final bool isVehicleToVehicleRefill;
 
   const FuelRefillBeforeTripScreen({
     Key? key,
@@ -29,6 +31,7 @@ class FuelRefillBeforeTripScreen extends StatefulWidget {
     required this.vehicleName,
     this.stopOrder = '1',
     this.customerName = '',
+    this.isVehicleToVehicleRefill = false,
   }) : super(key: key);
 
   @override
@@ -382,6 +385,12 @@ class _FuelRefillBeforeTripScreenState
   }
 
   void _navigateBack() {
+    // RESET THE FLAG when leaving the refill screen
+    if (widget.isVehicleToVehicleRefill) {
+      RefillState.isAwaitingAdminRefill = false;
+      debugPrint('🔄 Reset admin refill flag');
+    }
+
     // Return to previous screen with success result
     if (mounted) {
       Navigator.of(context).pop(true);
@@ -409,7 +418,13 @@ class _FuelRefillBeforeTripScreenState
                     child: const Text('No'),
                   ),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () {
+                      if (widget.isVehicleToVehicleRefill) {
+                        RefillState.isAwaitingAdminRefill = false;
+                        debugPrint('🔄 Reset admin refill flag (cancelled)');
+                      }
+                      Navigator.pop(context, true);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
@@ -423,7 +438,11 @@ class _FuelRefillBeforeTripScreenState
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Fuel Refill'),
+          title: Text(
+            widget.isVehicleToVehicleRefill
+                ? 'Vehicle to Vehicle Refill'
+                : 'Fuel Refill',
+          ),
           centerTitle: true,
           elevation: 0,
           leading: IconButton(

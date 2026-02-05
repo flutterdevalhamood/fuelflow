@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
@@ -6,6 +7,8 @@ import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
+
+import '../../util/refill_state.dart';
 
 class AllVehiclesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> stopVehicles;
@@ -48,16 +51,19 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   bool _showAllVehicles = false;
 
   bool get _isLastStop {
-    // Check if this is the last stop in the trip
     final currentStopOrder =
         int.tryParse(widget.stop['stop_order']?.toString() ?? '0') ?? 0;
-
-    // You'll need to pass totalStops from the previous screen
-    // For now, we'll use a simple check - you should pass this in arguments
     return currentStopOrder >= (widget.totalStops ?? 1);
   }
 
   double _totalQuantityUsed = 0.0;
+
+  /// Whether the driver's tank is depleted but pending vehicles remain.
+  bool get _isFuelDeficient {
+    final currentAvailableQty =
+        _toDouble(widget.assignment['available_qty']) - _totalQuantityUsed;
+    return currentAvailableQty <= 0 && _pendingCount > 0;
+  }
 
   @override
   void initState() {
@@ -66,7 +72,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     _filteredVehicles = List.from(stopVehicles);
     _searchController.addListener(_filterVehicles);
 
-    // ADD THIS: Clear any previous data when entering this screen
     _totalQuantityUsed = 0.0;
     AuthRepo.lastEndMeterReading = null;
     AuthRepo.lastTripStopId = null;
@@ -86,7 +91,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   void dispose() {
     _searchController.dispose();
 
-    // ADD THIS: Clear data when leaving the screen
     AuthRepo.lastEndMeterReading = null;
     AuthRepo.lastTripStopId = null;
     AuthRepo.lastAvailableQty = null;
@@ -96,7 +100,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     super.dispose();
   }
 
-  // Toggle multi-select mode
+  // ─── Multi-select helpers ────────────────────────────────────────────────
+
   void _toggleMultiSelectMode() {
     setState(() {
       _isMultiSelectMode = !_isMultiSelectMode;
@@ -106,7 +111,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     });
   }
 
-  // Toggle vehicle selection
   void _toggleVehicleSelection(int vehicleId) {
     setState(() {
       if (_selectedVehicleIds.contains(vehicleId)) {
@@ -117,14 +121,12 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     });
   }
 
-  // Select all pending vehicles
   void _selectAllPending() {
     setState(() {
       _selectedVehicleIds.clear();
       for (var vehicle in _filteredVehicles) {
         final status = int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
         if (status == 0) {
-          // Only select pending vehicles
           final vehicleId =
               int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
           if (vehicleId > 0) {
@@ -135,7 +137,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     });
   }
 
-  // Mark selected vehicles as unavailable
   Future<void> _markSelectedAsUnavailable() async {
     if (_selectedVehicleIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,7 +173,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
     if (result == true && mounted) {
       setState(() {
-        // Update status for all selected vehicles
         for (var vehicleId in _selectedVehicleIds) {
           final index = stopVehicles.indexWhere(
             (v) => v['vehicle_id'].toString() == vehicleId.toString(),
@@ -199,17 +199,13 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     }
   }
 
+  // ─── Return to Base ──────────────────────────────────────────────────────
+
   Future<void> _handleReturnToBase() async {
     setState(() => _isProcessing = true);
 
     try {
-      final currentAvailableQty =
-          _toDouble(widget.assignment['available_qty']) - _totalQuantityUsed;
-      final isDueToFuelDeficiency =
-          currentAvailableQty <= 0 && _pendingCount > 0;
-
-      // ADD THIS: Log event if returning due to fuel deficiency
-      if (isDueToFuelDeficiency) {
+      if (_isFuelDeficient) {
         await _trackingController.logManualTripEvent(
           eventType: 'moving_towards_base_due_to_fuel_deficiency',
         );
@@ -221,7 +217,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       AuthRepo.lastAvailableQty = null;
       AuthRepo.lastEndMeterPhotoPath = null;
       debugPrint('✅ Cleared meter reading cache');
-
       debugPrint('✅ Navigating to Return to Base');
 
       final result = await Navigator.push(
@@ -245,7 +240,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         ),
       );
 
-      // After return to base, go back to accepted assignments
       if (mounted && result == true) {
         NavigationService().pushAndRemoveUntilNavigation(
           Screenroutes.acceptedAssignmentScreen,
@@ -264,6 +258,44 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       }
     }
   }
+
+  // ─── Request Admin Refill ────────────────────────────────────────────────
+
+  /// Opens the admin-refill dialog. The dialog itself handles the API call.
+  Future<void> _handleRequestAdminRefill() async {
+    if (!mounted) return;
+
+    /// Compute the shortage as a positive number to pre-fill the dialog.
+    final currentAvailable =
+        _toDouble(widget.assignment['available_qty']) - _totalQuantityUsed;
+    final shortage = currentAvailable < 0 ? currentAvailable.abs() : 0.0;
+
+    /// Grab the driver's current location before opening the dialog so the
+    /// user doesn't have to wait while it's fetched.
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('⚠️ Could not fetch position for admin refill: $e');
+    }
+
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder:
+          (ctx) => RequestAdminRefillDialog(
+            vehicleId: widget.assignment['vehicle_id']?.toString() ?? '',
+            shortageQty: shortage,
+            position: position,
+            pendingCount: _pendingCount,
+          ),
+    );
+  }
+
+  // ─── Filtering ───────────────────────────────────────────────────────────
 
   void _filterVehicles() {
     final query = _searchController.text.toLowerCase();
@@ -289,7 +321,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
           }).toList();
     });
 
-    // Auto-redirect when all vehicles are done and it's not the last stop
     if (_pendingCount == 0 &&
         stopVehicles.isNotEmpty &&
         !_isLastStop &&
@@ -306,6 +337,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       });
     }
   }
+
+  // ─── Counts ──────────────────────────────────────────────────────────────
 
   int get _pendingCount {
     return stopVehicles.where((v) {
@@ -328,6 +361,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     }).length;
   }
 
+  // ─── Vehicle actions ─────────────────────────────────────────────────────
+
   Future<void> _handleVehicleRefuel(Map<String, dynamic> vehicle) async {
     final plateNo = vehicle['plate_no']?.toString() ?? 'N/A';
 
@@ -344,8 +379,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     debugPrint('Driver Vehicle ID: ${widget.assignment['vehicle_id']}');
     debugPrint('Vehicle Object: $vehicle');
     debugPrint('Vehicles list: $stopVehicles');
-
-    // ADD THIS DEBUG
     debugPrint('========================================');
 
     final originalAvailableQty = _toDouble(widget.assignment['available_qty']);
@@ -385,7 +418,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         'currentStopIndex': 0,
         'totalStops': 1,
         'driverId': widget.assignment['driver_id'] ?? 0,
-        'stopVehicles': stopVehicles, // ✅ Pass the full vehicles list
+        'stopVehicles': stopVehicles,
         'isBulkDelivery': false,
         'stopVehicleId': stopVehicleId,
         'stopVehiclePlateNumber': stopVehiclePlateNumber,
@@ -428,7 +461,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     final vehicleId =
         int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
 
-    // Single vehicle list
     final selectedVehicles = [vehicle];
 
     final result = await Navigator.push(
@@ -466,6 +498,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       );
     }
   }
+
+  // ─── Utility ─────────────────────────────────────────────────────────────
 
   double _toDouble(dynamic value) {
     if (value == null) return 0.0;
@@ -521,6 +555,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     return false;
   }
 
+  // ─── BUILD ───────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -533,7 +569,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
           return false;
         }
 
-        // ADD THIS: Check if there are pending vehicles
         if (_pendingCount > 0) {
           final shouldPop = await showDialog<bool>(
             context: context,
@@ -585,8 +620,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () async {
-              final shouldPop = await onWillPop();
-              // onWillPop handles everything, no need to pop again
+              await onWillPop();
             },
           ),
           actions: [
@@ -613,7 +647,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         ),
         body: Column(
           children: [
-            // Multi-select action bar
+            // ── Multi-select action bar ─────────────────────────────────
             if (_isMultiSelectMode && _selectedVehicleIds.isNotEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -651,7 +685,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                 ),
               ),
 
-            // Search Bar
+            // ── Search bar ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -689,7 +723,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
               ),
             ),
 
-            // Filter Chips
+            // ── Filter chips ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SingleChildScrollView(
@@ -714,6 +748,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
             const SizedBox(height: 16),
 
+            // ── Vehicle list ────────────────────────────────────────────
             Expanded(
               child:
                   _filteredVehicles.isEmpty
@@ -747,7 +782,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                                     ? _initialDisplayCount + 1
                                     : _filteredVehicles.length),
                         itemBuilder: (context, index) {
-                          // Show "View More" button after initial vehicles
                           if (!_showAllVehicles &&
                               _filteredVehicles.length > _initialDisplayCount &&
                               index == _initialDisplayCount) {
@@ -798,7 +832,9 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                         },
                       ),
             ),
-            // Return to Base Button (show when all vehicles are processed)
+
+            // ── Bottom action panel ─────────────────────────────────────
+            // Shown when: all vehicles are done  OR  fuel is depleted.
             if (((_pendingCount == 0 && stopVehicles.isNotEmpty) ||
                     (_toDouble(widget.assignment['available_qty']) -
                             _totalQuantityUsed <=
@@ -820,11 +856,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Show warning if fuel depleted but vehicles pending
-                      if (_pendingCount > 0 &&
-                          (_toDouble(widget.assignment['available_qty']) -
-                                  _totalQuantityUsed <=
-                              0))
+                      // ── Fuel-depleted warning banner ────────────────
+                      if (_isFuelDeficient)
                         Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(12),
@@ -842,7 +875,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Fuel depleted with $_pendingCount vehicle(s) pending. Please return to base.',
+                                  'Fuel depleted with $_pendingCount vehicle(s) pending. '
+                                  'Return to base or request an admin refill.',
                                   style: TextStyle(
                                     color: Colors.orange.shade900,
                                     fontWeight: FontWeight.w600,
@@ -852,6 +886,38 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                             ],
                           ),
                         ),
+
+                      // ── Request Admin Refill button (only when deficit) ─
+                      if (_isFuelDeficient) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed:
+                                _isProcessing
+                                    ? null
+                                    : _handleRequestAdminRefill,
+                            icon: const Icon(Icons.support_agent),
+                            label: const Text(
+                              'Request Admin Vehicle Refill',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      // ── Return to Base button ─────────────────────────
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -898,6 +964,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       ),
     );
   }
+
+  // ─── Reusable widgets ────────────────────────────────────────────────────
 
   Widget _buildFilterChip(String label, String value, int count) {
     final isSelected = _selectedFilter == value;
@@ -956,7 +1024,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       statusIcon = Icons.pending;
     }
 
-    // Override colors if selected in multi-select mode
     if (_isMultiSelectMode && isSelected) {
       borderColor = Colors.blue.shade700;
       bgColor = Colors.blue.shade100;
@@ -999,7 +1066,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Selection checkbox (only in multi-select mode for pending vehicles)
                 if (_isMultiSelectMode && isPending) ...[
                   Checkbox(
                     value: isSelected,
@@ -1010,8 +1076,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                   ),
                   const SizedBox(width: 8),
                 ],
-
-                // Vehicle Icon
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1022,8 +1086,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                   child: Icon(Icons.directions_car, color: iconColor, size: 28),
                 ),
                 const SizedBox(width: 16),
-
-                // Vehicle Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,11 +1116,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                     ],
                   ),
                 ),
-
-                // Action Icons (only show for pending vehicles when NOT in multi-select mode)
                 if (isPending && !_isMultiSelectMode) ...[
                   const SizedBox(width: 8),
-                  // Unavailable Icon Button
                   Material(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(8),
@@ -1080,6 +1139,450 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RequestAdminRefillDialog – self-contained dialog with the API call
+// ═══════════════════════════════════════════════════════════════════════════
+
+class RequestAdminRefillDialog extends StatefulWidget {
+  /// The driver's vehicle ID (from the active assignment).
+  final String vehicleId;
+
+  /// Pre-computed shortage quantity (always ≥ 0).
+  final double shortageQty;
+
+  /// Current GPS position (may be null if fetch failed).
+  final Position? position;
+
+  /// How many customer vehicles are still waiting.
+  final int pendingCount;
+
+  const RequestAdminRefillDialog({
+    Key? key,
+    required this.vehicleId,
+    required this.shortageQty,
+    required this.position,
+    required this.pendingCount,
+  }) : super(key: key);
+
+  @override
+  State<RequestAdminRefillDialog> createState() =>
+      _RequestAdminRefillDialogState();
+}
+
+class _RequestAdminRefillDialogState extends State<RequestAdminRefillDialog> {
+  late final TextEditingController _qtyController;
+  final TextEditingController _notesController = TextEditingController();
+
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill with the shortage amount (minimum they need).
+    _qtyController = TextEditingController(
+      text: widget.shortageQty.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  // ── validation ─────────────────────────────────────────────────────────
+
+  bool get _isValid {
+    final qty = double.tryParse(_qtyController.text.trim());
+    return qty != null && qty > 0;
+  }
+
+  // In _RequestAdminRefillDialogState class, update the _submitRequest() method:
+
+  // In _RequestAdminRefillDialogState class, update the _submitRequest() method:
+
+  Future<void> _submitRequest() async {
+    if (!_isValid) {
+      setState(() {
+        _errorMessage = 'Please enter a valid quantity greater than 0.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final trackingController = Provider.of<TripTrackingController>(
+        context,
+        listen: false,
+      );
+
+      Position? currentPosition = widget.position;
+      if (currentPosition == null) {
+        try {
+          currentPosition = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+          ).timeout(const Duration(seconds: 8));
+        } catch (e) {
+          debugPrint('⚠️ Could not fetch position: $e');
+          throw Exception('Could not get current location. Please try again.');
+        }
+      }
+
+      final result = await trackingController
+          .requestAdminVehicleRefilingForShortage(
+            vehicleId: widget.vehicleId,
+            expectedQuantity: double.parse(_qtyController.text.trim()),
+            position: currentPosition,
+            notes:
+                _notesController.text.trim().isEmpty
+                    ? null
+                    : _notesController.text.trim(),
+          );
+
+      if (result['success'] == true) {
+        debugPrint('✅ Admin refill request submitted via controller');
+
+        if (mounted) {
+          // SET FLAG - Admin refill was requested
+          RefillState.isAwaitingAdminRefill = true;
+
+          // Close the dialog first
+          Navigator.of(context).pop();
+
+          // Navigate to AcceptedAssignmentScreen
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.acceptedAssignmentScreen,
+          );
+
+          // Show success snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message'] ??
+                    'Request sent successfully. Please proceed to refill your vehicle from admin.',
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      } else {
+        throw Exception(result['message'] ?? 'Failed to send request');
+      }
+    } on Exception catch (e) {
+      debugPrint('❌ Admin refill request failed: $e');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = e.toString();
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Admin refill request failed: $e');
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = 'An unexpected error occurred. Please try again.';
+        });
+      }
+    }
+  }
+
+  // ── build ──────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Amber header ──────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(20),
+            color: Colors.amber.shade700,
+            child: Row(
+              children: [
+                const Icon(Icons.support_agent, color: Colors.white, size: 28),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Request Admin Refill',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Your vehicle fuel is insufficient for pending deliveries',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Body ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // -- Info row: pending vehicles --
+                _InfoRow(
+                  icon: Icons.pending_outlined,
+                  label: 'Pending Vehicles',
+                  value: '${widget.pendingCount}',
+                  iconColor: Colors.amber.shade700,
+                ),
+                const SizedBox(height: 8),
+
+                // -- Info row: shortage --
+                _InfoRow(
+                  icon: Icons.local_gas_station,
+                  label: 'Fuel Shortage',
+                  value: '${widget.shortageQty.toStringAsFixed(2)} G',
+                  iconColor: Colors.red.shade600,
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+
+                // ── Expected Quantity field ──────────────────────────
+                Text(
+                  'Expected Refill Quantity (G) *',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _qtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.local_gas_station),
+                    suffixText: 'G',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Colors.amber.shade700,
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  onChanged: (_) => setState(() {}), // rebuild for _isValid
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Notes field ──────────────────────────────────────
+                Text(
+                  'Additional Notes',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Urgent – 3 vehicles waiting at site…',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Colors.amber.shade700,
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                ),
+
+                // ── Inline error message ─────────────────────────────
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // ── Action buttons ───────────────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed:
+                            _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          side: BorderSide(color: Colors.grey.shade400),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        onPressed:
+                            (_isSubmitting || !_isValid)
+                                ? null
+                                : _submitRequest,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade700,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child:
+                            _isSubmitting
+                                ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                                : const Text(
+                                  'Send Request',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A small helper widget that renders a single labelled info row inside the
+/// dialog (icon + label on the left, value on the right).
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color iconColor;
+
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }

@@ -482,6 +482,8 @@ class Screenroutes {
               vehicleName: args?['vehicleName'] as String? ?? 'Unknown Vehicle',
               stopOrder: args?['stopOrder'] as String? ?? '1',
               customerName: args?['customerName'] as String? ?? '',
+              isVehicleToVehicleRefill:
+                  args?['isVehicleToVehicleRefill'] as bool? ?? false,
             );
           },
         );
