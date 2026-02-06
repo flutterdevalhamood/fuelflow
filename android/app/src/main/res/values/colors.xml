@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification color - matches your app's primary color -->
+    <color name="notification_color">#667eea</color>
+
+    <!-- You can add other colors here if needed -->
+    <!-- <color name="primary_color">#667eea</color> -->
+    <!-- <color name="accent_color">#764ba2</color> -->
+</resources>

@@ -28,84 +28,138 @@ class AuthController with ChangeNotifier {
     showCircle();
 
     try {
-      print('Attempting login...');
+      log('═══════════════════════════════════════');
+      log('STARTING LOGIN PROCESS');
+      log('═══════════════════════════════════════');
 
-      // Get FCM token
-      String? deviceToken = await FirebaseService().getFCMToken();
-
-      if (deviceToken == null) {
-        log('Warning: FCM token is null, proceeding without device token');
-        // You might want to retry getting the token or show a warning
-        // For now, we'll proceed with the login
-      } else {
-        log('FCM Token retrieved: $deviceToken');
+      // CRITICAL FIX: Ensure Firebase is initialized before getting token
+      if (!_firebaseService.isInitialized) {
+        log('⚠️ Firebase not initialized, initializing now...');
+        await _firebaseService.initialize();
+        // Give it a moment to complete
+        await Future.delayed(Duration(milliseconds: 500));
       }
 
-      log('Sending login request with device token: ${deviceToken ?? "null"}');
+      // Get FCM token with retry logic
+      String? deviceToken = await _getFCMTokenWithRetry();
 
-      print('═══════════════════════════════════════');
-      print('LOGIN REQUEST PARAMETERS:');
-      print('Email: $email');
-      print('Password: ${password.isNotEmpty ? "***" : "empty"}');
-      print('Device Token: $deviceToken');
-      print('Device Token is null: ${deviceToken == null}');
-      print('Device Token is empty: ${deviceToken?.isEmpty ?? "null"}');
-      print('Device Token length: ${deviceToken?.length ?? 0}');
-      print('═══════════════════════════════════════');
+      log('═══════════════════════════════════════');
+      log('LOGIN REQUEST PARAMETERS:');
+      log('Email: $email');
+      log('Password: ${password.isNotEmpty ? "***" : "empty"}');
+      log('Device Token: $deviceToken');
+      log('Device Token is null: ${deviceToken == null}');
+      log('Device Token is empty: ${deviceToken?.isEmpty ?? "null"}');
+      log('Device Token length: ${deviceToken?.length ?? 0}');
+      log('═══════════════════════════════════════');
 
       final loginResponse = await restApi.login(
         email: email,
         password: password,
-        deviceToken: deviceToken, // Pass the device token to your API
+        deviceToken: deviceToken,
       );
 
       if (loginResponse.IsSuccess == true) {
-        log(
-          'Login successful: ${JsonEncoder.withIndent("\t").convert(loginResponse)}',
-        );
+        log('✅ Login successful');
+        log('Response: ${JsonEncoder.withIndent("\t").convert(loginResponse)}');
 
         // Set new auth data with the response
-        AuthRepo.token = loginResponse.Token; // Set the new token first
+        AuthRepo.token = loginResponse.Token;
         AuthRepo.loginType = loginType;
         AuthRepo.role = loginResponse.Data?.roles?.Name;
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
         AuthRepo.driverId = loginResponse.Data?.driver?.id;
 
-        print('New token set: ${AuthRepo.token}');
-        print('Customer ID: ${AuthRepo.customerId}');
-        print('Login type: ${AuthRepo.loginType}');
-        print('Role: ${AuthRepo.role}');
-        print('Driver ID: ${AuthRepo.driverId}');
+        log('Token set: ${AuthRepo.token != null ? "✅" : "❌"}');
+        log('Customer ID: ${AuthRepo.customerId}');
+        log('Driver ID: ${AuthRepo.driverId}');
+        log('Role: ${AuthRepo.role}');
 
         // Verify token is properly set
         if (AuthRepo.token != null && AuthRepo.token!.isNotEmpty) {
+          removeCircle();
           NavigationService().pushNavigation(
             Screenroutes.dashboard,
             arguments: {'role': loginResponse.Data?.roles?.Name},
           );
         } else {
+          removeCircle();
           showErrorSnack('Failed to set authentication token');
         }
       } else {
-        showErrorSnack(Messages.authenticationFailure);
+        removeCircle();
+        showErrorSnack(loginResponse.Message ?? Messages.authenticationFailure);
       }
-    } catch (e) {
-      log('Login error: $e');
+    } catch (e, stackTrace) {
+      log('❌ Login error: $e');
+      removeCircle();
+
       if (e is DioException) {
-        log("DioException: ${e.message}", stackTrace: e.stackTrace);
+        log("DioException: ${e.message}");
+        log("Response: ${e.response?.data}");
+        log("Status code: ${e.response?.statusCode}");
+
         if (e.response?.statusCode == 401) {
-          showErrorSnack('Invalid credentials');
+          showErrorSnack(
+            'Invalid credentials. Please check your email and password.',
+          );
+        } else if (e.response?.statusCode == 422) {
+          showErrorSnack('Invalid input. Please check your details.');
+        } else if (e.response?.statusCode == 500) {
+          showErrorSnack('Server error. Please try again later.');
+        } else if (e.type == DioExceptionType.connectionTimeout) {
+          showErrorSnack('Connection timeout. Please check your internet.');
+        } else if (e.type == DioExceptionType.receiveTimeout) {
+          showErrorSnack('Server is taking too long to respond.');
         } else {
-          showErrorSnack('Network error occurred');
+          showErrorSnack('Network error occurred. Please try again.');
         }
       } else {
-        log("General error: $e", stackTrace: e is Error ? e.stackTrace : null);
+        log("General error: $e");
+        log("Stack trace: $stackTrace");
         showErrorSnack(Messages.authenticationFailure);
       }
     }
+  }
 
-    removeCircle();
+  /// Get FCM token with retry logic
+  Future<String?> _getFCMTokenWithRetry({int maxRetries = 3}) async {
+    String? deviceToken;
+    int retryCount = 0;
+
+    while (deviceToken == null && retryCount < maxRetries) {
+      try {
+        deviceToken = await _firebaseService.getFCMToken();
+
+        if (deviceToken == null) {
+          retryCount++;
+          log('⚠️ FCM token is null, retry $retryCount/$maxRetries');
+
+          if (retryCount < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            await Future.delayed(Duration(seconds: retryCount));
+          }
+        } else {
+          log('✅ FCM token retrieved: ${deviceToken.substring(0, 20)}...');
+          break;
+        }
+      } catch (e) {
+        retryCount++;
+        log('❌ Error getting FCM token (attempt $retryCount): $e');
+
+        if (retryCount < maxRetries) {
+          await Future.delayed(Duration(seconds: retryCount));
+        }
+      }
+    }
+
+    if (deviceToken == null) {
+      log('⚠️ Warning: Failed to get FCM token after $maxRetries attempts');
+      log('⚠️ Proceeding with login without device token');
+    }
+
+    return deviceToken;
   }
 
   // Method to handle logout
@@ -113,22 +167,23 @@ class AuthController with ChangeNotifier {
     showCircle();
 
     try {
-      // Get the current device token before clearing auth data
-      String? deviceToken = await FirebaseService().getFCMToken();
+      log('═══════════════════════════════════════');
+      log('STARTING LOGOUT PROCESS');
+      log('═══════════════════════════════════════');
 
-      // Get user ID or other identifier - adjust based on your user model
+      // Get the current device token before clearing auth data
+      String? deviceToken = await _firebaseService.getFCMToken();
+
+      // Get user ID or other identifier
       String? userId =
           AuthRepo.customerId?.toString() ?? AuthRepo.driverId?.toString();
 
       // Get the auth token before clearing
       String? authToken = AuthRepo.token;
 
-      log('═══════════════════════════════════════');
-      log('LOGOUT REQUEST PARAMETERS:');
       log('User ID: $userId');
-      log('Device Token: $deviceToken');
+      log('Device Token: ${deviceToken?.substring(0, 20)}...');
       log('Auth Token: ${authToken?.substring(0, 20)}...');
-      log('═══════════════════════════════════════');
 
       // Call logout API with authorization token
       final response = await restApi.logout(
@@ -137,81 +192,71 @@ class AuthController with ChangeNotifier {
         deviceToken: deviceToken,
       );
 
-      log('Logout API response: $response');
-      log('Logout API call successful');
+      log('✅ Logout API response: $response');
 
-      // Only proceed with cleanup and navigation if API call was successful
+      // Delete FCM token locally
       try {
-        // Delete FCM token locally
-        await FirebaseService().deleteToken();
-        log('FCM token deleted successfully');
+        await _firebaseService.deleteToken();
+        log('✅ FCM token deleted successfully');
       } catch (tokenError) {
-        log('Warning: Error deleting FCM token: $tokenError');
+        log('⚠️ Warning: Error deleting FCM token: $tokenError');
         // Continue with logout even if token deletion fails
       }
 
       // Clear local auth data
       AuthRepo.logOut();
-      log('Local auth data cleared');
+      log('✅ Local auth data cleared');
 
       removeCircle();
-
-      // Show success message
       showSuccessSnack('Logged out successfully');
 
-      // Navigate to login screen only after successful logout
+      // Navigate to login screen
       NavigationService().pushAndRemoveUntilNavigation(Screenroutes.login);
 
-      log('Navigation to login screen completed');
-    } catch (e) {
-      log('Logout API error: $e');
+      log('✅ Logout completed successfully');
+    } catch (e, stackTrace) {
+      log('❌ Logout error: $e');
+      log('Stack trace: $stackTrace');
       removeCircle();
 
       // Handle specific error cases
       if (e is DioException) {
-        log(
-          "DioException during logout: ${e.message}",
-          stackTrace: e.stackTrace,
-        );
+        log("DioException during logout: ${e.message}");
+        log("Status code: ${e.response?.statusCode}");
 
         // Check if it's a network error or server error
         if (e.response?.statusCode == 401) {
           // Token might be expired, still clear local data and navigate
-          log('Token expired or invalid, clearing local data anyway');
-          _performLocalLogout();
+          log('⚠️ Token expired or invalid, clearing local data anyway');
+          await _performLocalLogout();
         } else if (e.response?.statusCode != null) {
           // Server responded with an error
           showErrorSnack('Logout failed. Please try again.');
         } else {
-          // Network error
-          showErrorSnack('Network error. Please check your connection.');
+          // Network error - still logout locally
+          log('⚠️ Network error during logout, performing local logout');
+          await _performLocalLogout();
         }
       } else {
-        log(
-          "General error during logout: $e",
-          stackTrace: e is Error ? e.stackTrace : null,
-        );
+        log("General error during logout: $e");
         showErrorSnack('An error occurred during logout');
       }
-
-      // DO NOT navigate to login screen on error
-      // User should retry or we should handle it differently based on requirements
     }
   }
 
-  // Helper method to perform local logout when API fails but we still want to clear data
+  /// Helper method to perform local logout when API fails
   Future<void> _performLocalLogout() async {
     try {
       // Delete FCM token locally
-      await FirebaseService().deleteToken();
-      log('FCM token deleted (local logout)');
+      await _firebaseService.deleteToken();
+      log('✅ FCM token deleted (local logout)');
     } catch (tokenError) {
-      log('Error deleting FCM token during local logout: $tokenError');
+      log('⚠️ Error deleting FCM token during local logout: $tokenError');
     }
 
     // Clear local auth data
     AuthRepo.logOut();
-    log('Local auth data cleared (local logout)');
+    log('✅ Local auth data cleared (local logout)');
 
     // Navigate to login screen
     NavigationService().pushAndRemoveUntilNavigation(Screenroutes.login);
@@ -219,14 +264,14 @@ class AuthController with ChangeNotifier {
     showSuccessSnack('Logged out locally');
   }
 
-  // Optional: Force logout method that clears local data regardless of API response
-  // Use this only when you want to force logout (e.g., user explicitly requests it after error)
+  /// Force logout - clears local data regardless of API response
   Future<void> forceLogout() async {
     showCircle();
+    log('⚠️ FORCE LOGOUT INITIATED');
 
     try {
       // Attempt API call but don't wait for success
-      String? deviceToken = await FirebaseService().getFCMToken();
+      String? deviceToken = await _firebaseService.getFCMToken();
       String? userId =
           AuthRepo.customerId?.toString() ?? AuthRepo.driverId?.toString();
       String? authToken = AuthRepo.token;
@@ -238,34 +283,42 @@ class AuthController with ChangeNotifier {
             deviceToken: deviceToken,
           )
           .catchError((error) {
-            log('Force logout: API call failed but continuing: $error');
+            log('⚠️ Force logout: API call failed but continuing: $error');
           });
     } catch (e) {
-      log('Force logout: Error during API call: $e');
+      log('⚠️ Force logout: Error during API call: $e');
     }
 
     // Clear local data regardless of API response
     await _performLocalLogout();
     removeCircle();
+    log('✅ Force logout completed');
   }
 
-  // Method to check if user is currently authenticated
+  /// Check if user is currently authenticated
   bool get isAuthenticated {
     return AuthRepo.isAuthenticated;
   }
 
-  // Method to update device token (useful if token refreshes while app is running)
+  /// Update device token (call this when token refreshes)
   Future<void> updateDeviceToken() async {
     try {
-      String? deviceToken = await FirebaseService().getFCMToken();
+      if (!AuthRepo.isAuthenticated) {
+        log('⚠️ Cannot update token: User not authenticated');
+        return;
+      }
 
-      if (deviceToken != null && AuthRepo.isAuthenticated) {
-        // Call API to update device token on server
+      String? deviceToken = await _firebaseService.getFCMToken();
+
+      if (deviceToken != null) {
+        // TODO: Call API to update device token on server
         // await restApi.updateDeviceToken(deviceToken: deviceToken);
-        log('Device token updated: $deviceToken');
+        log('✅ Device token updated: ${deviceToken.substring(0, 20)}...');
+      } else {
+        log('⚠️ Cannot update token: Token is null');
       }
     } catch (e) {
-      log('Error updating device token: $e');
+      log('❌ Error updating device token: $e');
     }
   }
 }
