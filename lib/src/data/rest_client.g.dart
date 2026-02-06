@@ -36,7 +36,12 @@ class _RestClient implements RestClient {
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<UserModel>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
           .compose(
             _dio.options,
             '/Login',
@@ -53,6 +58,39 @@ class _RestClient implements RestClient {
       errorLogger?.logError(e, s, _options);
       rethrow;
     }
+    return _value;
+  }
+
+  @override
+  Future<dynamic> logout({
+    String? token,
+    String? id,
+    String? deviceToken,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = {'id': id, 'device_token': deviceToken};
+    _data.removeWhere((k, v) => v == null);
+    final _options = _setStreamType<dynamic>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
+          .compose(
+            _dio.options,
+            '/Logout',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
     return _value;
   }
 

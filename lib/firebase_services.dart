@@ -1,6 +1,9 @@
 import 'dart:developer';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:sample/src/util/app_routes.dart';
+
+import 'src/util/app_navigation.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -51,18 +54,57 @@ class FirebaseService {
         _firebaseMessagingBackgroundHandler,
       );
 
-      // Handle notification taps when app is in background
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        log(
+          'Notification clicked (app in background): ${message.notification?.title}',
+        );
+        _handleNotificationClick(message);
+      });
 
       // Check if app was opened from a terminated state via notification
       RemoteMessage? initialMessage =
           await _firebaseMessaging.getInitialMessage();
       if (initialMessage != null) {
-        _handleNotificationTap(initialMessage);
+        _handleNotificationClick(initialMessage);
       }
     } catch (e) {
       log('Error initializing Firebase Messaging: $e');
     }
+  }
+
+  void _handleNotificationClick(RemoteMessage message) {
+    log('Handling notification click');
+    log('Notification data: ${message.data}');
+
+    // Navigate to notifications screen
+    NavigationService().pushNavigation(
+      Screenroutes.notificationScreen, // Your notification screen route
+      // arguments: {
+      //   'notificationData': message.data,
+      //   'title': message.notification?.title,
+      //   'body': message.notification?.body,
+      // },
+    );
+
+    // // Alternative: Navigate based on notification type
+    // String? notificationType = message.data['type'];
+    // switch (notificationType) {
+    //   case 'order':
+    //     NavigationService().pushNavigation(
+    //       Screenroutes.orderDetails,
+    //       arguments: {'orderId': message.data['orderId']},
+    //     );
+    //     break;
+    //   case 'message':
+    //     NavigationService().pushNavigation(
+    //       Screenroutes.chat,
+    //       arguments: {'chatId': message.data['chatId']},
+    //     );
+    //     break;
+    //   default:
+    //     NavigationService().pushNavigation(Screenroutes.notifications);
+    //     break;
+    // }
   }
 
   /// Get FCM Token
@@ -85,18 +127,6 @@ class FirebaseService {
     log('Data: ${message.data}');
 
     // You can show a local notification here or update UI
-  }
-
-  /// Handle notification tap
-  void _handleNotificationTap(RemoteMessage message) {
-    log('Notification tapped: ${message.messageId}');
-    log('Data: ${message.data}');
-
-    // Handle navigation based on notification data
-    // For example:
-    // if (message.data['type'] == 'trip') {
-    //   NavigationService().pushNavigation(Screenroutes.tripDetails);
-    // }
   }
 
   /// Delete FCM token (useful for logout)

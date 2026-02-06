@@ -6,7 +6,48 @@ import 'package:sample/src/util/dio_config.dart';
 
 part 'rest_client.g.dart';
 
-var dio = createDio();
+Dio createDioWithLogging() {
+  var dio = createDio();
+
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        print('🚀 REQUEST[${options.method}] => PATH: ${options.path}');
+        print('📋 Headers: ${options.headers}');
+        print('📦 Data: ${options.data}');
+        print('🔍 Query Parameters: ${options.queryParameters}');
+        return handler.next(options);
+      },
+      onResponse: (response, handler) {
+        print('✅ RESPONSE[${response.statusCode}]');
+        print('📥 Data: ${response.data}');
+        return handler.next(response);
+      },
+      onError: (DioException e, handler) {
+        print('❌ ERROR[${e.response?.statusCode}]');
+        print('📛 Message: ${e.message}');
+        print('📛 Response: ${e.response?.data}');
+        return handler.next(e);
+      },
+    ),
+  );
+
+  // Add the standard logging interceptor
+  dio.interceptors.add(
+    LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      requestHeader: true,
+      responseHeader: false,
+      error: true,
+      logPrint: (obj) => print(obj),
+    ),
+  );
+
+  return dio;
+}
+
+var dio = createDioWithLogging();
 var restApi = RestClient(dio, baseUrl: apiEndPoint);
 
 @RestApi(baseUrl: apiEndPoint)
@@ -14,9 +55,18 @@ abstract class RestClient {
   factory RestClient(Dio dio, {String baseUrl}) = _RestClient;
 
   @POST('/Login')
+  @FormUrlEncoded()
   Future<UserModel> login({
     @Field("email") String? email,
     @Field("password") String? password,
+    @Field("device_token") String? deviceToken,
+  });
+
+  @POST('/Logout')
+  @FormUrlEncoded()
+  Future<dynamic> logout({
+    @Header("Authorization") String? token,
+    @Field("id") String? id,
     @Field("device_token") String? deviceToken,
   });
 

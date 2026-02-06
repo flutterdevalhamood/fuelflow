@@ -17,6 +17,7 @@ enum LoginType { admin, operator, customer }
 
 class AuthController with ChangeNotifier {
   LoginType loginType = LoginType.admin;
+  final FirebaseService _firebaseService = FirebaseService();
 
   set setLoginType(LoginType type) {
     loginType = type;
@@ -41,6 +42,16 @@ class AuthController with ChangeNotifier {
       }
 
       log('Sending login request with device token: ${deviceToken ?? "null"}');
+
+      print('═══════════════════════════════════════');
+      print('LOGIN REQUEST PARAMETERS:');
+      print('Email: $email');
+      print('Password: ${password.isNotEmpty ? "***" : "empty"}');
+      print('Device Token: $deviceToken');
+      print('Device Token is null: ${deviceToken == null}');
+      print('Device Token is empty: ${deviceToken?.isEmpty ?? "null"}');
+      print('Device Token length: ${deviceToken?.length ?? 0}');
+      print('═══════════════════════════════════════');
 
       final loginResponse = await restApi.login(
         email: email,
@@ -99,20 +110,143 @@ class AuthController with ChangeNotifier {
 
   // Method to handle logout
   Future<void> logout() async {
+    showCircle();
+
     try {
-      // Delete FCM token on logout
-      await FirebaseService().deleteToken();
+      // Get the current device token before clearing auth data
+      String? deviceToken = await FirebaseService().getFCMToken();
 
-      // You might want to call a logout API here to remove device token from server
-      // await restApi.logout(deviceToken: FirebaseService().fcmToken);
+      // Get user ID or other identifier - adjust based on your user model
+      String? userId =
+          AuthRepo.customerId?.toString() ?? AuthRepo.driverId?.toString();
 
+      // Get the auth token before clearing
+      String? authToken = AuthRepo.token;
+
+      log('═══════════════════════════════════════');
+      log('LOGOUT REQUEST PARAMETERS:');
+      log('User ID: $userId');
+      log('Device Token: $deviceToken');
+      log('Auth Token: ${authToken?.substring(0, 20)}...');
+      log('═══════════════════════════════════════');
+
+      // Call logout API with authorization token
+      final response = await restApi.logout(
+        token: authToken != null ? 'Bearer $authToken' : null,
+        id: userId,
+        deviceToken: deviceToken,
+      );
+
+      log('Logout API response: $response');
+      log('Logout API call successful');
+
+      // Only proceed with cleanup and navigation if API call was successful
+      try {
+        // Delete FCM token locally
+        await FirebaseService().deleteToken();
+        log('FCM token deleted successfully');
+      } catch (tokenError) {
+        log('Warning: Error deleting FCM token: $tokenError');
+        // Continue with logout even if token deletion fails
+      }
+
+      // Clear local auth data
       AuthRepo.logOut();
+      log('Local auth data cleared');
+
+      removeCircle();
+
+      // Show success message
       showSuccessSnack('Logged out successfully');
+
+      // Navigate to login screen only after successful logout
+      NavigationService().pushAndRemoveUntilNavigation(Screenroutes.login);
+
+      log('Navigation to login screen completed');
     } catch (e) {
-      log('Logout error: $e');
-      // Even if logout API fails, clear local data
-      AuthRepo.logOut();
+      log('Logout API error: $e');
+      removeCircle();
+
+      // Handle specific error cases
+      if (e is DioException) {
+        log(
+          "DioException during logout: ${e.message}",
+          stackTrace: e.stackTrace,
+        );
+
+        // Check if it's a network error or server error
+        if (e.response?.statusCode == 401) {
+          // Token might be expired, still clear local data and navigate
+          log('Token expired or invalid, clearing local data anyway');
+          _performLocalLogout();
+        } else if (e.response?.statusCode != null) {
+          // Server responded with an error
+          showErrorSnack('Logout failed. Please try again.');
+        } else {
+          // Network error
+          showErrorSnack('Network error. Please check your connection.');
+        }
+      } else {
+        log(
+          "General error during logout: $e",
+          stackTrace: e is Error ? e.stackTrace : null,
+        );
+        showErrorSnack('An error occurred during logout');
+      }
+
+      // DO NOT navigate to login screen on error
+      // User should retry or we should handle it differently based on requirements
     }
+  }
+
+  // Helper method to perform local logout when API fails but we still want to clear data
+  Future<void> _performLocalLogout() async {
+    try {
+      // Delete FCM token locally
+      await FirebaseService().deleteToken();
+      log('FCM token deleted (local logout)');
+    } catch (tokenError) {
+      log('Error deleting FCM token during local logout: $tokenError');
+    }
+
+    // Clear local auth data
+    AuthRepo.logOut();
+    log('Local auth data cleared (local logout)');
+
+    // Navigate to login screen
+    NavigationService().pushAndRemoveUntilNavigation(Screenroutes.login);
+
+    showSuccessSnack('Logged out locally');
+  }
+
+  // Optional: Force logout method that clears local data regardless of API response
+  // Use this only when you want to force logout (e.g., user explicitly requests it after error)
+  Future<void> forceLogout() async {
+    showCircle();
+
+    try {
+      // Attempt API call but don't wait for success
+      String? deviceToken = await FirebaseService().getFCMToken();
+      String? userId =
+          AuthRepo.customerId?.toString() ?? AuthRepo.driverId?.toString();
+      String? authToken = AuthRepo.token;
+
+      restApi
+          .logout(
+            token: authToken != null ? 'Bearer $authToken' : null,
+            id: userId,
+            deviceToken: deviceToken,
+          )
+          .catchError((error) {
+            log('Force logout: API call failed but continuing: $error');
+          });
+    } catch (e) {
+      log('Force logout: Error during API call: $e');
+    }
+
+    // Clear local data regardless of API response
+    await _performLocalLogout();
+    removeCircle();
   }
 
   // Method to check if user is currently authenticated

@@ -580,7 +580,7 @@ class _CustomerFuelDeliveryScreenState
   Future<void> _pickImage(Function(File) onPicked, FocusNode? focusNode) async {
     try {
       final image = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: ImageSource.camera,
         imageQuality: 60,
         maxWidth: 1024,
         maxHeight: 1024,
