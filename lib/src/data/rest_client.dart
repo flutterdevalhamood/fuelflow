@@ -218,6 +218,37 @@ abstract class RestClient {
     @Field("deleteDescription") String? deleteDescription,
   });
 
+  @GET('/CustomerSite/paginate/{page}/{limit}')
+  Future<dynamic> getCustomerSite(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
+  @POST('/CustomerSite')
+  Future<dynamic> postCustomerSite({
+    @Header("Authorization") String? token,
+    @Field("customer_id") int? customerId,
+    @Field("name") String? name,
+    @Field("description") String? description,
+  });
+
+  @POST('/CustomerSiteUpdate')
+  Future<dynamic> updateCustomerSite({
+    @Header("Authorization") String? token,
+    @Field("customer_id") int? customerId,
+    @Field("name") String? name,
+    @Field("description") String? description,
+    @Field("id") int? id,
+  });
+
+  @POST('/CustomerSiteDelete')
+  Future<dynamic> deleteCustomerSite({
+    @Header("Authorization") String? token,
+    @Field("id") int? id,
+    @Field("deleteDescription") String? deleteDescription,
+  });
+
   @GET('/getDriverBaseList')
   Future<dynamic> getCustomerDropDown(@Header("Authorization") String? token);
 

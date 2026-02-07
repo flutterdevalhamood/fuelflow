@@ -6,6 +6,7 @@ import 'package:sample/firebase_services.dart';
 import 'package:sample/src/BaseScreen.dart';
 import 'package:sample/src/providers/Product_controller.dart';
 import 'package:sample/src/providers/customer_controller.dart';
+import 'package:sample/src/providers/customer_site_controller.dart';
 import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
@@ -57,6 +58,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => UserRegistrationController(),
         ),
+        ChangeNotifierProvider(create: (context) => CustomerSiteController()),
       ],
       child: const BaseScreen(),
     ),

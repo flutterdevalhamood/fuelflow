@@ -97,16 +97,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'description': 'Go to Your Assignment Trips',
       },
       {
-        'title': 'Fuel Trip',
-        'icon': Icons.local_shipping_rounded,
-        'route':
-            Screenroutes
-                .fuelTripScreen, // Add this route to your app_routes.dart
-        'color': Colors.deepOrange,
-        'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
-        'description': 'Manage fuel delivery trips',
-      },
-      {
         'title': 'Accepted Trips',
         'icon': Icons.local_shipping_rounded,
         'route':
@@ -141,6 +131,15 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
         'description': 'Register the user',
       },
+
+      {
+        'title': 'Customer Sites',
+        'icon': Icons.location_on_rounded,
+        'route': Screenroutes.customerSitesList, // make sure route exists
+        'color': Colors.cyan,
+        'gradient': [Color(0xFF36d1dc), Color(0xFF5b86e5)],
+        'description': 'Manage customer site locations',
+      },
     ];
 
     if (_effectiveUserRole == "customer") {
@@ -158,7 +157,13 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           .toList();
     } else if (_effectiveUserRole == "superadmin") {
       return allGridItems
-          .where((item) => item['title'] != 'My Refilling Units')
+          .where(
+            (item) =>
+                item['title'] != 'My Refilling Units' &&
+                item['title'] != 'Assigned Trips' &&
+                item['title'] != 'Accepted Trips' &&
+                item['title'] != 'Completed Trips',
+          )
           .toList();
     } else if (_effectiveUserRole == "operator") {
       return allGridItems

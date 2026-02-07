@@ -5,6 +5,7 @@ import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_unit_screen.dart';
+import 'package:sample/src/screens/customerSites/customer_site_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -22,7 +23,6 @@ import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
 import 'package:sample/src/screens/fuelTrip/completed_assignment_screen.dart';
 import 'package:sample/src/screens/fuelTrip/customer_fuel_delivery_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
-import 'package:sample/src/screens/fuelTrip/fuel_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
 import 'package:sample/src/screens/fuelTrip/stop_vehicle_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
@@ -92,6 +92,9 @@ class Screenroutes {
   static const String refillingUnitUpdateScreen = "refillingUnitUpdateScreen";
   static const String refillingUnitDetailScreen = "refillingUnitDetailScreen";
 
+  //customerSites
+  static const String customerSitesList = "customerSitesList";
+
   static const String storageUnitListScreen = "storageUnitListScreen";
   static const String storageUnitDataScreen = "storageUnitDataScreen";
   static const String storageUnitDetailScreen = 'storageUnitDetailScreen';
@@ -99,8 +102,6 @@ class Screenroutes {
   static const String assignedRefillingUnitScreen =
       'assignedRefillingUnitScreen';
   static const String assignRefillDetailScreen = "assignRefillDetailScreen";
-
-  static const String fuelTripScreen = "fuelTripScreen";
 
   static const String fuelRefillBeforeTripScreen = "fuelRefillBeforeTripScreen";
 
@@ -292,6 +293,14 @@ class Screenroutes {
           },
         );
 
+      case Screenroutes.customerSitesList:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.customerSitesList),
+          builder: (BuildContext context) {
+            return CustomerSiteListScreen();
+          },
+        );
+
       case Screenroutes.productList:
         return MaterialPageRoute(
           settings: const RouteSettings(name: Screenroutes.productList),
@@ -454,14 +463,6 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return AssignedUnitDetailScreen(unitData: data ?? {});
-          },
-        );
-
-      case Screenroutes.fuelTripScreen:
-        return MaterialPageRoute(
-          settings: const RouteSettings(name: Screenroutes.reportsScreen),
-          builder: (BuildContext context) {
-            return FuelTripScreen();
           },
         );
 
