@@ -143,18 +143,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     ];
 
     if (_effectiveUserRole == "customer") {
-      return allGridItems
-          .where(
-            (item) =>
-                item['title'] == 'Vehicles' ||
-                item['title'] == 'Drivers' ||
-                item['title'] == 'Fuel Refill' ||
-                item['title'] == 'My Refilling Units' ||
-                item['title'] == 'Fuel Trip' ||
-                item['title'] == 'Fuel Refill For Trip' ||
-                item['title'] == 'Reports',
-          )
-          .toList();
+      return allGridItems.where((item) => item['title'] == 'Vehicles').toList();
     } else if (_effectiveUserRole == "superadmin") {
       return allGridItems
           .where(

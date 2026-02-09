@@ -2,9 +2,29 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:sample/src/constants/api_constants.dart';
 import 'package:sample/src/models/user_model.dart';
-import 'package:sample/src/util/dio_config.dart';
 
 part 'rest_client.g.dart';
+
+Dio createDio() {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: apiEndPoint,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      followRedirects: false, // ✅ ADD THIS
+      validateStatus: (status) {
+        // ✅ ADD THIS - Treat both 200-299 and 302 as valid
+        return status != null && status >= 200 && status < 400;
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+      },
+    ),
+  );
+
+  return dio;
+}
 
 Dio createDioWithLogging() {
   var dio = createDio();
@@ -91,6 +111,7 @@ abstract class RestClient {
     @Field("vehicle_type_id") int? vehicleTypeId,
     @Field("capacity_unit_id") int? capacityUnitId,
     @Field("customer_id") int? customerId,
+    @Field("customer_id") int? customerSiteId,
   });
 
   @POST('/VehicleUpdate')
@@ -159,6 +180,12 @@ abstract class RestClient {
   Future<dynamic> deleteImagesById({
     @Header("Authorization") String? token,
     @Field("id") int? id,
+  });
+
+  @GET('/getCustomerSites/{customerId}')
+  Future<dynamic> getCustomerSitesOfCustomer({
+    @Path("customerId") int? customerId,
+    @Header("Authorization") String? token,
   });
 
   @GET('/Driver/paginate/{page}/{limit}')
@@ -476,6 +503,7 @@ abstract class RestClient {
     @Field("description") String? description,
     @Field("capacity_unit_id") int? capacityUnitId,
     @Field("customer_id") int? customerId,
+    @Field("customer_site_id") int? customerSiteId,
   });
 
   @GET('/Driver/GetAssignedTrips/{page}/{limit}')

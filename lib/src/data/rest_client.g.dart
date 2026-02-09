@@ -6,7 +6,7 @@ part of 'rest_client.dart';
 // RetrofitGenerator
 // **************************************************************************
 
-// ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations,unused_element_parameter
+// ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations
 
 class _RestClient implements RestClient {
   _RestClient(this._dio, {this.baseUrl, this.errorLogger}) {
@@ -149,6 +149,7 @@ class _RestClient implements RestClient {
     int? vehicleTypeId,
     int? capacityUnitId,
     int? customerId,
+    int? customerSiteId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -162,6 +163,7 @@ class _RestClient implements RestClient {
       'vehicle_type_id': vehicleTypeId,
       'capacity_unit_id': capacityUnitId,
       'customer_id': customerId,
+      'customer_id': customerSiteId,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
@@ -427,6 +429,32 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/VehiclePictureDeleteByID',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getCustomerSitesOfCustomer({
+    int? customerId,
+    String? token,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/getCustomerSites/${customerId}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -1693,6 +1721,7 @@ class _RestClient implements RestClient {
     String? description,
     int? capacityUnitId,
     int? customerId,
+    int? customerSiteId,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -1706,6 +1735,7 @@ class _RestClient implements RestClient {
       'description': description,
       'capacity_unit_id': capacityUnitId,
       'customer_id': customerId,
+      'customer_site_id': customerSiteId,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(

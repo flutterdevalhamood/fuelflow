@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sample/src/data/rest_client.dart'; // ✅ IMPORT THIS
 
-import '../data/rest_client.dart';
 import '../repo/auth_repo.dart';
 
 class TripTrackingController with ChangeNotifier {
@@ -23,14 +23,11 @@ class TripTrackingController with ChangeNotifier {
 
   int? get currentTripId => _currentTripId;
 
-  static const double distanceThreshold = 5.0; // meters for location logging
-  static const Duration locationLogInterval = Duration(
-    seconds: 30,
-  ); // Check interval
+  static const double distanceThreshold = 5.0;
+  static const Duration locationLogInterval = Duration(seconds: 30);
 
   bool get isTracking => _isTracking;
 
-  // Track pending API calls to prevent duplicates
   final Set<String> _pendingLocationLogs = {};
   final Set<String> _pendingEventLogs = {};
 
@@ -41,11 +38,9 @@ class TripTrackingController with ChangeNotifier {
     int? driverId,
     int? vehicleId,
   }) async {
-    // Store driver and vehicle IDs for location logging
     _driverId = driverId;
     _vehicleId = vehicleId;
 
-    // Check if we're already tracking this exact stop
     if (_isTracking &&
         _currentTripId == tripId &&
         _currentTripStopId == tripStopId) {
@@ -53,7 +48,6 @@ class TripTrackingController with ChangeNotifier {
       return;
     }
 
-    // If tracking a different stop in the same trip, stop current tracking first
     if (_isTracking &&
         _currentTripId == tripId &&
         _currentTripStopId != tripStopId) {
@@ -71,20 +65,17 @@ class TripTrackingController with ChangeNotifier {
         return;
       }
 
-      // Get initial position
       try {
         _lastPosition = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
         ).timeout(const Duration(seconds: 8));
       } catch (e) {
         debugPrint('⚠️ Could not get initial position: $e');
-        // Continue without position - will try again in background
       }
 
       _isTracking = true;
       notifyListeners();
 
-      // 1. Log the initial event using LogTripEvent API
       await _logTripEventSynchronously(
         tripId: tripId,
         tripStopId: tripStopId,
@@ -92,7 +83,6 @@ class TripTrackingController with ChangeNotifier {
         position: _lastPosition,
       );
 
-      // 2. Start background location logging based on distance
       _startBackgroundLocationLogging(tripId);
 
       debugPrint('✅ Trip tracking started for trip $tripId, stop $tripStopId');
@@ -141,19 +131,6 @@ class TripTrackingController with ChangeNotifier {
       }
 
       try {
-        // Use better location settings for physical device
-        final LocationSettings locationSettings = AndroidSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5, // Only update when moved 5 meters
-          forceLocationManager: false, // Use Google Play Services
-          intervalDuration: const Duration(seconds: 30),
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationText: "Tracking your trip location",
-            notificationTitle: "Trip Active",
-            enableWakeLock: true,
-          ),
-        );
-
         final currentPosition = await Geolocator.getCurrentPosition(
           locationSettings:
               Platform.isAndroid
@@ -215,8 +192,7 @@ class TripTrackingController with ChangeNotifier {
     });
   }
 
-  // ======================= LOCATION LOGGING (LogTripLocations API) =======================
-
+  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<bool> _logTripLocationSynchronously({
     required int tripId,
     required Position position,
@@ -232,7 +208,6 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    // FIX: Use AuthRepo.driverId as fallback
     final driverId = _driverId ?? AuthRepo.driverId;
 
     if (driverId == null) {
@@ -240,7 +215,6 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    // FIX: Don't block if vehicle ID is null - just log warning
     if (_vehicleId == null) {
       debugPrint('⚠️ Vehicle ID not set for location logging');
     }
@@ -256,18 +230,10 @@ class TripTrackingController with ChangeNotifier {
     _pendingLocationLogs.add(locationKey);
 
     try {
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-        ),
-      );
-
-      final api = RestClient(dio);
-
       debugPrint('🌐 Sending location to API...');
 
-      await api.postLogTripLocations(
+      // ✅ USE GLOBAL restApi INSTANCE
+      await restApi.postLogTripLocations(
         tripId: tripId,
         token: 'Bearer $token',
         driverId: driverId,
@@ -297,8 +263,8 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
   }
-  // ======================= EVENT LOGGING (LogTripEvent API) =======================
 
+  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<bool> _logTripEventSynchronously({
     required int tripId,
     int? tripStopId,
@@ -311,7 +277,6 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    // Create unique key for this event log to prevent duplicates
     final eventKey = 'event_${tripId}_${tripStopId}_$eventType';
     if (_pendingEventLogs.contains(eventKey)) {
       debugPrint('⚠️ Event $eventType already in progress');
@@ -323,7 +288,6 @@ class TripTrackingController with ChangeNotifier {
     try {
       Position? pos = position;
 
-      // Try to get current position if not provided
       if (pos == null) {
         try {
           pos = await Geolocator.getCurrentPosition(
@@ -335,33 +299,26 @@ class TripTrackingController with ChangeNotifier {
         }
       }
 
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-        ),
-      );
+      debugPrint('🔵 Logging event: $eventType');
+      debugPrint('   Trip ID: $tripId, Stop ID: $tripStopId');
 
-      final api = RestClient(dio);
-
-      await api.postLogTripEvent(
+      // ✅ USE GLOBAL restApi INSTANCE
+      await restApi.postLogTripEvent(
         tripId: tripId,
         token: 'Bearer $token',
         tripStopId: tripStopId,
         eventType: eventType,
+        description: null,
         latitude: pos?.latitude.toString(),
         longitude: pos?.longitude.toString(),
       );
 
-      debugPrint(
-        '✅ Event logged via LogTripEvent: $eventType (trip: $tripId, stop: $tripStopId)',
-      );
+      debugPrint('✅ Event logged: $eventType');
       _pendingEventLogs.remove(eventKey);
       return true;
     } catch (e) {
-      debugPrint('❌ Event logging via LogTripEvent failed [$eventType]: $e');
+      debugPrint('❌ Event logging failed [$eventType]: $e');
 
-      // Retry logic
       if (retries > 0) {
         debugPrint('🔄 Retrying $eventType (${retries} attempts left)');
         await Future.delayed(const Duration(seconds: 2));
@@ -380,8 +337,6 @@ class TripTrackingController with ChangeNotifier {
     }
   }
 
-  // ======================= PUBLIC EVENT LOGGERS (For manual events) =======================
-
   Future<bool> logCriticalTripEvent({
     required String eventType,
     String? description,
@@ -391,7 +346,7 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    debugPrint('🔴 CRITICAL EVENT via LogTripEvent: $eventType');
+    debugPrint('🔴 CRITICAL EVENT: $eventType');
 
     return await _logTripEventSynchronously(
       tripId: _currentTripId!,
@@ -409,7 +364,7 @@ class TripTrackingController with ChangeNotifier {
       return false;
     }
 
-    debugPrint('📝 Manual event via LogTripEvent: $eventType');
+    debugPrint('📝 Manual event: $eventType');
 
     return await _logTripEventSynchronously(
       tripId: _currentTripId!,
@@ -418,7 +373,7 @@ class TripTrackingController with ChangeNotifier {
     );
   }
 
-  // Add this method to your TripTrackingController class
+  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<Map<String, dynamic>> requestAdminVehicleRefilingForShortage({
     required String vehicleId,
     required double expectedQuantity,
@@ -426,9 +381,6 @@ class TripTrackingController with ChangeNotifier {
     String? notes,
   }) async {
     debugPrint('🚀 Requesting admin refill for vehicle $vehicleId');
-    debugPrint('   Expected quantity: $expectedQuantity G');
-    debugPrint('   Position: ${position.latitude}, ${position.longitude}');
-    debugPrint('   Notes: $notes');
 
     if (token == null) {
       debugPrint('❌ No token available for admin refill request');
@@ -439,20 +391,8 @@ class TripTrackingController with ChangeNotifier {
     }
 
     try {
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        ),
-      );
-
-      final api = RestClient(dio);
-
-      final response = await api.requestAdminVehicleRefilingForShortage(
+      // ✅ USE GLOBAL restApi INSTANCE
+      final response = await restApi.requestAdminVehicleRefilingForShortage(
         token: 'Bearer $token',
         latitude: position.latitude.toString(),
         longitude: position.longitude.toString(),
@@ -462,40 +402,29 @@ class TripTrackingController with ChangeNotifier {
       );
 
       debugPrint('✅ Admin refill request submitted successfully');
-      debugPrint('   Response: $response');
 
       return {
         'success': true,
         'message': 'Admin refill request sent successfully',
         'data': response,
       };
-    } on DioException catch (e) {
-      debugPrint('❌ Admin refill request failed with DioException: $e');
-      debugPrint('❌ Response status: ${e.response?.statusCode}');
-      debugPrint('❌ Response data: ${e.response?.data}');
+    } catch (e) {
+      debugPrint('❌ Admin refill request failed: $e');
 
       String errorMessage = 'Failed to send request to server';
-
-      if (e.response?.data != null && e.response?.data is Map) {
-        final Map<String, dynamic> errorData = e.response?.data;
-        errorMessage =
-            errorData['message']?.toString() ??
-            errorData['error']?.toString() ??
-            errorMessage;
+      if (e is DioException && e.response?.data != null) {
+        final errorData = e.response?.data;
+        if (errorData is Map) {
+          errorMessage =
+              errorData['message']?.toString() ??
+              errorData['error']?.toString() ??
+              errorMessage;
+        }
       }
 
       return {'success': false, 'message': errorMessage, 'error': e.toString()};
-    } catch (e) {
-      debugPrint('❌ Admin refill request failed: $e');
-      return {
-        'success': false,
-        'message': 'Failed to send request. Please check your connection.',
-        'error': e.toString(),
-      };
     }
   }
-
-  // ======================= CONTROL METHODS =======================
 
   void pauseTripTracking() {
     _isTracking = false;
@@ -515,7 +444,6 @@ class TripTrackingController with ChangeNotifier {
 
   Future<void> stopTripTracking({String? finalEventType}) async {
     if (_currentTripId != null && finalEventType != null) {
-      // Log final event using LogTripEvent API
       await _logTripEventSynchronously(
         tripId: _currentTripId!,
         tripStopId: _currentTripStopId,

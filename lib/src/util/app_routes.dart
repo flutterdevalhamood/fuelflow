@@ -6,6 +6,7 @@ import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_unit_screen.dart';
 import 'package:sample/src/screens/customerSites/customer_site_list_screen.dart';
+import 'package:sample/src/screens/customerView/customer_view_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -126,6 +127,8 @@ class Screenroutes {
   static const String customerStopVehicleScreen = "customerStopVehicleScreen";
 
   static const String completedAssignmentScreen = "completedAssignmentScreen";
+
+  static const String customerViewScreen = "CustomerViewScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -652,6 +655,14 @@ class Screenroutes {
                   args?['customerName'] as String? ?? 'Unknown Customer',
               siteName: args?['siteName'] as String? ?? 'Unknown Site',
             );
+          },
+        );
+
+      case Screenroutes.customerViewScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.customerViewScreen),
+          builder: (BuildContext context) {
+            return CustomerViewScreen();
           },
         );
 

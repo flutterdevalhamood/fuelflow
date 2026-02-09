@@ -1,10 +1,5 @@
-import 'dart:io';
-import 'dart:ui';
-
-import 'package:dio/dio.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/vehicle_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
@@ -30,6 +25,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   final TextEditingController _typeController = TextEditingController();
   final TextEditingController _customerController = TextEditingController();
   final TextEditingController _capacityUnitController = TextEditingController();
+  final TextEditingController _customerSiteController = TextEditingController();
 
   String? _selectedType;
   String? _selectedCapacityUnit;
@@ -37,14 +33,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
   int? _selectedTypeId;
   int? _selectedCapacityUnitId;
   int? _selectedCustomerId;
+  int? _selectedCustomerSiteId;
   late VehicleController _vehicleController;
-  List<XFile>? _imageFiles;
-  bool _isRegistrationComplete = false;
-  String? _vehicleId;
   bool _isSubmitClicked = false;
-  bool _isUploading = false;
   bool _isRegisteringForCustomer = false;
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -65,6 +57,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     _noteController.dispose();
     _typeController.dispose();
     _capacityUnitController.dispose();
+    _customerController.dispose();
+    _customerSiteController.dispose();
     super.dispose();
   }
 
@@ -75,151 +69,11 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     _typeController.clear();
     _customerController.clear();
     _capacityUnitController.clear();
+    _customerSiteController.clear();
     _selectedTypeId = null;
     _selectedCapacityUnitId = null;
     _selectedCustomerId = null;
-  }
-
-  Future<void> _pickImages() async {
-    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
-    if (pickedFiles != null) {
-      setState(() {
-        _imageFiles = [...?_imageFiles, ...pickedFiles];
-      });
-    }
-  }
-
-  Future<void> _takePicture() async {
-    try {
-      final pickedFile = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 70,
-        preferredCameraDevice: CameraDevice.rear,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          _imageFiles = [...?_imageFiles, pickedFile];
-        });
-      }
-    } catch (e) {
-      debugPrint("Error taking picture: $e");
-      showErrorSnack("Failed to take picture");
-    }
-  }
-
-  Future<void> _uploadImages() async {
-    if (_isUploading) return;
-    setState(() {
-      _isUploading = true;
-    });
-    final _vehicleId = _vehicleController.vehicleData?[0]['id'];
-    if (_imageFiles == null || _imageFiles!.isEmpty) {
-      setState(() {
-        _isUploading = false;
-      });
-      showErrorSnack('Please select at least one image');
-      return;
-    }
-    try {
-      List<MultipartFile> multipartFiles = [];
-      for (var file in _imageFiles!) {
-        multipartFiles.add(await MultipartFile.fromFile(file.path));
-      }
-
-      if (_vehicleId != null) {
-        bool isSuccess = await _vehicleController.uploadVehiclePictures(
-          multipartFiles,
-          _vehicleId.toString(),
-        );
-        setState(() {
-          _isUploading = false;
-        });
-        if (isSuccess) {
-          showSuccessSnack('Image uploaded successfully');
-          NavigationService().pushAndRemoveUntilNavigation(
-            Screenroutes.vehicleList,
-            removeUntilPageName: Screenroutes.vehicleList,
-          );
-        } else {
-          showErrorSnack('Error uploading image');
-        }
-      } else {
-        setState(() {
-          _isUploading = false;
-        });
-        showErrorSnack('Vehicle ID not found');
-      }
-    } catch (e) {
-      setState(() {
-        _isUploading = false;
-      });
-      showErrorSnack('Error uploading images');
-    }
-  }
-
-  void showFullScreenImage(
-    BuildContext context,
-    List<XFile> imageFiles,
-    int initialIndex,
-  ) {
-    int currentIndex = initialIndex;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: NavigationService().popNavigation,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(
-                          File(imageFiles[currentIndex].path),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 16,
-                      top: 0,
-                      bottom: 0,
-                      child: Center(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              currentIndex =
-                                  (currentIndex + 1) % imageFiles.length;
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward,
-                              color: Colors.white,
-                              size: 30,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
+    _selectedCustomerSiteId = null;
   }
 
   Future<void> _registerVehicle() async {
@@ -238,6 +92,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           _noteController.text.trim(),
           _selectedCapacityUnitId ?? 0,
           _selectedCustomerId,
+          _selectedCustomerSiteId,
         );
       } else {
         isSuccess = await _vehicleController.registerVehicle(
@@ -246,7 +101,8 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           _noteController.text.trim(),
           _selectedTypeId,
           _selectedCapacityUnitId ?? 0,
-          AuthRepo.customerId, // No customer ID for self registration
+          AuthRepo.customerId,
+          1,
         );
       }
 
@@ -261,12 +117,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
               : "Vehicle registered successfully!",
         );
         _vehicleController.getVehicleData();
+
+        // Navigate back to vehicle list after success
+        NavigationService().pushAndRemoveUntilNavigation(
+          Screenroutes.vehicleList,
+          removeUntilPageName: Screenroutes.vehicleList,
+        );
       } else {
         showErrorSnack("Error registering vehicle");
       }
-      setState(() {
-        _isRegistrationComplete = true;
-      });
     }
   }
 
@@ -277,6 +136,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         final vehicleTypeData = vehicleController.vehicleTypeData;
         final unitData = vehicleController.unitData;
         final customerData = vehicleController.customerData;
+        final customerSiteData = vehicleController.customerSiteData;
 
         return Scaffold(
           appBar: AppBar(
@@ -416,111 +276,70 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               ),
                               SizedBox(height: 20),
 
-                              if (!_isRegistrationComplete) ...[
-                                // Customer Dropdown (only shown when registering for customer)
-                                if (_isRegisteringForCustomer) ...[
-                                  DropdownSearch<Map<String, dynamic>>(
-                                    popupProps: PopupProps.menu(
-                                      showSearchBox: true,
-                                      fit: FlexFit.tight,
-                                      searchFieldProps: TextFieldProps(
-                                        decoration: InputDecoration(
-                                          hintText: 'Search Customer Name...',
-                                        ),
-                                      ),
-                                    ),
-                                    items:
-                                        (filter, infiniteScrollProps) =>
-                                            customerData,
-                                    itemAsString: (item) => item['Name'] ?? '',
-                                    compareFn:
-                                        (item1, item2) =>
-                                            item1['id'] == item2['id'],
-                                    onChanged: (newValue) async {
-                                      if (newValue != null) {
-                                        setState(() {
-                                          _selectedCustomerId = newValue['id'];
-                                          _customerController.text =
-                                              newValue['serial_no'];
-                                        });
-                                      }
-                                    },
-                                    selectedItem:
-                                        _selectedCustomerId != null
-                                            ? customerData.firstWhere(
-                                              (refill) =>
-                                                  refill['id'] ==
-                                                  _selectedCustomerId,
-                                            )
-                                            : null,
-                                    validator:
-                                        _isRegisteringForCustomer
-                                            ? (value) {
-                                              if (value == null) {
-                                                return 'Please select a Customer Name';
-                                              }
-                                              return null;
-                                            }
-                                            : null,
-                                    decoratorProps: DropDownDecoratorProps(
-                                      decoration: InputDecoration(
-                                        labelText: 'Customer *',
-                                        border: OutlineInputBorder(),
-                                        prefixIcon: Icon(
-                                          Icons.person,
-                                          color: Colors.blue.shade900,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 20),
-                                ],
-
+                              // Customer Dropdown (only shown when registering for customer)
+                              if (_isRegisteringForCustomer) ...[
                                 DropdownSearch<Map<String, dynamic>>(
                                   popupProps: PopupProps.menu(
                                     showSearchBox: true,
                                     fit: FlexFit.tight,
                                     searchFieldProps: TextFieldProps(
                                       decoration: InputDecoration(
-                                        hintText: 'Search Vehicle Type...',
+                                        hintText: 'Search Customer Name...',
                                       ),
                                     ),
                                   ),
                                   items:
                                       (filter, infiniteScrollProps) =>
-                                          vehicleTypeData,
+                                          customerData,
                                   itemAsString: (item) => item['Name'] ?? '',
                                   compareFn:
                                       (item1, item2) =>
                                           item1['id'] == item2['id'],
                                   onChanged: (newValue) async {
                                     if (newValue != null) {
+                                      final customerId = newValue['id'] as int?;
+                                      final serialNo =
+                                          newValue['serial_no'] as String? ??
+                                          '';
+
                                       setState(() {
-                                        _selectedTypeId = newValue['id'];
-                                        _typeController.text = newValue['Name'];
+                                        _selectedCustomerId = customerId;
+                                        _customerController.text = serialNo;
+                                        _selectedCustomerSiteId = null;
+                                        _customerSiteController.clear();
                                       });
+
+                                      // Fetch customer sites when customer is selected
+                                      if (customerId != null) {
+                                        await _vehicleController
+                                            .getCustomerSites(customerId);
+                                      }
                                     }
                                   },
                                   selectedItem:
-                                      _selectedTypeId != null
-                                          ? vehicleTypeData.firstWhere(
-                                            (vehicle) =>
-                                                vehicle['id'] ==
-                                                _selectedTypeId,
+                                      _selectedCustomerId != null
+                                          ? customerData.firstWhere(
+                                            (refill) =>
+                                                refill['id'] ==
+                                                _selectedCustomerId,
+                                            orElse: () => {},
                                           )
                                           : null,
-                                  validator: (value) {
-                                    if (value == null) {
-                                      return 'Please select a Type';
-                                    }
-                                    return null;
-                                  },
+                                  validator:
+                                      _isRegisteringForCustomer
+                                          ? (value) {
+                                            if (value == null) {
+                                              return 'Please select a Customer Name';
+                                            }
+                                            return null;
+                                          }
+                                          : null,
                                   decoratorProps: DropDownDecoratorProps(
                                     decoration: InputDecoration(
-                                      labelText: 'Type *',
+                                      labelText: 'Customer *',
                                       border: OutlineInputBorder(),
                                       prefixIcon: Icon(
-                                        Icons.directions_car,
+                                        Icons.person,
                                         color: Colors.blue.shade900,
                                       ),
                                     ),
@@ -528,208 +347,235 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                 ),
                                 SizedBox(height: 20),
 
-                                TextFormField(
-                                  controller: _plateNumberController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Plate Number *',
-                                    border: OutlineInputBorder(),
-                                    prefixIcon: Icon(
-                                      Icons.confirmation_number,
-                                      color: Colors.blue.shade900,
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter Plate Number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 20),
-
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: TextFormField(
-                                        controller: _capacityController,
-                                        decoration: InputDecoration(
-                                          labelText: 'Capacity *',
-                                          border: OutlineInputBorder(),
-                                          prefixIcon: Icon(
-                                            Icons.straighten,
-                                            color: Colors.blue.shade900,
+                                // Customer Site Dropdown
+                                if (_selectedCustomerId != null)
+                                  vehicleController.isLoadingCustomerSites
+                                      ? Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(16.0),
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )
+                                      : DropdownSearch<Map<String, dynamic>>(
+                                        popupProps: PopupProps.menu(
+                                          showSearchBox: true,
+                                          fit: FlexFit.tight,
+                                          searchFieldProps: TextFieldProps(
+                                            decoration: InputDecoration(
+                                              hintText:
+                                                  'Search Customer Site...',
+                                            ),
                                           ),
                                         ),
-                                        inputFormatters: [
-                                          QuantityInputFormatter(),
-                                        ],
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Please enter Capacity';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                    SizedBox(
-                                      width:
-                                          MediaQuery.of(context).size.width *
-                                          0.4,
-                                      child: DropdownButtonFormField<int>(
-                                        decoration: InputDecoration(
-                                          labelText: 'Unit *',
-                                          border: OutlineInputBorder(),
-                                          prefixIcon: Icon(
-                                            Icons.scale,
-                                            color: Colors.blue.shade900,
-                                          ),
-                                        ),
-                                        value: _selectedCapacityUnitId,
                                         items:
-                                            (unitData ?? []).map((item) {
-                                              return DropdownMenuItem<int>(
-                                                value: item['id'],
-                                                child: Text(item['Name']),
-                                                onTap: () {
-                                                  setState(() {
-                                                    _selectedCapacityUnitId =
-                                                        item['id'];
-                                                  });
-                                                },
-                                              );
-                                            }).toList(),
-                                        onChanged: (int? newValue) {
-                                          setState(() {
-                                            _selectedCapacityUnitId = newValue;
-                                          });
-                                        },
-                                        validator: (value) {
-                                          if (value == null) {
-                                            return 'Please select a Unit';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 20),
+                                            (filter, infiniteScrollProps) =>
+                                                customerSiteData ?? [],
+                                        itemAsString:
+                                            (item) => item['Name'] ?? '',
+                                        compareFn:
+                                            (item1, item2) =>
+                                                item1['id'] == item2['id'],
+                                        onChanged: (newValue) {
+                                          if (newValue != null) {
+                                            final siteId =
+                                                newValue['id'] as int?;
+                                            final siteName =
+                                                newValue['Name'] as String? ??
+                                                '';
 
-                                TextField(
-                                  controller: _noteController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Note',
-                                    border: OutlineInputBorder(),
-                                    prefixIcon: Icon(
-                                      Icons.note,
-                                      color: Colors.blue.shade900,
-                                    ),
-                                  ),
-                                  maxLines: 3,
-                                ),
-                                SizedBox(height: 100),
+                                            setState(() {
+                                              _selectedCustomerSiteId = siteId;
+                                              _customerSiteController.text =
+                                                  siteName;
+                                            });
+                                          }
+                                        },
+                                        selectedItem:
+                                            _selectedCustomerSiteId != null
+                                                ? customerSiteData?.firstWhere(
+                                                  (site) =>
+                                                      site['id'] ==
+                                                      _selectedCustomerSiteId,
+                                                  orElse: () => {},
+                                                )
+                                                : null,
+                                        validator:
+                                            _isRegisteringForCustomer
+                                                ? (value) {
+                                                  if (value == null) {
+                                                    return 'Please select a Customer Site';
+                                                  }
+                                                  return null;
+                                                }
+                                                : null,
+                                        decoratorProps: DropDownDecoratorProps(
+                                          decoration: InputDecoration(
+                                            labelText: 'Customer Site *',
+                                            border: OutlineInputBorder(),
+                                            prefixIcon: Icon(
+                                              Icons.location_on,
+                                              color: Colors.blue.shade900,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                if (_selectedCustomerId != null)
+                                  SizedBox(height: 20),
                               ],
 
-                              if (_isRegistrationComplete) ...[
-                                Text(
-                                  'Pictures',
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(fontWeight: FontWeight.bold),
+                              DropdownSearch<Map<String, dynamic>>(
+                                popupProps: PopupProps.menu(
+                                  showSearchBox: true,
+                                  fit: FlexFit.tight,
+                                  searchFieldProps: TextFieldProps(
+                                    decoration: InputDecoration(
+                                      hintText: 'Search Vehicle Type...',
+                                    ),
+                                  ),
                                 ),
-                                SizedBox(height: 10),
+                                items:
+                                    (filter, infiniteScrollProps) =>
+                                        vehicleTypeData,
+                                itemAsString: (item) => item['Name'] ?? '',
+                                compareFn:
+                                    (item1, item2) =>
+                                        item1['id'] == item2['id'],
+                                onChanged: (newValue) async {
+                                  if (newValue != null) {
+                                    setState(() {
+                                      _selectedTypeId = newValue['id'];
+                                      _typeController.text = newValue['Name'];
+                                    });
+                                  }
+                                },
+                                selectedItem:
+                                    _selectedTypeId != null
+                                        ? vehicleTypeData.firstWhere(
+                                          (vehicle) =>
+                                              vehicle['id'] == _selectedTypeId,
+                                          orElse: () => {},
+                                        )
+                                        : null,
+                                validator: (value) {
+                                  if (value == null) {
+                                    return 'Please select a Type';
+                                  }
+                                  return null;
+                                },
+                                decoratorProps: DropDownDecoratorProps(
+                                  decoration: InputDecoration(
+                                    labelText: 'Type *',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(
+                                      Icons.directions_car,
+                                      color: Colors.blue.shade900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 20),
 
-                                _imageFiles != null && _imageFiles!.isNotEmpty
-                                    ? GridView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 3,
-                                            crossAxisSpacing: 8,
-                                            mainAxisSpacing: 8,
-                                          ),
-                                      itemCount: _imageFiles!.length,
-                                      itemBuilder: (context, index) {
-                                        return Stack(
-                                          alignment: Alignment.topRight,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () {
-                                                showFullScreenImage(
-                                                  context,
-                                                  _imageFiles!,
-                                                  index,
-                                                );
-                                              },
-                                              child: Image.file(
-                                                File(_imageFiles![index].path),
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                            GestureDetector(
+                              TextFormField(
+                                controller: _plateNumberController,
+                                decoration: InputDecoration(
+                                  labelText: 'Plate Number *',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(
+                                    Icons.confirmation_number,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter Plate Number';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: 20),
+
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: TextFormField(
+                                      controller: _capacityController,
+                                      decoration: InputDecoration(
+                                        labelText: 'Capacity *',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(
+                                          Icons.straighten,
+                                          color: Colors.blue.shade900,
+                                        ),
+                                      ),
+                                      inputFormatters: [
+                                        QuantityInputFormatter(),
+                                      ],
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter Capacity';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.4,
+                                    child: DropdownButtonFormField<int>(
+                                      decoration: InputDecoration(
+                                        labelText: 'Unit *',
+                                        border: OutlineInputBorder(),
+                                        prefixIcon: Icon(
+                                          Icons.scale,
+                                          color: Colors.blue.shade900,
+                                        ),
+                                      ),
+                                      value: _selectedCapacityUnitId,
+                                      items:
+                                          (unitData ?? []).map((item) {
+                                            return DropdownMenuItem<int>(
+                                              value: item['id'],
+                                              child: Text(item['Name']),
                                               onTap: () {
                                                 setState(() {
-                                                  _imageFiles!.removeAt(index);
+                                                  _selectedCapacityUnitId =
+                                                      item['id'];
                                                 });
                                               },
-                                              child: Container(
-                                                margin: EdgeInsets.all(4),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.black
-                                                      .withOpacity(0.5),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  color: Colors.white,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
+                                            );
+                                          }).toList(),
+                                      onChanged: (int? newValue) {
+                                        setState(() {
+                                          _selectedCapacityUnitId = newValue;
+                                        });
                                       },
-                                    )
-                                    : Text('No images selected.'),
-                                SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    ElevatedButton.icon(
-                                      onPressed: _pickImages,
-                                      icon: Icon(
-                                        Icons.photo_library,
-                                        color: Colors.white,
-                                      ),
-                                      label: Text(
-                                        'Gallery',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade900,
-                                      ),
+                                      validator: (value) {
+                                        if (value == null) {
+                                          return 'Please select a Unit';
+                                        }
+                                        return null;
+                                      },
                                     ),
-                                    ElevatedButton.icon(
-                                      onPressed: _takePicture,
-                                      icon: Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                      ),
-                                      label: Text(
-                                        'Camera',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue.shade900,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 20),
+
+                              TextField(
+                                controller: _noteController,
+                                decoration: InputDecoration(
+                                  labelText: 'Note',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(
+                                    Icons.note,
+                                    color: Colors.blue.shade900,
+                                  ),
                                 ),
-                                SizedBox(height: 80),
-                              ],
+                                maxLines: 3,
+                              ),
+                              SizedBox(height: 100),
                             ],
                           ),
                         ),
@@ -744,12 +590,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                           padding: EdgeInsets.all(16.0),
                           child: ElevatedButton(
                             onPressed:
-                                _isSubmitClicked || _isUploading
+                                _isSubmitClicked
                                     ? null
                                     : () async {
-                                      !_isRegistrationComplete
-                                          ? _registerVehicle()
-                                          : _uploadImages();
+                                      _registerVehicle();
                                     },
                             style: ElevatedButton.styleFrom(
                               padding: EdgeInsets.symmetric(
@@ -764,7 +608,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               disabledBackgroundColor: Colors.grey.shade400,
                             ),
                             child:
-                                _isSubmitClicked || _isUploading
+                                _isSubmitClicked
                                     ? SizedBox(
                                       height: 20,
                                       width: 20,
@@ -774,11 +618,9 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                       ),
                                     )
                                     : Text(
-                                      !_isRegistrationComplete
-                                          ? _isRegisteringForCustomer
-                                              ? 'Register for Customer'
-                                              : 'Register for Myself'
-                                          : 'Save',
+                                      _isRegisteringForCustomer
+                                          ? 'Register for Customer'
+                                          : 'Register for Myself',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 18,

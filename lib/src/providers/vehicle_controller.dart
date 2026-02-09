@@ -6,10 +6,12 @@ import '../data/rest_client.dart';
 
 class VehicleController with ChangeNotifier {
   List<Map<String, dynamic>>? vehicleData;
-  List<Map<String, dynamic>>? vehicleTypeData; // Store vehicle type data
+  List<Map<String, dynamic>>? vehicleTypeData;
   List<Map<String, dynamic>>? unitData;
   List<Map<String, dynamic>>? customerData;
+  List<Map<String, dynamic>>? customerSiteData;
   bool isLoading = false;
+  bool isLoadingCustomerSites = false;
   final token = AuthRepo.token;
   int currentPage = 1;
   final int totalPages = 10;
@@ -36,43 +38,39 @@ class VehicleController with ChangeNotifier {
 
       if (vehicle is Map<String, dynamic>) {
         if (vehicle['IsSuccess'] == true) {
-          // Extract the data from the response
           final data = vehicle['Data'] as List<dynamic>?;
           if (data != null) {
-            // Convert the data to a List of Maps
             final newVehicles =
                 data.map((v) => v as Map<String, dynamic>).toList();
             print('vehicleData: $vehicleData');
             if (loadMore) {
               vehicleData ??= [];
-              vehicleData!.addAll(newVehicles); // Append to existing list
+              vehicleData!.addAll(newVehicles);
             } else {
-              vehicleData = newVehicles; // Replace list on initial load
+              vehicleData = newVehicles;
             }
             hasMore = data.length == totalPages;
           } else {
             if (!loadMore) {
-              vehicleData = []; // Set empty list instead of null
+              vehicleData = [];
             }
             hasMore = false;
           }
         } else {
           if (!loadMore) {
-            vehicleData = []; // Set empty list on failure
+            vehicleData = [];
           }
           hasMore = false;
-
           print('API call failed: ${vehicle['Message']}');
         }
       }
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       if (!loadMore) {
-        vehicleData = []; // Set empty list on error
+        vehicleData = [];
       }
       hasMore = false;
     } finally {
@@ -116,6 +114,72 @@ class VehicleController with ChangeNotifier {
     }
   }
 
+  Future<void> getCustomerSites(int? customerId) async {
+    if (customerId == null) {
+      customerSiteData = [];
+      notifyListeners();
+      return;
+    }
+
+    isLoadingCustomerSites = true;
+    customerSiteData = null;
+    notifyListeners();
+
+    try {
+      final token = AuthRepo.token;
+      if (token == null || token.isEmpty) {
+        throw Exception("No token found");
+      }
+
+      final response = await restApi.getCustomerSitesOfCustomer(
+        customerId: customerId,
+        token: token.startsWith('Bearer') ? token : 'Bearer $token',
+      );
+
+      print('Customer Sites API Response: $response');
+
+      if (response is Map<String, dynamic>) {
+        if (response['IsSuccess'] == true) {
+          final data = response['Data'] as List<dynamic>?;
+          if (data != null && data.isNotEmpty) {
+            // Convert lowercase 'name' to uppercase 'Name' for consistency
+            customerSiteData =
+                data.map((site) {
+                  final siteMap = site as Map<String, dynamic>;
+                  return {
+                    'id': siteMap['id'],
+                    'Name': siteMap['name'], // Convert 'name' to 'Name'
+                    'customer_id': siteMap['customer_id'],
+                  };
+                }).toList();
+            print('Customer Sites loaded: ${customerSiteData?.length}');
+          } else {
+            customerSiteData = [];
+            print('No customer sites found');
+          }
+        } else {
+          print('API call failed: ${response['Message']}');
+          customerSiteData = [];
+        }
+      } else {
+        print('Unexpected response format');
+        customerSiteData = [];
+      }
+    } catch (e, stackTrace) {
+      print('Exception fetching customer sites: $e');
+      print('Stack trace: $stackTrace');
+      if (e is DioException) {
+        print('Dio error: ${e.message}');
+        print('Dio response: ${e.response?.data}');
+        print('Dio status code: ${e.response?.statusCode}');
+      }
+      customerSiteData = [];
+    } finally {
+      isLoadingCustomerSites = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> registerVehicle(
     String? plateNumber,
     String? capacity,
@@ -123,6 +187,7 @@ class VehicleController with ChangeNotifier {
     int? vehicleTypeId,
     int? capacityUnitId,
     int? customerId,
+    int? customerSiteId,
   ) async {
     try {
       if (token == null) {
@@ -136,6 +201,7 @@ class VehicleController with ChangeNotifier {
         vehicleTypeId: vehicleTypeId,
         capacityUnitId: capacityUnitId,
         customerId: customerId,
+        customerSiteId: 1,
       );
       await getVehicleData();
       return true;
@@ -216,6 +282,7 @@ class VehicleController with ChangeNotifier {
     String? description,
     int? capacityUnitId,
     int? customerId,
+    int? customerSiteId,
   ) async {
     try {
       final token = AuthRepo.token;
@@ -231,13 +298,13 @@ class VehicleController with ChangeNotifier {
         description: description,
         capacityUnitId: capacityUnitId,
         customerId: customerId,
+        customerSiteId: customerSiteId,
       );
 
-      // Refresh the driver list
       await getVehicleData();
       return true;
     } catch (e) {
-      print("Error in registerDriverForCustomer: $e");
+      print("Error in registerVehicleForCustomer: $e");
       if (e is DioException) {
         print("Dio Exception: ${e.response?.data}");
       }
@@ -277,7 +344,6 @@ class VehicleController with ChangeNotifier {
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       return false;
