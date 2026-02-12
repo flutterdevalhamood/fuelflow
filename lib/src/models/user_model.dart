@@ -9,7 +9,7 @@ abstract class UserModel with _$UserModel {
     bool? IsSuccess,
     UserData? Data,
     String? Token,
-    dynamic? UserPrivileges,
+    dynamic UserPrivileges,
     int? StatusCode,
     String? Message,
   }) = _UserModel;

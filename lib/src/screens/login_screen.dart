@@ -77,7 +77,6 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   _getBody(BuildContext context) {
-    final authController = context.watch<AuthController>();
     return BlocBuilder<LoginBloc, LoginState>(
       builder: (context, state) {
         return SafeArea(
