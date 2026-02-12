@@ -17,7 +17,6 @@ import 'package:sample/src/screens/drivers/driver_detail_screen.dart';
 import 'package:sample/src/screens/drivers/driver_edit_screen.dart';
 import 'package:sample/src/screens/drivers/driver_list_screen.dart';
 import 'package:sample/src/screens/drivers/driver_registration_screen.dart';
-import 'package:sample/src/screens/forgot_password_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
@@ -145,15 +144,6 @@ class Screenroutes {
               create: (context) => LoginBloc(),
               child: const LoginScreen(),
             );
-          },
-        );
-
-      case Screenroutes.forgotPassword:
-        final data = settings.arguments as Map<String, dynamic>?;
-        return MaterialPageRoute(
-          settings: const RouteSettings(name: Screenroutes.forgotPassword),
-          builder: (BuildContext context) {
-            return ForgotPasswordScreen();
           },
         );
 
@@ -333,7 +323,6 @@ class Screenroutes {
         );
 
       case Screenroutes.fuelRefillListScreen:
-        final data = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           settings: const RouteSettings(
             name: Screenroutes.fuelRefillListScreen,
@@ -344,7 +333,6 @@ class Screenroutes {
         );
 
       case Screenroutes.fuelRefillDataScreen:
-        final data = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           settings: const RouteSettings(
             name: Screenroutes.fuelRefillDataScreen,
@@ -387,7 +375,6 @@ class Screenroutes {
         );
 
       case Screenroutes.refillingUnitRegistrationScreen:
-        final data = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
           settings: const RouteSettings(
             name: Screenroutes.refillingUnitRegistrationScreen,
@@ -524,7 +511,6 @@ class Screenroutes {
         );
 
       case Screenroutes.completedAssignmentScreen:
-        final data = settings.arguments as int?;
         return MaterialPageRoute(
           settings: const RouteSettings(
             name: Screenroutes.completedAssignmentScreen,
