@@ -28,15 +28,6 @@ class DriverController with ChangeNotifier {
         throw Exception("No Token Found");
       }
 
-      // Debug prints to verify authentication details
-      print('=== Driver API Call Debug ===');
-      print('Customer ID: ${AuthRepo.customerId}');
-      print('User Role: ${AuthRepo.role}');
-      print('User Name: ${AuthRepo.user}');
-      print('Token exists: ${token.isNotEmpty}');
-      print('Token starts with Bearer: ${token.startsWith('Bearer')}');
-      print('=============================');
-
       final driver = await restApi.getDriverData(
         currentPage,
         totalPages,
@@ -45,13 +36,10 @@ class DriverController with ChangeNotifier {
             : 'Bearer $token', // Ensure Bearer prefix
       );
 
-      print('API Response: $driver');
-
       if (driver['IsSuccess'] == true) {
         final data = driver['Data'] as List<dynamic>?;
         if (data != null && data.isNotEmpty) {
           final newDriver = data.map((v) => v as Map<String, dynamic>).toList();
-          print('Successfully fetched ${newDriver.length} drivers');
 
           if (loadMore) {
             driverData ??= [];
@@ -61,29 +49,19 @@ class DriverController with ChangeNotifier {
           }
           hasMore = data.length == totalPages;
         } else {
-          print('No drivers found in response');
           if (!loadMore) {
             driverData = []; // Set empty list instead of null
           }
           hasMore = false;
         }
       } else {
-        print('API call failed: ${driver['Message']}');
-        print('Status Code: ${driver['StatusCode']}');
         if (!loadMore) {
           driverData = []; // Set empty list on failure
         }
         hasMore = false;
       }
     } catch (e) {
-      print('Error in getDriverData: $e');
-      if (e is DioException) {
-        print('Dio Exception Details:');
-        print('Status Code: ${e.response?.statusCode}');
-        print('Response Data: ${e.response?.data}');
-        print('Request Path: ${e.requestOptions.path}');
-        print('Request Headers: ${e.requestOptions.headers}');
-      }
+      if (e is DioException) {}
 
       if (!loadMore) {
         driverData = []; // Set empty list on error
@@ -124,7 +102,6 @@ class DriverController with ChangeNotifier {
       await getDriverData();
       return true;
     } catch (e) {
-      print("Error in registerDriver: $e");
       if (e is DioException) {
         print("Dio Exception: ${e.response?.data}");
       }
@@ -154,7 +131,6 @@ class DriverController with ChangeNotifier {
       await getDriverData();
       return true;
     } catch (e) {
-      print("Error in registerDriverForCustomer: $e");
       if (e is DioException) {
         print("Dio Exception: ${e.response?.data}");
       }
@@ -179,7 +155,6 @@ class DriverController with ChangeNotifier {
       await getDriverData();
       return true;
     } catch (e) {
-      print('Error in updateDriver: $e');
       if (e is DioException) {
         print('Dio Exception: ${e.response?.data}');
       }

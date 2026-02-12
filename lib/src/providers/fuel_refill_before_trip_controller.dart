@@ -29,9 +29,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         throw Exception("No authentication token found");
       }
 
-      debugPrint('🔍 Fetching refilling status...');
-      debugPrint('Trip ID: $tripId, Trip Stop ID: $tripStopId');
-
       final dio = Dio(
         BaseOptions(
           connectTimeout: const Duration(seconds: 30),
@@ -44,8 +41,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         tripId: tripId,
         tripStopId: tripStopId,
       );
-
-      debugPrint('✅ Refilling status response: $response');
 
       if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
         final data = response['Data'];
@@ -84,7 +79,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
                     )
                     .toList();
 
-            debugPrint('✅ Found ${refilledVehicles.length} refilled vehicles');
             isLoading = false;
             notifyListeners();
             return List<Map<String, dynamic>>.from(refilledVehicles);
@@ -93,10 +87,8 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
       } else {
         errorMessage =
             response['Message'] ?? 'Failed to fetch refilling status';
-        debugPrint('❌ API Error: $errorMessage');
       }
     } catch (e) {
-      debugPrint('❌ Exception fetching refilling status: $e');
       errorMessage = 'Failed to load refilling status';
     }
 
@@ -136,9 +128,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         throw Exception("No authentication token found");
       }
 
-      debugPrint('🚀 Submitting fuel refill...');
-      debugPrint('📦 Compressing images before upload...');
-
       // Compress all images before upload
       final compressedCustomerStart =
           await ImageCompressionHelper.compressMultipleImages(
@@ -163,8 +152,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
               )
               : <File>[];
 
-      debugPrint('✅ Image compression completed');
-
       // Prepare multipart files with compressed images
       Future<List<MultipartFile>> prepareFiles(List<File> files) async {
         if (files.isEmpty) return [];
@@ -174,9 +161,7 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
               file.path,
               filename: file.path.split('/').last,
             );
-            debugPrint(
-              '📁 File: ${file.path.split('/').last}, Size: ${await file.length()} bytes',
-            );
+
             return multipartFile;
           }),
         );
@@ -187,18 +172,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
       final vehicleStartFiles = await prepareFiles(compressedVehicleStart);
       final vehicleEndFiles = await prepareFiles(compressedVehicleEnd);
       final additionalMultipartFiles = await prepareFiles(compressedAdditional);
-
-      debugPrint(
-        '📁 Prepared ${customerStartFiles.length} customer start photos',
-      );
-      debugPrint('📁 Prepared ${customerEndFiles.length} customer end photos');
-      debugPrint(
-        '📁 Prepared ${vehicleStartFiles.length} vehicle start photos',
-      );
-      debugPrint('📁 Prepared ${vehicleEndFiles.length} vehicle end photos');
-      debugPrint(
-        '📁 Prepared ${additionalMultipartFiles.length} additional photos',
-      );
 
       // Create Dio with proper timeout configuration
       final dio = Dio(
@@ -214,10 +187,7 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         LogInterceptor(requestBody: false, responseBody: true, error: true),
       );
 
-      debugPrint('🌐 Sending API request...');
-
       final stopVehicleIdString = (stopVehicleId ?? 0).toString();
-      debugPrint('🌐 Sending to API - stopVehicleId: $stopVehicleIdString');
 
       final response = await RestClient(dio).postFuelVehicleWithMeterReading(
         token: 'Bearer $token',
@@ -241,8 +211,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         additionalFiles: additionalMultipartFiles,
       );
 
-      debugPrint('✅ API Response received');
-
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
           successMessage =
@@ -256,22 +224,16 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
             lastStockEventId = response['Data']['stock_event_id'] as int;
           }
 
-          debugPrint('🎉 Refill successful. Stock Event ID: $lastStockEventId');
-
           isSubmittingRefill = false;
           notifyListeners();
           return true;
         } else {
           errorMessage = response['Message'] ?? 'Failed to complete refill';
-          debugPrint('❌ API Error: $errorMessage');
         }
       } else {
         errorMessage = 'Unexpected response format';
-        debugPrint('❌ Unexpected response: $response');
       }
     } catch (e) {
-      debugPrint('❌ Exception: $e');
-
       if (e is DioException) {
         if (e.response != null) {
           final errorData = e.response?.data;

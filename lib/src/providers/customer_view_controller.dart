@@ -286,12 +286,9 @@ class CustomerViewController with ChangeNotifier {
         body: requestBody,
       );
 
-      print('Generate PDF API Response: $response');
-
       if (response['IsSuccess'] == true) {
         final pdfUrl = response['url'] as String?;
         if (pdfUrl != null && pdfUrl.isNotEmpty) {
-          print('PDF generated successfully: $pdfUrl');
           return pdfUrl;
         } else {
           throw Exception('PDF URL not found in response');
@@ -301,11 +298,7 @@ class CustomerViewController with ChangeNotifier {
         return null;
       }
     } catch (e) {
-      print('Error in generateFilteredRefillingsPDF: $e');
       if (e is DioException) {
-        print('Dio Exception Details:');
-        print('Status Code: ${e.response?.statusCode}');
-        print('Response Data: ${e.response?.data}');
         pdfErrorMessage =
             e.response?.data['Message'] ?? 'Network error occurred';
       } else {
@@ -356,12 +349,6 @@ class CustomerViewController with ChangeNotifier {
             '${filterToDate!.year}-${filterToDate!.month.toString().padLeft(2, '0')}-${filterToDate!.day.toString().padLeft(2, '0')}';
       }
 
-      print('Filtering with:');
-      print('From Date: $fromDateStr');
-      print('To Date: $toDateStr');
-      print('Is All Vehicles: $isAllVehiclesSelected');
-      print('Selected Vehicle IDs: $selectedVehicleIds');
-
       // Prepare request body
       final Map<String, dynamic> requestBody = {'fromDate': fromDateStr};
 
@@ -380,14 +367,10 @@ class CustomerViewController with ChangeNotifier {
         requestBody['vehicle_id'] = 'all';
       }
 
-      print('Request Body: $requestBody');
-
       final response = await restApi.postFilterMyRefillingsWithBody(
         token: token.startsWith('Bearer') ? token : 'Bearer $token',
         body: requestBody,
       );
-
-      print('Filter Refilling API Response: $response');
 
       if (response['IsSuccess'] == true) {
         final data = response['Data'] as List<dynamic>?;
@@ -400,26 +383,16 @@ class CustomerViewController with ChangeNotifier {
                     ),
                   )
                   .toList();
-          print('Successfully fetched ${refillingData!.length} refillings');
         } else {
-          print('No refillings data found in response');
           refillingData = [];
         }
       } else {
-        print('API call failed: ${response['Message']}');
-        print('Status Code: ${response['StatusCode']}');
         refillingErrorMessage =
             response['Message'] ?? 'Failed to load refillings';
         refillingData = [];
       }
     } catch (e) {
-      print('Error in filterMyRefillings: $e');
       if (e is DioException) {
-        print('Dio Exception Details:');
-        print('Status Code: ${e.response?.statusCode}');
-        print('Response Data: ${e.response?.data}');
-        print('Request Path: ${e.requestOptions.path}');
-        print('Request Headers: ${e.requestOptions.headers}');
         refillingErrorMessage =
             e.response?.data['Message'] ?? 'Network error occurred';
       } else {

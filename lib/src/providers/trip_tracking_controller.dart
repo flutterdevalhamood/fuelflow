@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:sample/src/data/rest_client.dart'; // ✅ IMPORT THIS
+import 'package:sample/src/data/rest_client.dart';
 
 import '../repo/auth_repo.dart';
 
@@ -264,7 +264,6 @@ class TripTrackingController with ChangeNotifier {
     }
   }
 
-  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<bool> _logTripEventSynchronously({
     required int tripId,
     int? tripStopId,

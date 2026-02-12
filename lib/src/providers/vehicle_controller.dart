@@ -34,7 +34,6 @@ class VehicleController with ChangeNotifier {
         totalPages,
         token.startsWith('Bearer') ? token : 'Bearer $token',
       );
-      print('API Response: ${vehicle}');
 
       if (vehicle is Map<String, dynamic>) {
         if (vehicle['IsSuccess'] == true) {
@@ -42,7 +41,7 @@ class VehicleController with ChangeNotifier {
           if (data != null) {
             final newVehicles =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('vehicleData: $vehicleData');
+
             if (loadMore) {
               vehicleData ??= [];
               vehicleData!.addAll(newVehicles);
@@ -61,7 +60,6 @@ class VehicleController with ChangeNotifier {
             vehicleData = [];
           }
           hasMore = false;
-          print('API call failed: ${vehicle['Message']}');
         }
       }
     } catch (e) {
@@ -136,8 +134,6 @@ class VehicleController with ChangeNotifier {
         token: token.startsWith('Bearer') ? token : 'Bearer $token',
       );
 
-      print('Customer Sites API Response: $response');
-
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
           final data = response['Data'] as List<dynamic>?;
@@ -152,17 +148,13 @@ class VehicleController with ChangeNotifier {
                     'customer_id': siteMap['customer_id'],
                   };
                 }).toList();
-            print('Customer Sites loaded: ${customerSiteData?.length}');
           } else {
             customerSiteData = [];
-            print('No customer sites found');
           }
         } else {
-          print('API call failed: ${response['Message']}');
           customerSiteData = [];
         }
       } else {
-        print('Unexpected response format');
         customerSiteData = [];
       }
     } catch (e, stackTrace) {
@@ -170,8 +162,6 @@ class VehicleController with ChangeNotifier {
       print('Stack trace: $stackTrace');
       if (e is DioException) {
         print('Dio error: ${e.message}');
-        print('Dio response: ${e.response?.data}');
-        print('Dio status code: ${e.response?.statusCode}');
       }
       customerSiteData = [];
     } finally {
@@ -328,14 +318,10 @@ class VehicleController with ChangeNotifier {
         id: id,
       );
 
-      print('API Response: $response');
-
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('Images uploaded successfully');
           return true;
         } else {
-          print('Image upload failed: ${response['Message']}');
           return false;
         }
       } else {

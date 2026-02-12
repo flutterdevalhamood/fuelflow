@@ -209,7 +209,6 @@ class _CustomerViewVehiclesScreenState
   }
 }
 
-// Simplified ListTile design with plate number and type in the same row
 class VehicleListItem extends StatelessWidget {
   final CustomerViewVehicle vehicle;
 

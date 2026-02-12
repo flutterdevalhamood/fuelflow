@@ -348,19 +348,6 @@ class _DriverListScreenState extends State<DriverListScreen> {
                                                               inactiveThumbColor:
                                                                   Colors.red,
                                                             ),
-                                                            // IconButton(
-                                                            //   onPressed:
-                                                            //       () async {
-                                                            //         _deleteDriver(
-                                                            //           index,
-                                                            //         );
-                                                            //       },
-                                                            //   icon: Icon(
-                                                            //     Icons.delete,
-                                                            //     color:
-                                                            //         Colors.red,
-                                                            //   ),
-                                                            // ),
                                                           ],
                                                         ),
                                               ),

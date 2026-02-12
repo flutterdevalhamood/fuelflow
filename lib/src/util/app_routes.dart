@@ -666,24 +666,6 @@ class Screenroutes {
             return CustomerViewMyRefillingsScreen();
           },
         );
-
-      // case Screenroutes.customerStopVehicleScreen:
-      //   final args = settings.arguments as Map<String, dynamic>?;
-      //   return MaterialPageRoute(
-      //     settings: const RouteSettings(
-      //       name: Screenroutes.customerStopVehicleScreen,
-      //     ),
-      //     builder: (BuildContext context) {
-      //       return CustomerStopVehicleScreen(
-      //         stopVehicles: args?['stopVehicles'] as List<dynamic>? ?? [],
-      //         assignment: args?['assignment'] as Map<String, dynamic>? ?? {},
-      //         stop: args?['stop'] as Map<String, dynamic>? ?? {},
-      //         customerName:
-      //             args?['customerName'] as String? ?? 'Unknown Customer',
-      //         siteName: args?['siteName'] as String? ?? 'Unknown Site',
-      //       );
-      //     },
-      //   );
     }
     return null;
   }

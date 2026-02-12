@@ -34,7 +34,7 @@ class ProductController with ChangeNotifier {
         if (data != null) {
           final newProduct =
               data.map((v) => v as Map<String, dynamic>).toList();
-          print('productData $productData');
+
           if (loadMore) {
             productData ??= [];
             productData!.addAll(newProduct);

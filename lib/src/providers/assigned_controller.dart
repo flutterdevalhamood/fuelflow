@@ -32,19 +32,15 @@ class AssignedRefillingUnitController with ChangeNotifier {
       if (assignedData['IsSuccess'] == true) {
         final data = assignedData['Data'] as List<dynamic>;
         assignedUnits = data.map((v) => v as Map<String, dynamic>).toList();
-        print('Assigned units fetched: ${assignedUnits?.length}');
       } else {
         errorMessage =
             assignedData['Message'] ?? 'Failed to fetch assigned units';
-        print('API call failed: $errorMessage');
       }
     } catch (e) {
       if (e is DioException) {
         errorMessage = 'Network error: ${e.message}';
-        print('Dio Exception: $e');
       } else {
         errorMessage = 'Error: ${e.toString()}';
-        print('Error: $e');
       }
     } finally {
       isLoading = false;

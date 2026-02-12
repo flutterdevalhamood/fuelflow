@@ -78,12 +78,9 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final driverController = Provider.of<DriverController>(context);
     final myDriverData = widget.data?['my_drivers'];
     final customerName = widget.data?['Name'] ?? 'Driver';
-    print('MyDriverss $myDriverData');
-    final watch = context.watch<DriverController>();
-    final driverDetailsData = widget.data;
+
     final myDrivers =
         myDriverData != null && myDriverData is List
             ? (myDriverData)
@@ -151,13 +148,13 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
                                         onTap: () {
                                           _navigateTodriverDetails(myDriver);
                                         },
-                                        // contentPadding: EdgeInsets.all(8.0),
+
                                         leading: Container(
                                           height: 23,
                                           width: 88,
                                           decoration: BoxDecoration(
                                             color: Colors.green,
-                                            // Replace with the actual color variable or use Colors.red
+
                                             borderRadius: BorderRadius.circular(
                                               23.0,
                                             ),
@@ -167,7 +164,7 @@ class _MyDriversScreenState extends State<MyDriversScreen> {
                                               "Driver Name",
                                               style: TextStyle(
                                                 color: Colors.white,
-                                              ), // Replace 'colorwhite' with Colors.white
+                                              ),
                                             ),
                                           ),
                                         ),

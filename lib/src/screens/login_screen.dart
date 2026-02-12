@@ -16,20 +16,18 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final TextEditingController userIdTextField = TextEditingController(
-    text: "adnan@fuelflow.com",
-  );
+  final TextEditingController userIdTextField = TextEditingController();
 
-  final TextEditingController pwdTextField = TextEditingController(
-    text: "123456",
-  );
+  final TextEditingController pwdTextField = TextEditingController();
 
   final FocusNode _userIdFocusNode = FocusNode();
   final FocusNode _pwdFocusNode = FocusNode();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _slideAnimation;
+  late Animation<double> _scaleAnimation;
   bool _obscureText = true;
-  bool _isLoading = false; // Add loading state
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -39,13 +37,27 @@ class _LoginScreenState extends State<LoginScreen>
     // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1800),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: Interval(0.2, 1.0, curve: Curves.easeOut),
+        curve: Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _slideAnimation = Tween<double>(begin: 60.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.2, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.0, 0.6, curve: Curves.easeOutBack),
       ),
     );
 
@@ -70,9 +82,7 @@ class _LoginScreenState extends State<LoginScreen>
       menuRequired: false,
       appBarType: AppBarType.empty,
       preferredHeight: AppWidgetSizes.dimen_60,
-      backgroundDecoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-      ),
+      backgroundDecoration: BoxDecoration(color: Colors.grey[50]),
     );
   }
 
@@ -80,156 +90,256 @@ class _LoginScreenState extends State<LoginScreen>
     return BlocBuilder<LoginBloc, LoginState>(
       builder: (context, state) {
         return SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Header section with gradient background matching dashboard
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.fromLTRB(
-                    AppWidgetSizes.dimen_20,
-                    AppWidgetSizes.dimen_50,
-                    AppWidgetSizes.dimen_20,
-                    AppWidgetSizes.dimen_30,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
-                    ),
-                  ),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 40),
+
+                    // Logo Section with Animation
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Column(
                           children: [
+                            // Logo with gradient shadow
                             Container(
-                              padding: EdgeInsets.all(10),
+                              padding: EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(12),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF667eea),
+                                    Color(0xFF764ba2),
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFF667eea).withOpacity(0.4),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                    offset: Offset(0, 10),
+                                  ),
+                                ],
                               ),
-                              child: Icon(
-                                Icons.local_gas_station,
-                                size: 40,
-                                color: Colors.white,
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Image.asset(
+                                  'assets/icon/app_icon.png',
+                                  width: 100,
+                                  height: 100,
+                                ),
                               ),
                             ),
-                            SizedBox(width: 16),
+                            SizedBox(height: 28),
+
+                            // App name with gradient
+                            ShaderMask(
+                              shaderCallback:
+                                  (bounds) => LinearGradient(
+                                    colors: [
+                                      Color(0xFF667eea),
+                                      Color(0xFF764ba2),
+                                    ],
+                                  ).createShader(bounds),
+                              child: Text(
+                                'FuelFlow',
+                                style: TextStyle(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 8),
                             Text(
-                              'Fuel Flow',
+                              'Fuel Management System',
                               style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 1,
+                                fontSize: 15,
+                                color: Colors.grey[600],
+                                letterSpacing: 0.8,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 30),
-                        Text(
-                          'Welcome Back',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Sign in to continue to your dashboard',
-                          style: TextStyle(fontSize: 16, color: Colors.white70),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
 
-                // Login form
-                Container(
-                  padding: EdgeInsets.all(20),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Column(
-                      children: [
-                        SizedBox(height: 30),
-                        // Email field
-                        _buildTextField(
-                          context: context,
-                          controller: userIdTextField,
-                          focusNode: _userIdFocusNode,
-                          icon: Icons.mail_outline_rounded,
-                          label: 'Email',
-                          inputFormatters: InputValidator.userIdValidator(),
-                          onChanged: (val) {
-                            _userIdpwdValidation(context: context);
-                          },
-                        ),
-                        SizedBox(height: 20),
-                        // Password field
-                        _buildTextField(
-                          context: context,
-                          controller: pwdTextField,
-                          focusNode: _pwdFocusNode,
-                          icon: Icons.lock_outline_rounded,
-                          label: 'Password',
-                          isPassword: true,
-                          obscureText: _obscureText,
-                          inputFormatters: InputValidator.passwordValidator(),
-                          onChanged: (val) {
-                            _userIdpwdValidation(context: context);
-                          },
-                        ),
-                        SizedBox(height: 16),
-                        // // Forgot password option
-                        // Align(
-                        //   alignment: Alignment.centerRight,
-                        //   child: TextButton(
-                        //     onPressed:
-                        //         _isLoading
-                        //             ? null
-                        //             : () {
-                        //               // Forgot password functionality
-                        //             },
-                        //     child: Text(
-                        //       'Forgot Password?',
-                        //       style: TextStyle(
-                        //         color:
-                        //             _isLoading
-                        //                 ? Colors.grey
-                        //                 : Theme.of(context).primaryColor,
-                        //         fontWeight: FontWeight.w500,
-                        //       ),
-                        //     ),
-                        //   ),
-                        // ),
-                        SizedBox(height: 30),
-                        // Login button
-                        _loginButtonWidget(context: context),
-                        SizedBox(height: 30),
-                        // Footer text
-                        Text(
-                          'Fuel Flow Management System',
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.w500,
+                    SizedBox(height: 30),
+
+                    // Login Form Card
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: AnimatedBuilder(
+                        animation: _slideAnimation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _slideAnimation.value),
+                            child: child,
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 30,
+                                offset: Offset(0, 15),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Welcome text
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xFF667eea),
+                                          Color(0xFF764ba2),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Welcome Back',
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      Text(
+                                        'Sign in to continue',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+                              SizedBox(height: 32),
+
+                              // Email field
+                              _buildTextField(
+                                context: context,
+                                controller: userIdTextField,
+                                focusNode: _userIdFocusNode,
+                                icon: Icons.email_outlined,
+                                label: 'Email Address',
+                                inputFormatters:
+                                    InputValidator.userIdValidator(),
+                                onChanged: (val) {
+                                  _userIdpwdValidation(context: context);
+                                },
+                              ),
+                              SizedBox(height: 20),
+
+                              // Password field
+                              _buildTextField(
+                                context: context,
+                                controller: pwdTextField,
+                                focusNode: _pwdFocusNode,
+                                icon: Icons.lock_outline_rounded,
+                                label: 'Password',
+                                isPassword: true,
+                                obscureText: _obscureText,
+                                inputFormatters:
+                                    InputValidator.passwordValidator(),
+                                onChanged: (val) {
+                                  _userIdpwdValidation(context: context);
+                                },
+                              ),
+
+                              SizedBox(height: 36),
+
+                              // Login button
+                              _loginButtonWidget(context: context),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 10),
-                        Text(
-                          'v1.0.0',
-                          style: TextStyle(color: Colors.black45, fontSize: 12),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+
+                    SizedBox(height: 40),
+
+                    // Footer
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              'v1.0.0',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '© 2026 FuelFlow. All rights reserved.',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 40),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -250,31 +360,39 @@ class _LoginScreenState extends State<LoginScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(
+          color: focusNode.hasFocus ? Color(0xFF667eea) : Colors.grey.shade200,
+          width: 2,
+        ),
+        boxShadow:
+            focusNode.hasFocus
+                ? [
+                  BoxShadow(
+                    color: Color(0xFF667eea).withOpacity(0.1),
+                    blurRadius: 15,
+                    offset: Offset(0, 5),
+                  ),
+                ]
+                : [],
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(10),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF667eea).withOpacity(0.1),
+                    Color(0xFF764ba2).withOpacity(0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: Theme.of(context).primaryColor,
-                size: 24,
-              ),
+              child: Icon(icon, color: Color(0xFF667eea), size: 22),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -282,14 +400,21 @@ class _LoginScreenState extends State<LoginScreen>
                 controller: controller,
                 focusNode: focusNode,
                 obscureText: isPassword ? obscureText : false,
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[800],
+                  fontWeight: FontWeight.w600,
+                ),
                 onChanged: onChanged,
-                enabled: !_isLoading, // Disable input during loading
-                // inputFormatters: inputFormatters,
+                enabled: !_isLoading,
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   labelText: label,
-                  labelStyle: TextStyle(fontSize: 15, color: Colors.black54),
+                  labelStyle: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
                   counterText: '',
                 ),
                 maxLength: isPassword ? 15 : null,
@@ -298,8 +423,12 @@ class _LoginScreenState extends State<LoginScreen>
             if (isPassword)
               IconButton(
                 icon: Icon(
-                  obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: _isLoading ? Colors.grey.shade400 : Colors.grey,
+                  obscureText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color:
+                      _isLoading ? Colors.grey.shade400 : Colors.grey.shade600,
+                  size: 22,
                 ),
                 onPressed:
                     _isLoading
@@ -330,31 +459,24 @@ class _LoginScreenState extends State<LoginScreen>
 
     return Container(
       width: double.infinity,
-      height: 56,
+      height: 58,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           colors:
               _isLoading || !isButtonEnabled
-                  ? [Colors.grey.shade400, Colors.grey.shade500]
-                  : [
-                    Theme.of(context).primaryColor,
-                    Theme.of(context).primaryColor.withBlue(
-                      (Theme.of(context).primaryColor.blue + 40).clamp(0, 255),
-                    ),
-                  ],
+                  ? [Colors.grey.shade300, Colors.grey.shade400]
+                  : [Color(0xFF667eea), Color(0xFF764ba2)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
         boxShadow: [
-          BoxShadow(
-            color:
-                (_isLoading || !isButtonEnabled)
-                    ? Colors.grey.withOpacity(0.3)
-                    : Theme.of(context).primaryColor.withOpacity(0.3),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
+          if (!_isLoading && isButtonEnabled)
+            BoxShadow(
+              color: Color(0xFF667eea).withOpacity(0.4),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
         ],
       ),
       child: ElevatedButton(
@@ -365,17 +487,16 @@ class _LoginScreenState extends State<LoginScreen>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          shadowColor: Colors.transparent,
         ),
         onPressed:
             (_isLoading || !isButtonEnabled)
                 ? null
                 : () async {
-                  // Set loading state
                   setState(() {
                     _isLoading = true;
                   });
 
-                  // Unfocus text fields to hide keyboard
                   _userIdFocusNode.unfocus();
                   _pwdFocusNode.unfocus();
 
@@ -385,7 +506,6 @@ class _LoginScreenState extends State<LoginScreen>
                   try {
                     await authController.login(email, password);
                   } finally {
-                    // Reset loading state
                     if (mounted) {
                       setState(() {
                         _isLoading = false;
@@ -399,20 +519,20 @@ class _LoginScreenState extends State<LoginScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 22,
+                      height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: 14),
                     Text(
                       'Signing In...',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -423,13 +543,13 @@ class _LoginScreenState extends State<LoginScreen>
                     Text(
                       'Sign In',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
+                        letterSpacing: 0.5,
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, size: 20),
+                    Icon(Icons.arrow_forward_rounded, size: 20),
                   ],
                 ),
       ),

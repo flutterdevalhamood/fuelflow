@@ -100,8 +100,6 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     super.dispose();
   }
 
-  // ─── Multi-select helpers ────────────────────────────────────────────────
-
   void _toggleMultiSelectMode() {
     setState(() {
       _isMultiSelectMode = !_isMultiSelectMode;

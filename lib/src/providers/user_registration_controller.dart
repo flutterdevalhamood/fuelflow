@@ -60,16 +60,13 @@ class UserRegistrationController with ChangeNotifier {
           }
         } else {
           errorMessage = users['Message'] ?? 'Failed to fetch users';
-          print('Api call failed ${users['Message']}');
         }
       }
     } catch (e) {
       errorMessage = 'Error fetching users';
       if (e is DioException) {
-        print('Dio Exception: ${e.message}');
         errorMessage = e.response?.data?['Message'] ?? e.message;
       }
-      print('Error: $e');
     } finally {
       isLoading = false;
       notifyListeners();
@@ -123,7 +120,6 @@ class UserRegistrationController with ChangeNotifier {
       }
     } catch (e) {
       if (e is DioException) {
-        print("Dio Exception: ${e.message}");
         errorMessage = e.response?.data?['Message'] ?? e.message;
       } else {
         errorMessage = e.toString();
@@ -157,14 +153,11 @@ class UserRegistrationController with ChangeNotifier {
       } else {
         errorMessage =
             userBaseListData['Message'] ?? 'Failed to fetch base list';
-        print('API call failed: ${userBaseListData['Message']}');
       }
     } catch (e) {
       if (e is DioException) {
-        print('Dio error: ${e.message}');
         errorMessage = e.response?.data?['Message'] ?? e.message;
       }
-      print('Error: $e');
     }
   }
 

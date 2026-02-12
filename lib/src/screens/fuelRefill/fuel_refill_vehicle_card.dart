@@ -209,24 +209,6 @@ class _FuelRefillVehicleCardState extends State<FuelRefillVehicleCard> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               _buildAbuDhabiPlate(plateNo),
-                                              // Text(
-                                              //   vehicle['model'] ??
-                                              //       'Unknown model',
-                                              //   style: TextStyle(
-                                              //     color: Colors.white,
-                                              //     fontSize: 16,
-                                              //     fontWeight: FontWeight.bold,
-                                              //   ),
-                                              // ),
-                                              // SizedBox(height: 4),
-                                              // Text(
-                                              //   vehicle['make'] ??
-                                              //       'Unknown make',
-                                              //   style: TextStyle(
-                                              //     color: Colors.grey[400],
-                                              //     fontSize: 14,
-                                              //   ),
-                                              // ),
                                             ],
                                           ),
                                         ),

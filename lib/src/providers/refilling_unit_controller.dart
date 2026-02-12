@@ -36,7 +36,6 @@ class RefillingUnitController with ChangeNotifier {
         totalPages,
         'Bearer $token',
       );
-      print('API Response: ${refillUnit}');
 
       if (refillUnit is Map<String, dynamic>) {
         if (refillUnit['IsSuccess'] == true) {
@@ -46,7 +45,7 @@ class RefillingUnitController with ChangeNotifier {
             // Convert the data to a List of Maps
             final newRefillUnitData =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('newRefillUnitData: $newRefillUnitData');
+
             if (loadMore) {
               refillUnitData ??= [];
               refillUnitData!.addAll(
@@ -188,11 +187,10 @@ class RefillingUnitController with ChangeNotifier {
       if (postRefillUnitData['IsSuccess'] == true) {
         refillUnitId = postRefillUnitData['Data'];
         notifyListeners();
-        print('refillUnitId $refillUnitId');
+
         getRefillUnitData();
         return true;
       } else {
-        print('API call failed: ${postRefillUnitData['Message']}');
         return false;
       }
     } catch (e) {
@@ -219,14 +217,10 @@ class RefillingUnitController with ChangeNotifier {
         id: id,
       );
 
-      print('API Response: $response');
-
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('Images uploaded successfully');
           return true;
         } else {
-          print('Image upload failed: ${response['Message']}');
           return false;
         }
       } else {
@@ -235,7 +229,6 @@ class RefillingUnitController with ChangeNotifier {
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       return false;
@@ -327,11 +320,9 @@ class RefillingUnitController with ChangeNotifier {
       );
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('Assigned successfully');
           getRefillUnitData();
           return true;
         } else {
-          print('Assignment failed: ${response['Message']}');
           return false;
         }
       } else {
@@ -364,11 +355,9 @@ class RefillingUnitController with ChangeNotifier {
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('Released successfully');
           getRefillUnitData();
           return true;
         } else {
-          print('Release failed: ${response['Message']}');
           return false;
         }
       } else {

@@ -51,7 +51,6 @@ class FuelRefillController with ChangeNotifier {
         totalPages,
         'Bearer $token',
       );
-      print('API Response: ${refillvehicle}');
 
       if (refillvehicle is Map<String, dynamic>) {
         if (refillvehicle['IsSuccess'] == true) {
@@ -61,7 +60,7 @@ class FuelRefillController with ChangeNotifier {
             // Convert the data to a List of Maps
             final newRefillData =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('newRefillData: $newRefillData');
+
             if (loadMore) {
               refillData ??= [];
               refillData!.addAll(newRefillData); // Append to existing list
@@ -170,7 +169,7 @@ class FuelRefillController with ChangeNotifier {
         driverData = List<Map<String, dynamic>>.from(
           driverVehicleDropDownData['Data']['driver'],
         );
-        print('driverdatacontroller $driverData');
+
         vehicleData = List<Map<String, dynamic>>.from(
           driverVehicleDropDownData['Data']['vehicle'],
         );
@@ -211,7 +210,7 @@ class FuelRefillController with ChangeNotifier {
       if (postRefillData['IsSuccess'] == true) {
         refillId = postRefillData['Data'];
         notifyListeners();
-        print('refillidd $refillId');
+
         return true;
       } else {
         print('API call failed: ${postRefillData['Message']}');
@@ -278,14 +277,10 @@ class FuelRefillController with ChangeNotifier {
         id: id,
       );
 
-      print('API Response: $response');
-
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
-          print('Images uploaded successfully');
           return true;
         } else {
-          print('Image upload failed: ${response['Message']}');
           return false;
         }
       } else {
@@ -347,7 +342,6 @@ class FuelRefillController with ChangeNotifier {
         if (_productController != null) {
           _productController?.text = defaultProductName ?? '';
         }
-        print('unitcontrollertext ${_unitController?.text}');
 
         notifyListeners();
       } else {

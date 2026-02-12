@@ -33,7 +33,7 @@ class CustomerController with ChangeNotifier {
         if (data != null) {
           final newCustomers =
               data.map((v) => v as Map<String, dynamic>).toList();
-          print('customerData $customerData');
+
           if (loadMore) {
             customerData ??= [];
             customerData!.add(newCustomers as Map<String, dynamic>);

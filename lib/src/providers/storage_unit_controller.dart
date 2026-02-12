@@ -31,17 +31,14 @@ class StorageUnitController with ChangeNotifier {
         totalPages,
         'Bearer $token',
       );
-      print('API Response: $storageUnit');
 
       if (storageUnit is Map<String, dynamic>) {
         if (storageUnit['IsSuccess'] == true) {
-          // Extract the data from the response
           final data = storageUnit['Data'] as List<dynamic>?;
           if (data != null) {
-            // Convert the data to a List of Maps
             final newStorageUnitData =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('newRefillUnitData: $newStorageUnitData');
+
             if (loadMore) {
               storageUnitData ??= [];
               storageUnitData!.addAll(
@@ -161,11 +158,10 @@ class StorageUnitController with ChangeNotifier {
       if (postStorageUnitData['IsSuccess'] == true) {
         refillUnitId = postStorageUnitData['Data'];
         notifyListeners();
-        print('refillUnitId $refillUnitId');
+
         getStorageUnitData();
         return true;
       } else {
-        print('API call failed: ${postStorageUnitData['Message']}');
         return false;
       }
     } catch (e) {

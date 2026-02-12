@@ -22,7 +22,6 @@ class _CustomerViewMyRefillingsScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load vehicles for the dropdown
       context.read<CustomerViewController>().getCustomerViewVehiclesData();
     });
   }
@@ -863,25 +862,6 @@ class _CustomerViewMyRefillingsScreenState
                     tooltip: 'Refresh',
                     color: Colors.blue[700],
                   ),
-                  // IconButton(
-                  //   icon: Icon(
-                  //     _isFilterExpanded
-                  //         ? Icons.filter_alt
-                  //         : Icons.filter_alt_off,
-                  //     size: 20,
-                  //   ),
-                  //   onPressed: () {
-                  //     setState(() {
-                  //       _isFilterExpanded = !_isFilterExpanded;
-                  //       if (!_isFilterExpanded) {
-                  //         _showVehicleDropdown = false;
-                  //       }
-                  //     });
-                  //   },
-                  //   tooltip:
-                  //       _isFilterExpanded ? 'Hide Filters' : 'Show Filters',
-                  //   color: Colors.blue[700],
-                  // ),
                 ],
               ),
             ],

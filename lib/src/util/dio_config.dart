@@ -10,8 +10,5 @@ Dio createDio() {
     headers: {"Accept": "application/json"},
   );
 
-  // Optional interceptor:
-  // dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-
   return dio;
 }

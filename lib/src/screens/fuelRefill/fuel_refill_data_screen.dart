@@ -102,12 +102,6 @@ class _FuelRefillDataScreenState extends State<FuelRefillDataScreen> {
         allImages.add(await MultipartFile.fromFile(compressedFile.path));
       }
 
-      // final allImages = await Future.wait([
-      //   ...vehicleImages.map((file) => MultipartFile.fromFile(file.path)),
-      //   ...driverImages.map((file) => MultipartFile.fromFile(file.path)),
-      // ]);
-
-      // Start the API call without waiting for navigation
       final apiCall = _fuelRefillController.postRefillData(
         refillingUnitId: _selectedRefillId!,
         qty: _quantityController.text.trim(),

@@ -33,7 +33,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // ✅ Subscribe to route observer
+
     final route = ModalRoute.of(context);
     if (route != null && route is PageRoute) {
       Screenroutes.routeobserver.subscribe(this, route);
@@ -42,15 +42,12 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
 
   @override
   void dispose() {
-    // ✅ Unsubscribe from route observer
     Screenroutes.routeobserver.unsubscribe(this);
     super.dispose();
   }
 
   @override
   void didPopNext() {
-    // ✅ Called when returning to this screen from another screen
-    debugPrint('🔄 AcceptedAssignmentScreen became visible - auto-refreshing');
     _refreshAssignments();
   }
 
@@ -283,7 +280,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                   );
 
                   if (result == true && mounted) {
-                    debugPrint('🔄 Auto-refreshing after successful refill...');
                     await _refreshAssignments();
 
                     if (mounted) {
@@ -314,133 +310,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
           ),
     );
   }
-  // void _showRefillDialog(
-  //   BuildContext context,
-  //   Map<String, dynamic> assignment,
-  //   Map<String, dynamic> stop,
-  //   double requiredQty,
-  //   double availableQty,
-  //   int stopIndex,
-  //   int totalStops,
-  // ) {
-  //   showDialog(
-  //     context: context,
-  //     builder:
-  //         (dialogContext) => AlertDialog(
-  //           shape: RoundedRectangleBorder(
-  //             borderRadius: BorderRadius.circular(16),
-  //           ),
-  //           title: Row(
-  //             children: [
-  //               Container(
-  //                 padding: const EdgeInsets.all(8),
-  //                 decoration: BoxDecoration(
-  //                   color: Colors.orange.shade50,
-  //                   borderRadius: BorderRadius.circular(8),
-  //                 ),
-  //                 child: Icon(
-  //                   Icons.local_gas_station,
-  //                   color: Colors.orange.shade700,
-  //                 ),
-  //               ),
-  //               const SizedBox(width: 12),
-  //               const Text('Refill Required'),
-  //             ],
-  //           ),
-  //           content: Column(
-  //             mainAxisSize: MainAxisSize.min,
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Container(
-  //                 padding: const EdgeInsets.all(16),
-  //                 decoration: BoxDecoration(
-  //                   color: Colors.red.shade50,
-  //                   borderRadius: BorderRadius.circular(12),
-  //                   border: Border.all(color: Colors.red.shade200),
-  //                 ),
-  //                 child: Column(
-  //                   children: [
-  //                     Row(
-  //                       children: [
-  //                         const Icon(
-  //                           Icons.warning_amber_rounded,
-  //                           color: Colors.red,
-  //                           size: 24,
-  //                         ),
-  //                         const SizedBox(width: 12),
-  //                         const Expanded(
-  //                           child: Text(
-  //                             'Insufficient Fuel',
-  //                             style: TextStyle(
-  //                               fontWeight: FontWeight.bold,
-  //                               fontSize: 16,
-  //                             ),
-  //                           ),
-  //                         ),
-  //                       ],
-  //                     ),
-  //                     const SizedBox(height: 12),
-  //                     _buildQuantityRow('Required', requiredQty, Colors.red),
-  //                     const SizedBox(height: 8),
-  //                     _buildQuantityRow(
-  //                       'Available',
-  //                       availableQty,
-  //                       Colors.orange,
-  //                     ),
-  //                     const SizedBox(height: 8),
-  //                     _buildQuantityRow(
-  //                       'Deficit',
-  //                       requiredQty - availableQty,
-  //                       Colors.red,
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //               const SizedBox(height: 16),
-  //               const Text(
-  //                 'You need to refill fuel from the depot tank before starting this trip.',
-  //                 style: TextStyle(fontSize: 14, color: Colors.grey),
-  //               ),
-  //             ],
-  //           ),
-  //           actions: [
-  //             TextButton(
-  //               onPressed: () => Navigator.of(dialogContext).pop(),
-  //               child: const Text('Cancel'),
-  //             ),
-  //             ElevatedButton.icon(
-  //               onPressed: () {
-  //                 Navigator.of(dialogContext).pop();
-  //                 NavigationService().pushNavigation(
-  //                   Screenroutes.fuelRefillBeforeTripScreen,
-  //                   arguments: {
-  //                     'assignmentId': assignment['assignment_id'] ?? 0,
-  //                     'vehicleId': assignment['vehicle_id'] ?? 0,
-  //                     'tripId': assignment['trip_id'] ?? '',
-  //                     'tripStopId': stop['stop_id'] ?? 0,
-  //                     'requiredQty': requiredQty,
-  //                     'availableQty': availableQty,
-  //                     'vehicleName': assignment['vehicle'] ?? 'Unknown Vehicle',
-  //                     'stopOrder': stop['stop_order'] ?? '1',
-  //                     'customerName': stop['customer_name'] ?? '',
-  //                   },
-  //                 );
-  //               },
-  //               icon: const Icon(Icons.local_gas_station),
-  //               label: const Text('Go to Refill'),
-  //               style: ElevatedButton.styleFrom(
-  //                 backgroundColor: Colors.orange,
-  //                 foregroundColor: Colors.white,
-  //                 padding: const EdgeInsets.symmetric(
-  //                   horizontal: 20,
-  //                   vertical: 12,
-  //                 ),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //   );
-  // }
 
   void _showStartTripDialog(
     BuildContext context,
@@ -641,9 +510,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
 
                   // If stop was completed, refresh the assignments
                   if (result == true && mounted) {
-                    debugPrint(
-                      '🔄 Refreshing assignments after stop completion...',
-                    );
                     await _refreshAssignments();
 
                     if (mounted) {
@@ -706,7 +572,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
 
     // Refresh if refill was completed
     if (result == true && mounted) {
-      debugPrint('🔄 Auto-refreshing after vehicle refill...');
       await _refreshAssignments();
 
       if (mounted) {
@@ -720,44 +585,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
       }
     }
   }
-
-  // void _handleVehicleUnavailable(
-  //   BuildContext context,
-  //   Map<String, dynamic> assignment,
-  //   Map<String, dynamic> stop,
-  //   int vehicleId,
-  //   String plateNo,
-  // ) async {
-  //   final result = await Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder:
-  //           (context) => BulkVehicleUnavailableScreen(
-  //             vehicleId: vehicleId,
-  //             plateNo: plateNo,
-  //             tripStopId: int.tryParse(stop['stop_id']?.toString() ?? '0') ?? 0,
-  //             customerName: stop['customer_name']?.toString() ?? 'Unknown',
-  //             siteName: stop['site_name']?.toString() ?? 'Unknown',
-  //           ),
-  //     ),
-  //   );
-  //
-  //   // Refresh if vehicle was marked unavailable
-  //   if (result == true && mounted) {
-  //     debugPrint('🔄 Auto-refreshing after marking vehicle unavailable...');
-  //     await _refreshAssignments();
-  //
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Vehicle $plateNo marked as unavailable'),
-  //           backgroundColor: Colors.orange,
-  //           duration: const Duration(seconds: 2),
-  //         ),
-  //       );
-  //     }
-  //   }
-  // }
 
   Widget _buildQuantityRow(String label, double quantity, Color color) {
     return Row(
@@ -789,16 +616,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // leading: IconButton(
-        //   icon: const Icon(Icons.arrow_back),
-        //   onPressed: () {
-        //     NavigationService().pushNavigation(Screenroutes.dashboard);
-        //   },
-        // ),
-        title: const Text('Accepted Trips'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Accepted Trips'), elevation: 0),
       body: Consumer<FuelTripController>(
         builder: (context, controller, child) {
           if (controller.isLoading) {
@@ -933,37 +751,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // const Text(
-                            //   'Trip Details',
-                            //   style: TextStyle(
-                            //     fontSize: 18,
-                            //     fontWeight: FontWeight.bold,
-                            //   ),
-                            // ),
-                            // const SizedBox(height: 16),
-                            // _buildDetailRow(
-                            //   Icons.directions_car,
-                            //   'Vehicle',
-                            //   assignment['vehicle'],
-                            //   Colors.green,
-                            // ),
-                            // const SizedBox(height: 12),
-                            // _buildDetailRow(
-                            //   Icons.person,
-                            //   'Driver',
-                            //   assignment['driver'],
-                            //   Colors.purple,
-                            // ),
-                            // const SizedBox(height: 16),
-                            // const Divider(),
-                            // const SizedBox(height: 16),
-                            // const Text(
-                            //   'Current Available Fuel Stock',
-                            //   style: TextStyle(
-                            //     fontSize: 16,
-                            //     fontWeight: FontWeight.bold,
-                            //   ),
-                            // ),
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(8),
@@ -1410,11 +1197,7 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                     },
                                   );
 
-                              // Refresh if any action was completed on vehicles
                               if (result == true && mounted) {
-                                debugPrint(
-                                  '🔄 Auto-refreshing after vehicle action...',
-                                );
                                 await _refreshAssignments();
 
                                 if (mounted) {
@@ -1702,28 +1485,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            // Make Unavailable Icon
-                                            // IconButton(
-                                            //   onPressed:
-                                            //       () =>
-                                            //           _handleVehicleUnavailable(
-                                            //             context,
-                                            //             assignment,
-                                            //             stop,
-                                            //             vehicleId,
-                                            //             plateNo,
-                                            //           ),
-                                            //   icon: const Icon(Icons.block),
-                                            //   color: Colors.red,
-                                            //   tooltip: 'Mark Unavailable',
-                                            //   style: IconButton.styleFrom(
-                                            //     backgroundColor:
-                                            //         Colors.red.shade50,
-                                            //     padding: const EdgeInsets.all(
-                                            //       8,
-                                            //     ),
-                                            //   ),
-                                            // ),
                                           ],
                                         ],
                                       ),
@@ -1762,19 +1523,6 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                       tripTrackingController.currentTripId
                                               ?.toString() ==
                                           tripIdString;
-
-                                  debugPrint('🔍 Button State Check:');
-                                  debugPrint('  - Trip ID: $tripIdString');
-                                  debugPrint(
-                                    '  - Is Tracking: ${tripTrackingController.isTracking}',
-                                  );
-                                  debugPrint(
-                                    '  - Current Trip ID: ${tripTrackingController.currentTripId}',
-                                  );
-                                  debugPrint('  - Is Resuming: $isResuming');
-                                  debugPrint(
-                                    '  - Has Enough Fuel: $hasEnoughFuelForTrip',
-                                  );
 
                                   return ElevatedButton.icon(
                                     onPressed:

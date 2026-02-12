@@ -28,16 +28,14 @@ class ReportsController with ChangeNotifier {
       if (reportsData['IsSuccess'] == true) {
         reportUrl = reportsData['Data']?['url'];
         notifyListeners();
-        print('reportsurlll $reportUrl');
+
         return true;
       } else {
-        print('Fetch reports data failed: ${reportsData['Message']}');
         return false;
       }
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       return false;
@@ -62,16 +60,14 @@ class ReportsController with ChangeNotifier {
       if (activityReportsData['IsSuccess'] == true) {
         activityReportUrl = activityReportsData['Data']?['url'];
         notifyListeners();
-        print('activityReportUrl $activityReportUrl');
+
         return true;
       } else {
-        print('Fetch reports data failed: ${activityReportsData['Message']}');
         return false;
       }
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       return false;
@@ -96,16 +92,14 @@ class ReportsController with ChangeNotifier {
       if (inventoryReportsData['IsSuccess'] == true) {
         inventoryReportUrl = inventoryReportsData['Data']?['url'];
         notifyListeners();
-        print('inventoryReportUrl $inventoryReportUrl');
+
         return true;
       } else {
-        print('Fetch reports data failed: ${inventoryReportsData['Message']}');
         return false;
       }
     } catch (e) {
       print('Exception: $e');
       if (e is DioException) {
-        // Handle Dio-specific errors
         print('Dio error: ${e.message}');
       }
       return false;

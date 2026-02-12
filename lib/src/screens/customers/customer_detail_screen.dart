@@ -172,77 +172,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                 ],
               ),
               SizedBox(height: 8),
-              // myVehicleData != null
-              //     ? GridView.builder(
-              //       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              //         crossAxisCount: 2, // Number of columns in the grid
-              //         crossAxisSpacing: 4, // Spacing between columns
-              //         mainAxisSpacing: 4, // Spacing between rows
-              //         childAspectRatio:
-              //             2, // Adjust the aspect ratio of the grid items
-              //       ),
-              //       shrinkWrap:
-              //           true, // Ensure the ListView takes only the required space
-              //       physics:
-              //           NeverScrollableScrollPhysics(), // Disable scrolling for the inner ListView
-              //       itemCount: myVehicleData.length,
-              // itemBuilder: (context, index) {
-              //   final customerVehicle = myVehicleData[index];
 
-              // return InkWell(
-              //   onTap: () {
-              //     _navigateToMyVehicles(widget.customer);
-              //   },
-              //   // _vehicleDetails(customerVehicle['plate_no']),
-              //   child: Card(
-              //     color: Colors.green.shade100,
-              //     elevation: 4,
-              //     margin: EdgeInsets.all(8),
-              //     shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.circular(10),
-              //     ),
-              //     child: Padding(
-              //       padding: EdgeInsets.all(16.0),
-              //       child: Column(
-              //         mainAxisAlignment: MainAxisAlignment.center,
-              //         crossAxisAlignment: CrossAxisAlignment.start,
-              //         children: [
-              //           Container(
-              //             height: 23,
-              //             width: 80,
-              //             decoration: BoxDecoration(
-              //               color: Colors.green,
-              //               // Replace with the actual color variable or use Colors.red
-              //               borderRadius: BorderRadius.circular(23.0),
-              //             ),
-              //             child: Center(
-              //               child: Text(
-              //                 "Plate No.",
-              //                 style: TextStyle(
-              //                   color: Colors.white,
-              //                 ), // Replace 'colorwhite' with Colors.white
-              //               ),
-              //             ),
-              //           ),
-              //           SizedBox(width: 16),
-              //           Text(
-              //             customerVehicle['plate_no'] ?? '',
-              //             style: TextStyle(
-              //               fontSize: 14,
-              //               fontWeight: FontWeight.bold,
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //     ),
-              //   ),
-              //     );
-              //   },
-              // )
-              // : Text(
-              //   'No vehicles found.',
-              //   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              // ),
               SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -102,16 +102,13 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
           );
         }
 
-        // Get downloads directory
         final dir = await getApplicationDocumentsDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final file = File('${dir.path}/refilling_report_$timestamp.pdf');
 
-        // Copy the temporary file to downloads
         final tempFile = File(localPath!);
         await tempFile.copy(file.path);
 
-        // Show success message with icon
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

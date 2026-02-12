@@ -13,7 +13,7 @@ class AuthRepo {
   static const _prefRoleKey = "role";
   static const _prefCustomerIdKey = "customerId";
   static const _prefDriverIdKey = "driverId";
-  static const _prefDeviceTokenKey = "deviceToken"; // ADD THIS
+  static const _prefDeviceTokenKey = "deviceToken";
 
   static const _prefLastEndMeterReadingKey = "lastEndMeterReading";
   static const _prefLastTripStopIdKey = "lastTripStopId";
@@ -124,7 +124,6 @@ class AuthRepo {
     }
   }
 
-  // Method to save all customer data at once
   static void setCustomerData({
     String? name,
     String? email,
@@ -251,31 +250,26 @@ class AuthRepo {
     return prefs?.getDouble(_prefLastAvailableQtyKey);
   }
 
-  // Fixed logout method - clear individual keys instead of clearing all prefs
   static logOut() {
-    // Clear all auth-related data individually
     token = null;
     role = null;
     user = null;
     loginType = null;
     customerId = null;
     driverId = null;
-    deviceToken = null; // ADD THIS
+    deviceToken = null;
     lastEndMeterReading = null;
     lastTripStopId = null;
     lastAvailableQty = null;
     lastEndMeterPhotoPath = null;
 
-    // Navigate to login screen
     NavigationService().pushNavigation(Screenroutes.login);
   }
 
-  // Helper method to check if user is authenticated
   static bool get isAuthenticated {
     return token != null && token!.isNotEmpty;
   }
 
-  // Helper method to clear all auth data
   static void clearAuthData() {
     token = null;
     role = null;
@@ -283,7 +277,7 @@ class AuthRepo {
     loginType = null;
     customerId = null;
     driverId = null;
-    deviceToken = null; // ADD THIS
+    deviceToken = null;
     lastEndMeterReading = null;
     lastTripStopId = null;
     lastAvailableQty = null;

@@ -43,16 +43,11 @@ class FuelTripController with ChangeNotifier {
         throw Exception("No token found - user not authenticated");
       }
 
-      print(
-        '🔑 Making assigned trips request with token: ${currentToken.substring(0, 20)}...',
-      );
-
       final assignedTrips = await restApi.getAssignedTrips(
         currentPage,
         totalPages,
         'Bearer $currentToken',
       );
-      print('API Response: $assignedTrips');
 
       if (assignedTrips is Map<String, dynamic>) {
         if (assignedTrips['IsSuccess'] == true) {
@@ -60,7 +55,6 @@ class FuelTripController with ChangeNotifier {
           if (data != null) {
             final newAssignedData =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('newAssignedData: $newAssignedData');
 
             if (loadMore) {
               assignedTripsData ??= [];
@@ -74,18 +68,15 @@ class FuelTripController with ChangeNotifier {
           }
         } else {
           errorMessage = assignedTrips['Message'] ?? 'API call failed';
-          print('API call failed: ${assignedTrips['Message']}');
         }
       } else {
         errorMessage = 'Unexpected API response format';
-        print('Unexpected API response format');
       }
     } catch (e) {
       errorMessage = 'Failed to load assigned trips';
-      print('❌ Exception: $e');
+
       if (e is DioException) {
         print('Dio error: ${e.message}');
-        print('Response: ${e.response?.data}');
       }
     } finally {
       isLoading = false;
@@ -109,40 +100,31 @@ class FuelTripController with ChangeNotifier {
         throw Exception("No token found - user not authenticated");
       }
 
-      print(
-        '🔑 Fetching accepted assignments with token: ${currentToken.substring(0, 20)}...',
-      );
-      print('Current page: $currentPage, Total pages: $totalPages');
-
       final response = await restApi.getAcceptedAssignments(
         currentPage,
         totalPages,
         'Bearer $currentToken',
       );
-      print('Accepted Assignments API Response: $response');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
           acceptedAssignmentData = response['Data'] as Map<String, dynamic>?;
-          print('✅ acceptedAssignmentData: $acceptedAssignmentData');
         } else {
           errorMessage = response['Message'] ?? 'API call failed';
-          print('❌ API call failed: ${response['Message']}');
+
           acceptedAssignmentData = null;
         }
       } else {
         errorMessage = 'Unexpected API response format';
-        print('❌ Unexpected API response format');
+
         acceptedAssignmentData = null;
       }
     } catch (e) {
       errorMessage = 'Failed to load accepted assignments';
       acceptedAssignmentData = null;
-      print('❌ Exception: $e');
+
       if (e is DioException) {
         print('Dio error: ${e.message}');
-        print('Response: ${e.response?.data}');
-        print('Status code: ${e.response?.statusCode}');
       }
     } finally {
       isLoading = false;
@@ -184,7 +166,6 @@ class FuelTripController with ChangeNotifier {
         completedTotalPages,
         'Bearer $currentToken',
       );
-      print('✅ Completed Assignments API Response: $response');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
@@ -192,7 +173,6 @@ class FuelTripController with ChangeNotifier {
           if (data != null) {
             final newCompletedData =
                 data.map((v) => v as Map<String, dynamic>).toList();
-            print('📦 Completed assignments data: $newCompletedData');
 
             if (loadMore) {
               completedAssignmentsData ??= [];
@@ -209,19 +189,15 @@ class FuelTripController with ChangeNotifier {
           }
         } else {
           errorMessage = response['Message'] ?? 'API call failed';
-          print('❌ API call failed: ${response['Message']}');
         }
       } else {
         errorMessage = 'Unexpected API response format';
-        print('❌ Unexpected API response format');
       }
     } catch (e) {
       errorMessage = 'Failed to load completed assignments';
       print('❌ Exception: $e');
       if (e is DioException) {
         print('Dio error: ${e.message}');
-        print('Response: ${e.response?.data}');
-        print('Status code: ${e.response?.statusCode}');
       }
     } finally {
       isLoading = false;
@@ -279,7 +255,7 @@ class FuelTripController with ChangeNotifier {
       } else {
         errorMessage =
             postDriverResponseData['Message'] ?? 'Failed to submit response';
-        print('API call failed: ${postDriverResponseData['Message']}');
+
         isSubmittingResponse = false;
         notifyListeners();
         return false;
@@ -311,18 +287,12 @@ class FuelTripController with ChangeNotifier {
         throw Exception("No token found - user not authenticated");
       }
 
-      debugPrint(
-        '🔑 Marking vehicles unavailable: $vehicleId, Stop: $tripStopId',
-      );
-
       final response = await restApi.postVehicleNotAvailable(
         token: 'Bearer $currentToken',
         vehicleId: vehicleId, // ✅ LIST
         description: description,
         tripStopId: tripStopId,
       );
-
-      debugPrint('📦 API Response: $response');
 
       if (response is Map<String, dynamic>) {
         if (response['IsSuccess'] == true) {
@@ -338,12 +308,9 @@ class FuelTripController with ChangeNotifier {
       }
     } catch (e) {
       errorMessage = 'Failed to mark vehicle(s) as unavailable';
-      debugPrint('❌ Exception: $e');
 
       if (e is DioException) {
         debugPrint('Dio error: ${e.message}');
-        debugPrint('Response: ${e.response?.data}');
-        debugPrint('Status code: ${e.response?.statusCode}');
       }
     } finally {
       isLoading = false;

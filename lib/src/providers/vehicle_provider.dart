@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class VehicleProvider with ChangeNotifier {
   List<Map<String, dynamic>> _vehicles = [];
-  bool _resetDone = false; // New flag to track reset status
+  bool _resetDone = false;
 
   bool get resetDone => _resetDone;
 
@@ -78,7 +78,7 @@ class VehicleProvider with ChangeNotifier {
   }
 
   void resetFlag() {
-    _resetDone = false; // Reset the flag when needed
+    _resetDone = false;
   }
 
   Future<void> loadVehicles() async {
@@ -89,8 +89,8 @@ class VehicleProvider with ChangeNotifier {
         savedVehicles.map((vehicle) {
           return jsonDecode(vehicle) as Map<String, dynamic>;
         }).toList();
-    print("Loaded vehicles: $vehicles");
-    notifyListeners(); // Notify UI to rebuild
+
+    notifyListeners();
   }
 
   Future<void> addOrUpdateVehicle(Map<String, dynamic> vehicleData) async {
@@ -104,11 +104,10 @@ class VehicleProvider with ChangeNotifier {
       Map<String, dynamic> existingVehicle = jsonDecode(vehicleJson);
 
       if (existingVehicle['plateNumber'] == vehicleData['plateNumber']) {
-        // Update the existing vehicle
         updatedVehicles.add(jsonEncode(vehicleData));
         isUpdated = true;
       } else {
-        updatedVehicles.add(jsonEncode(existingVehicle)); // Keep other vehicles
+        updatedVehicles.add(jsonEncode(existingVehicle));
       }
     }
 
