@@ -19,6 +19,12 @@ class AuthRepo {
   static const _prefLastTripStopIdKey = "lastTripStopId";
   static const _prefLastAvailableQtyKey = "lastAvailableQty";
 
+  static const _prefCustomerNameKey = "customerName";
+  static const _prefCustomerEmailKey = "customerEmail";
+  static const _prefCustomerMobileKey = "customerMobile";
+  static const _prefCustomerRepresentativeKey = "customerRepresentative";
+  static const _prefCustomerSecondaryMobileKey = "customerSecondaryMobile";
+
   static String? lastEndMeterPhotoPath;
 
   static set token(String? token) {
@@ -56,6 +62,90 @@ class AuthRepo {
 
   static String? get deviceToken {
     return prefs?.getString(_prefDeviceTokenKey);
+  }
+
+  static String? get customerName {
+    return prefs?.getString(_prefCustomerNameKey);
+  }
+
+  static set customerName(String? name) {
+    if (name == null) {
+      prefs?.remove(_prefCustomerNameKey);
+    } else {
+      prefs?.setString(_prefCustomerNameKey, name);
+    }
+  }
+
+  static String? get customerEmail {
+    return prefs?.getString(_prefCustomerEmailKey);
+  }
+
+  static set customerEmail(String? email) {
+    if (email == null) {
+      prefs?.remove(_prefCustomerEmailKey);
+    } else {
+      prefs?.setString(_prefCustomerEmailKey, email);
+    }
+  }
+
+  static String? get customerMobile {
+    return prefs?.getString(_prefCustomerMobileKey);
+  }
+
+  static set customerMobile(String? mobile) {
+    if (mobile == null) {
+      prefs?.remove(_prefCustomerMobileKey);
+    } else {
+      prefs?.setString(_prefCustomerMobileKey, mobile);
+    }
+  }
+
+  static String? get customerRepresentative {
+    return prefs?.getString(_prefCustomerRepresentativeKey);
+  }
+
+  static set customerRepresentative(String? representative) {
+    if (representative == null) {
+      prefs?.remove(_prefCustomerRepresentativeKey);
+    } else {
+      prefs?.setString(_prefCustomerRepresentativeKey, representative);
+    }
+  }
+
+  static String? get customerSecondaryMobile {
+    return prefs?.getString(_prefCustomerSecondaryMobileKey);
+  }
+
+  static set customerSecondaryMobile(String? secondaryMobile) {
+    if (secondaryMobile == null) {
+      prefs?.remove(_prefCustomerSecondaryMobileKey);
+    } else {
+      prefs?.setString(_prefCustomerSecondaryMobileKey, secondaryMobile);
+    }
+  }
+
+  // Method to save all customer data at once
+  static void setCustomerData({
+    String? name,
+    String? email,
+    String? mobile,
+    String? representative,
+    String? secondaryMobile,
+  }) {
+    customerName = name;
+    customerEmail = email;
+    customerMobile = mobile;
+    customerRepresentative = representative;
+    customerSecondaryMobile = secondaryMobile;
+  }
+
+  // Method to clear all customer data
+  static void clearCustomerData() {
+    customerName = null;
+    customerEmail = null;
+    customerMobile = null;
+    customerRepresentative = null;
+    customerSecondaryMobile = null;
   }
 
   static set lastEndMeterReading(String? reading) {

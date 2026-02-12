@@ -36,7 +36,6 @@ class AuthController with ChangeNotifier {
       if (!_firebaseService.isInitialized) {
         log('⚠️ Firebase not initialized, initializing now...');
         await _firebaseService.initialize();
-        // Give it a moment to complete
         await Future.delayed(Duration(milliseconds: 500));
       }
 
@@ -48,9 +47,6 @@ class AuthController with ChangeNotifier {
       log('Email: $email');
       log('Password: ${password.isNotEmpty ? "***" : "empty"}');
       log('Device Token: $deviceToken');
-      log('Device Token is null: ${deviceToken == null}');
-      log('Device Token is empty: ${deviceToken?.isEmpty ?? "null"}');
-      log('Device Token length: ${deviceToken?.length ?? 0}');
       log('═══════════════════════════════════════');
 
       final loginResponse = await restApi.login(
@@ -70,6 +66,22 @@ class AuthController with ChangeNotifier {
         AuthRepo.user = loginResponse.Data?.name;
         AuthRepo.customerId = loginResponse.Data?.customer?.id;
         AuthRepo.driverId = loginResponse.Data?.driver?.id;
+
+        // NEW: Save customer data if available
+        if (loginResponse.Data?.customer != null) {
+          AuthRepo.setCustomerData(
+            name: loginResponse.Data?.customer?.Name,
+            email: loginResponse.Data?.customer?.email,
+            mobile: loginResponse.Data?.customer?.mobile,
+            representative: loginResponse.Data?.customer?.representative,
+            secondaryMobile: loginResponse.Data?.customer?.secondary_mobile,
+          );
+
+          log('✅ Customer data saved:');
+          log('Name: ${AuthRepo.customerName}');
+          log('Email: ${AuthRepo.customerEmail}');
+          log('Mobile: ${AuthRepo.customerMobile}');
+        }
 
         log('Token set: ${AuthRepo.token != null ? "✅" : "❌"}');
         log('Customer ID: ${AuthRepo.customerId}');

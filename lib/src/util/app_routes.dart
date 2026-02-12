@@ -6,7 +6,8 @@ import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_unit_screen.dart';
 import 'package:sample/src/screens/customerSites/customer_site_list_screen.dart';
-import 'package:sample/src/screens/customerView/customer_view_screen.dart';
+import 'package:sample/src/screens/customerView/customer_refilled_data_screen.dart';
+import 'package:sample/src/screens/customerView/customer_view_vehicles_screen.dart';
 import 'package:sample/src/screens/customers/customer_detail_screen.dart';
 import 'package:sample/src/screens/customers/customer_list_screen.dart';
 import 'package:sample/src/screens/customers/customer_registration_screen.dart';
@@ -128,7 +129,9 @@ class Screenroutes {
 
   static const String completedAssignmentScreen = "completedAssignmentScreen";
 
-  static const String customerViewScreen = "CustomerViewScreen";
+  static const String customerViewVehicleScreen = "customerViewVehicleScreen";
+  static const String customerViewRefilledDataScreen =
+      "customerViewRefilledDataScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -658,11 +661,23 @@ class Screenroutes {
           },
         );
 
-      case Screenroutes.customerViewScreen:
+      case Screenroutes.customerViewVehicleScreen:
         return MaterialPageRoute(
-          settings: const RouteSettings(name: Screenroutes.customerViewScreen),
+          settings: const RouteSettings(
+            name: Screenroutes.customerViewVehicleScreen,
+          ),
           builder: (BuildContext context) {
-            return CustomerViewScreen();
+            return CustomerViewVehiclesScreen();
+          },
+        );
+
+      case Screenroutes.customerViewRefilledDataScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.customerViewRefilledDataScreen,
+          ),
+          builder: (BuildContext context) {
+            return CustomerViewMyRefillingsScreen();
           },
         );
 

@@ -559,7 +559,7 @@ as String,
 /// @nodoc
 mixin _$Customer {
 
- int get id; String get Name;
+ int get id; String get Name; String? get email; String? get mobile; String? get representative; String? get secondary_mobile;
 /// Create a copy of Customer
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -572,16 +572,16 @@ $CustomerCopyWith<Customer> get copyWith => _$CustomerCopyWithImpl<Customer>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name)&&(identical(other.email, email) || other.email == email)&&(identical(other.mobile, mobile) || other.mobile == mobile)&&(identical(other.representative, representative) || other.representative == representative)&&(identical(other.secondary_mobile, secondary_mobile) || other.secondary_mobile == secondary_mobile));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,Name);
+int get hashCode => Object.hash(runtimeType,id,Name,email,mobile,representative,secondary_mobile);
 
 @override
 String toString() {
-  return 'Customer(id: $id, Name: $Name)';
+  return 'Customer(id: $id, Name: $Name, email: $email, mobile: $mobile, representative: $representative, secondary_mobile: $secondary_mobile)';
 }
 
 
@@ -592,7 +592,7 @@ abstract mixin class $CustomerCopyWith<$Res>  {
   factory $CustomerCopyWith(Customer value, $Res Function(Customer) _then) = _$CustomerCopyWithImpl;
 @useResult
 $Res call({
- int id, String Name
+ int id, String Name, String? email, String? mobile, String? representative, String? secondary_mobile
 });
 
 
@@ -609,11 +609,15 @@ class _$CustomerCopyWithImpl<$Res>
 
 /// Create a copy of Customer
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? Name = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? Name = null,Object? email = freezed,Object? mobile = freezed,Object? representative = freezed,Object? secondary_mobile = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
-as String,
+as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,mobile: freezed == mobile ? _self.mobile : mobile // ignore: cast_nullable_to_non_nullable
+as String?,representative: freezed == representative ? _self.representative : representative // ignore: cast_nullable_to_non_nullable
+as String?,secondary_mobile: freezed == secondary_mobile ? _self.secondary_mobile : secondary_mobile // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -624,11 +628,15 @@ as String,
 @JsonSerializable()
 
 class _Customer implements Customer {
-  const _Customer({required this.id, required this.Name});
+  const _Customer({required this.id, required this.Name, this.email, this.mobile, this.representative, this.secondary_mobile});
   factory _Customer.fromJson(Map<String, dynamic> json) => _$CustomerFromJson(json);
 
 @override final  int id;
 @override final  String Name;
+@override final  String? email;
+@override final  String? mobile;
+@override final  String? representative;
+@override final  String? secondary_mobile;
 
 /// Create a copy of Customer
 /// with the given fields replaced by the non-null parameter values.
@@ -643,16 +651,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Customer&&(identical(other.id, id) || other.id == id)&&(identical(other.Name, Name) || other.Name == Name)&&(identical(other.email, email) || other.email == email)&&(identical(other.mobile, mobile) || other.mobile == mobile)&&(identical(other.representative, representative) || other.representative == representative)&&(identical(other.secondary_mobile, secondary_mobile) || other.secondary_mobile == secondary_mobile));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,Name);
+int get hashCode => Object.hash(runtimeType,id,Name,email,mobile,representative,secondary_mobile);
 
 @override
 String toString() {
-  return 'Customer(id: $id, Name: $Name)';
+  return 'Customer(id: $id, Name: $Name, email: $email, mobile: $mobile, representative: $representative, secondary_mobile: $secondary_mobile)';
 }
 
 
@@ -663,7 +671,7 @@ abstract mixin class _$CustomerCopyWith<$Res> implements $CustomerCopyWith<$Res>
   factory _$CustomerCopyWith(_Customer value, $Res Function(_Customer) _then) = __$CustomerCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String Name
+ int id, String Name, String? email, String? mobile, String? representative, String? secondary_mobile
 });
 
 
@@ -680,11 +688,15 @@ class __$CustomerCopyWithImpl<$Res>
 
 /// Create a copy of Customer
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? Name = null,Object? email = freezed,Object? mobile = freezed,Object? representative = freezed,Object? secondary_mobile = freezed,}) {
   return _then(_Customer(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,Name: null == Name ? _self.Name : Name // ignore: cast_nullable_to_non_nullable
-as String,
+as String,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,mobile: freezed == mobile ? _self.mobile : mobile // ignore: cast_nullable_to_non_nullable
+as String?,representative: freezed == representative ? _self.representative : representative // ignore: cast_nullable_to_non_nullable
+as String?,secondary_mobile: freezed == secondary_mobile ? _self.secondary_mobile : secondary_mobile // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

@@ -73,12 +73,22 @@ Map<String, dynamic> _$RolesToJson(_Roles instance) => <String, dynamic>{
   'Name': instance.Name,
 };
 
-_Customer _$CustomerFromJson(Map<String, dynamic> json) =>
-    _Customer(id: (json['id'] as num).toInt(), Name: json['Name'] as String);
+_Customer _$CustomerFromJson(Map<String, dynamic> json) => _Customer(
+  id: (json['id'] as num).toInt(),
+  Name: json['Name'] as String,
+  email: json['email'] as String?,
+  mobile: json['mobile'] as String?,
+  representative: json['representative'] as String?,
+  secondary_mobile: json['secondary_mobile'] as String?,
+);
 
 Map<String, dynamic> _$CustomerToJson(_Customer instance) => <String, dynamic>{
   'id': instance.id,
   'Name': instance.Name,
+  'email': instance.email,
+  'mobile': instance.mobile,
+  'representative': instance.representative,
+  'secondary_mobile': instance.secondary_mobile,
 };
 
 _Driver _$DriverFromJson(Map<String, dynamic> json) =>

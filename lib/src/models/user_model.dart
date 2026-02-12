@@ -47,7 +47,14 @@ abstract class Roles with _$Roles {
 
 @freezed
 abstract class Customer with _$Customer {
-  const factory Customer({required int id, required String Name}) = _Customer;
+  const factory Customer({
+    required int id,
+    required String Name,
+    String? email,
+    String? mobile,
+    String? representative,
+    String? secondary_mobile,
+  }) = _Customer;
 
   factory Customer.fromJson(Map<String, dynamic> json) =>
       _$CustomerFromJson(json);

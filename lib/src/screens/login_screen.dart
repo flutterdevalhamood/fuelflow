@@ -187,28 +187,28 @@ class _LoginScreenState extends State<LoginScreen>
                           },
                         ),
                         SizedBox(height: 16),
-                        // Forgot password option
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed:
-                                _isLoading
-                                    ? null
-                                    : () {
-                                      // Forgot password functionality
-                                    },
-                            child: Text(
-                              'Forgot Password?',
-                              style: TextStyle(
-                                color:
-                                    _isLoading
-                                        ? Colors.grey
-                                        : Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
+                        // // Forgot password option
+                        // Align(
+                        //   alignment: Alignment.centerRight,
+                        //   child: TextButton(
+                        //     onPressed:
+                        //         _isLoading
+                        //             ? null
+                        //             : () {
+                        //               // Forgot password functionality
+                        //             },
+                        //     child: Text(
+                        //       'Forgot Password?',
+                        //       style: TextStyle(
+                        //         color:
+                        //             _isLoading
+                        //                 ? Colors.grey
+                        //                 : Theme.of(context).primaryColor,
+                        //         fontWeight: FontWeight.w500,
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
                         SizedBox(height: 30),
                         // Login button
                         _loginButtonWidget(context: context),

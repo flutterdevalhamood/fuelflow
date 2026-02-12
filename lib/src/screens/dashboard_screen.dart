@@ -14,12 +14,27 @@ class DashBoardScreen extends StatefulWidget {
 
 class _DashBoardScreenState extends State<DashBoardScreen> {
   late String? _effectiveUserRole;
+  String? _customerName;
+  String? _customerEmail;
+  String? _customerMobile;
+  String? _customerRepresentative;
+  String? _customerSecondaryMobile;
 
   @override
   void initState() {
     super.initState();
     // Use passed userRole or fall back to AuthRepo role
     _effectiveUserRole = widget.userRole ?? AuthRepo.role?.toLowerCase();
+    _loadCustomerData();
+  }
+
+  void _loadCustomerData() {
+    // Load customer data from AuthRepo
+    _customerName = AuthRepo.customerName;
+    _customerEmail = AuthRepo.customerEmail;
+    _customerMobile = AuthRepo.customerMobile;
+    _customerRepresentative = AuthRepo.customerRepresentative;
+    _customerSecondaryMobile = AuthRepo.customerSecondaryMobile;
   }
 
   List<Map<String, dynamic>> getGridItems() {
@@ -140,10 +155,34 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFF36d1dc), Color(0xFF5b86e5)],
         'description': 'Manage customer site locations',
       },
+
+      {
+        'title': 'View My Vehicles',
+        'icon': Icons.directions_car_rounded,
+        'route': Screenroutes.customerViewVehicleScreen,
+        'color': Colors.orange,
+        'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
+        'description': 'View my vehicles',
+      },
+
+      {
+        'title': 'Refilled Data View',
+        'icon': Icons.local_gas_station_rounded,
+        'route': Screenroutes.customerViewRefilledDataScreen,
+        'color': Colors.green,
+        'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
+        'description': 'View Refilled Data',
+      },
     ];
 
     if (_effectiveUserRole == "customer") {
-      return allGridItems.where((item) => item['title'] == 'Vehicles').toList();
+      return allGridItems
+          .where(
+            (item) =>
+                item['title'] == 'View My Vehicles' ||
+                item['title'] == 'Refilled Data View',
+          )
+          .toList();
     } else if (_effectiveUserRole == "superadmin") {
       return allGridItems
           .where(
@@ -151,7 +190,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                 item['title'] != 'My Refilling Units' &&
                 item['title'] != 'Assigned Trips' &&
                 item['title'] != 'Accepted Trips' &&
-                item['title'] != 'Completed Trips',
+                item['title'] != 'Completed Trips' &&
+                item['title'] != 'My Profile',
           )
           .toList();
     } else if (_effectiveUserRole == "operator") {
@@ -291,6 +331,179 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     }
   }
 
+  // NEW: Show profile details dialog
+  void _showProfileDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Container(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with icon
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  Text(
+                    'Profile Details',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  SizedBox(height: 24),
+
+                  // Profile information
+                  if (_customerName != null && _customerName!.isNotEmpty)
+                    _buildDialogInfoRow(
+                      Icons.person_outline,
+                      'Name',
+                      _customerName!,
+                      Color(0xFF667eea),
+                    ),
+
+                  if (_customerName != null && _customerName!.isNotEmpty)
+                    SizedBox(height: 16),
+
+                  if (_customerEmail != null && _customerEmail!.isNotEmpty)
+                    _buildDialogInfoRow(
+                      Icons.email_outlined,
+                      'Email',
+                      _customerEmail!,
+                      Color(0xFF4facfe),
+                    ),
+
+                  if (_customerEmail != null && _customerEmail!.isNotEmpty)
+                    SizedBox(height: 16),
+
+                  if (_customerMobile != null && _customerMobile!.isNotEmpty)
+                    _buildDialogInfoRow(
+                      Icons.phone_outlined,
+                      'Mobile',
+                      _customerMobile!,
+                      Color(0xFF11998e),
+                    ),
+
+                  if (_customerMobile != null && _customerMobile!.isNotEmpty)
+                    SizedBox(height: 16),
+
+                  if (_customerRepresentative != null &&
+                      _customerRepresentative!.isNotEmpty)
+                    SizedBox(height: 8),
+
+                  if (_customerSecondaryMobile != null &&
+                      _customerSecondaryMobile!.isNotEmpty)
+                    _buildDialogInfoRow(
+                      Icons.phone_android_outlined,
+                      'Secondary Mobile',
+                      _customerSecondaryMobile!,
+                      Color(0xFF43e97b),
+                    ),
+
+                  SizedBox(height: 24),
+
+                  // Close button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF667eea),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(
+                        'Close',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildDialogInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 20, color: color),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final gridItems = getGridItems();
@@ -384,52 +597,105 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       ],
                     ),
                     SizedBox(height: 8),
-                    Text(
-                      _getRoleName().toString(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_user_rounded,
-                            size: 16,
-                            color: Colors.white,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getRoleName().toString(),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 12),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.verified_user_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      _getFormattedRole(),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 6),
-                          Text(
-                            _getFormattedRole(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                        ),
+                        // View Profile button for customers only
+                        if (_effectiveUserRole == "customer" &&
+                            (_customerName != null ||
+                                _customerEmail != null ||
+                                _customerMobile != null))
+                          InkWell(
+                            onTap: _showProfileDialog,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.account_circle_outlined,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'View Profile',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
                   ],
                 ),
               ),
+
               // Section header
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -481,6 +747,46 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.grey[800],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

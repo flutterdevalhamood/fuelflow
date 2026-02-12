@@ -12,6 +12,7 @@ class DrawerWidget extends StatefulWidget {
 }
 
 class _DrawerWidgetState extends State<DrawerWidget> {
+  bool _isLoggingOut = false;
   void _logout() async {
     bool confirmLogout =
         await showDialog<bool>(
@@ -81,7 +82,15 @@ class _DrawerWidgetState extends State<DrawerWidget> {
         false;
 
     if (confirmLogout) {
+      setState(() {
+        _isLoggingOut = true; // Show loader
+      });
       await _performLogout();
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false; // Hide loader
+        });
+      }
     }
   }
 
@@ -357,16 +366,26 @@ class _DrawerWidgetState extends State<DrawerWidget> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: _logout,
+          onTap: _isLoggingOut ? null : _logout, // Disable when logging out
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.logout_rounded, color: Colors.white, size: 22),
+                if (_isLoggingOut)
+                  SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                else
+                  Icon(Icons.logout_rounded, color: Colors.white, size: 22),
                 SizedBox(width: 12),
                 Text(
-                  'Logout',
+                  _isLoggingOut ? 'Logging out...' : 'Logout',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,

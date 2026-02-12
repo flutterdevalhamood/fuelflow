@@ -666,4 +666,30 @@ abstract class RestClient {
     @Field("notes") String? notes,
     @Field("vehicle_id") String? vehicleId,
   });
+
+  @GET('/customer/paginateMyVehicles/{page}/{limit}')
+  Future<dynamic> getCustomerViewVehicles(
+    @Header("Authorization") String? token,
+    @Path("page") int? page,
+    @Path("limit") int? limit,
+  );
+
+  @GET('/customer/paginateMyRefillings/{page}/{limit}')
+  Future<dynamic> getViewMyRefillings(
+    @Header("Authorization") String? token,
+    @Path("page") int? page,
+    @Path("limit") int? limit,
+  );
+
+  @POST('/customer/filterMyRefillings')
+  Future<dynamic> postFilterMyRefillingsWithBody({
+    @Header("Authorization") String? token,
+    @Body() required Map<String, dynamic> body,
+  });
+
+  @POST('/customer/generateFilteredRefillingsPDF')
+  Future<dynamic> postGenerateFilteredRefillingsPDF({
+    @Header("Authorization") String? token,
+    @Body() required Map<String, dynamic> body,
+  });
 }
