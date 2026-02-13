@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/base/base_page.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
@@ -6,6 +8,8 @@ import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/util/app_enums.dart';
 import 'package:sample/src/util/app_sizes.dart';
 import 'package:sample/src/util/input_validator.dart';
+
+import '../../firebase_services.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -548,6 +552,48 @@ class _LoginScreenState extends State<LoginScreen>
                         letterSpacing: 0.5,
                       ),
                     ),
+
+                    // Add this widget after your login button
+                    if (kDebugMode)
+                      Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          icon: Icon(Icons.bug_report),
+                          label: Text('Test FCM Token'),
+                          onPressed: () async {
+                            final fcmService = FirebaseService();
+                            final token = await fcmService.getFCMToken();
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  token != null
+                                      ? 'Token: ${token.substring(0, 30)}...'
+                                      : 'Token is NULL!',
+                                ),
+                                duration: Duration(seconds: 5),
+                                action: SnackBarAction(
+                                  label: 'Copy',
+                                  onPressed: () {
+                                    if (token != null) {
+                                      Clipboard.setData(
+                                        ClipboardData(text: token),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     SizedBox(width: 8),
                     Icon(Icons.arrow_forward_rounded, size: 20),
                   ],
