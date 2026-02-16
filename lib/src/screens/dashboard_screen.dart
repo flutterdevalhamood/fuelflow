@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -12,24 +14,90 @@ class DashBoardScreen extends StatefulWidget {
   State<DashBoardScreen> createState() => _DashBoardScreenState();
 }
 
-class _DashBoardScreenState extends State<DashBoardScreen> {
+class _DashBoardScreenState extends State<DashBoardScreen>
+    with SingleTickerProviderStateMixin {
   late String? _effectiveUserRole;
   String? _customerName;
   String? _customerEmail;
   String? _customerMobile;
   String? _customerRepresentative;
   String? _customerSecondaryMobile;
+  int _pendingTripsCount = 0;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Use passed userRole or fall back to AuthRepo role
     _effectiveUserRole = widget.userRole ?? AuthRepo.role?.toLowerCase();
     _loadCustomerData();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    // Scale animation for the entire card
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // Pulse animation for the glow effect
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // Start repeating animation
+    _animationController.repeat(reverse: true);
+
+    // Load pending trips count for drivers
+    if (_effectiveUserRole == "driver") {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPendingTripsCount();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh count when returning to this screen
+    if (_effectiveUserRole == "driver") {
+      _loadPendingTripsCount();
+    }
+  }
+
+  Future<void> _loadPendingTripsCount() async {
+    try {
+      final controller = context.read<FuelTripController>();
+      await controller.getAssignedTrips();
+
+      if (controller.assignedTripsData != null) {
+        final pendingTrips =
+            controller.assignedTripsData!
+                .where((trip) => trip['status'] == 'pending')
+                .toList();
+
+        if (mounted) {
+          setState(() {
+            _pendingTripsCount = pendingTrips.length;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading pending trips count: $e');
+    }
   }
 
   void _loadCustomerData() {
-    // Load customer data from AuthRepo
     _customerName = AuthRepo.customerName;
     _customerEmail = AuthRepo.customerEmail;
     _customerMobile = AuthRepo.customerMobile;
@@ -110,13 +178,13 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'color': Colors.deepOrange,
         'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
         'description': 'Go to Your Assignment Trips',
+        'showBadge': true, // Enable badge
+        'badgeCount': _pendingTripsCount, // Show count
       },
       {
         'title': 'Accepted Trips',
         'icon': Icons.local_shipping_rounded,
-        'route':
-            Screenroutes
-                .acceptedAssignmentScreen, // Add this route to your app_routes.dart
+        'route': Screenroutes.acceptedAssignmentScreen,
         'color': Colors.green,
         'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
         'description': 'View active accepted trips',
@@ -137,7 +205,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFF3f5efb), Color(0xFFfc466b)],
         'description': 'View system analytics',
       },
-
       {
         'title': 'User Registration',
         'icon': Icons.verified_user,
@@ -146,16 +213,14 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
         'description': 'Register the user',
       },
-
       {
         'title': 'Customer Sites',
         'icon': Icons.location_on_rounded,
-        'route': Screenroutes.customerSitesList, // make sure route exists
+        'route': Screenroutes.customerSitesList,
         'color': Colors.cyan,
         'gradient': [Color(0xFF36d1dc), Color(0xFF5b86e5)],
         'description': 'Manage customer site locations',
       },
-
       {
         'title': 'View My Vehicles',
         'icon': Icons.directions_car_rounded,
@@ -164,7 +229,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         'gradient': [Color(0xFFf093fb), Color(0xFFf5576c)],
         'description': 'View my vehicles',
       },
-
       {
         'title': 'Refilled Data View',
         'icon': Icons.local_gas_station_rounded,
@@ -331,7 +395,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     }
   }
 
-  // NEW: Show profile details dialog
   void _showProfileDialog() {
     showDialog(
       context: context,
@@ -345,7 +408,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with icon
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -361,7 +423,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                     ),
                   ),
                   SizedBox(height: 20),
-
                   Text(
                     'Profile Details',
                     style: TextStyle(
@@ -371,8 +432,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                     ),
                   ),
                   SizedBox(height: 24),
-
-                  // Profile information
                   if (_customerName != null && _customerName!.isNotEmpty)
                     _buildDialogInfoRow(
                       Icons.person_outline,
@@ -380,10 +439,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       _customerName!,
                       Color(0xFF667eea),
                     ),
-
                   if (_customerName != null && _customerName!.isNotEmpty)
                     SizedBox(height: 16),
-
                   if (_customerEmail != null && _customerEmail!.isNotEmpty)
                     _buildDialogInfoRow(
                       Icons.email_outlined,
@@ -391,10 +448,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       _customerEmail!,
                       Color(0xFF4facfe),
                     ),
-
                   if (_customerEmail != null && _customerEmail!.isNotEmpty)
                     SizedBox(height: 16),
-
                   if (_customerMobile != null && _customerMobile!.isNotEmpty)
                     _buildDialogInfoRow(
                       Icons.phone_outlined,
@@ -402,14 +457,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       _customerMobile!,
                       Color(0xFF11998e),
                     ),
-
                   if (_customerMobile != null && _customerMobile!.isNotEmpty)
                     SizedBox(height: 16),
-
-                  if (_customerRepresentative != null &&
-                      _customerRepresentative!.isNotEmpty)
-                    SizedBox(height: 8),
-
                   if (_customerSecondaryMobile != null &&
                       _customerSecondaryMobile!.isNotEmpty)
                     _buildDialogInfoRow(
@@ -418,10 +467,7 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       _customerSecondaryMobile!,
                       Color(0xFF43e97b),
                     ),
-
                   SizedBox(height: 24),
-
-                  // Close button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -535,21 +581,35 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                     onPressed: () {
                       NavigationService().pushNavigation(
                         Screenroutes.notificationScreen,
+                        arguments: AuthRepo.driverId,
                       );
                     },
                   ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+                  if (_effectiveUserRole == "driver" && _pendingTripsCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          _pendingTripsCount > 9 ? '9+' : '$_pendingTripsCount',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -559,7 +619,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome section with gradient
               Container(
                 width: double.infinity,
                 margin: EdgeInsets.all(16),
@@ -651,7 +710,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                             ],
                           ),
                         ),
-                        // View Profile button for customers only
                         if (_effectiveUserRole == "customer" &&
                             (_customerName != null ||
                                 _customerEmail != null ||
@@ -695,8 +753,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                   ],
                 ),
               ),
-
-              // Section header
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Row(
@@ -721,7 +777,6 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                   ],
                 ),
               ),
-              // Grid items
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -731,9 +786,8 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
                       maxCrossAxisExtent: MediaQuery.of(context).size.width,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 3.2, // wide card look
+                      childAspectRatio: 3.2,
                     ),
-
                     itemCount: gridItems.length,
                     itemBuilder: (context, index) {
                       final item = gridItems[index];
@@ -750,48 +804,12 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 20, color: color),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[800],
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildGridItem(Map<String, dynamic> item) {
-    return Container(
+    final showBadge = item['showBadge'] == true;
+    final badgeCount = item['badgeCount'] as int? ?? 0;
+    final shouldAnimate = showBadge && badgeCount > 0;
+
+    Widget cardContent = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -806,90 +824,182 @@ class _DashBoardScreenState extends State<DashBoardScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            // Special handling for driver-specific routes
+          onTap: () async {
             if (item['route'] == Screenroutes.acceptedAssignmentScreen) {
               NavigationService().pushNavigation(
                 item['route'],
                 arguments: AuthRepo.driverId,
               );
             } else if (item['route'] == Screenroutes.notificationScreen) {
-              NavigationService().pushNavigation(
+              final result = await NavigationService().pushNavigation(
                 item['route'],
                 arguments: AuthRepo.driverId,
               );
+
+              // Reload count when returning from notification screen
+              if (result != null && _effectiveUserRole == "driver") {
+                _loadPendingTripsCount();
+              }
             } else {
               NavigationService().pushNavigation(item['route']);
             }
           },
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [item['gradient'][0], item['gradient'][1]],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ICON + TITLE ROW
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+          child: Stack(
+            children: [
+              Ink(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [item['gradient'][0], item['gradient'][1]],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          item['icon'],
-                          size: 26,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          item['title'],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              item['icon'],
+                              size: 26,
+                              color: Colors.white,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item['title'],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 10),
+                      Text(
+                        item['description'],
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.85),
+                          height: 1.3,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
                     ],
                   ),
-
-                  const SizedBox(height: 10),
-
-                  // DESCRIPTION ROW
-                  Text(
-                    item['description'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.85),
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  const SizedBox(height: 6),
-                ],
+                ),
               ),
-            ),
+              // Badge overlay
+              if (showBadge && badgeCount > 0)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: TweenAnimationBuilder(
+                    duration: Duration(milliseconds: 500),
+                    tween: Tween<double>(begin: 0.8, end: 1.0),
+                    builder: (context, double scale, child) {
+                      return Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.5),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.notification_important,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                badgeCount > 99 ? '99+' : '$badgeCount',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
+
+    // Wrap with animation if there's a badge count
+    if (shouldAnimate) {
+      return AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  // Base shadow
+                  BoxShadow(
+                    color: (item['gradient'][0] as Color).withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: Offset(0, 8),
+                  ),
+                  // Animated pulsing glow
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(
+                      0.4 * _pulseAnimation.value,
+                    ),
+                    blurRadius: 20 + (10 * _pulseAnimation.value),
+                    spreadRadius: 2 * _pulseAnimation.value,
+                    offset: Offset(0, 0),
+                  ),
+                ],
+              ),
+              child: cardContent,
+            ),
+          );
+        },
+      );
+    }
+
+    return cardContent;
   }
 }
