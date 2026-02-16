@@ -43,7 +43,9 @@ class CustomerSiteController with ChangeNotifier {
         if (data != null && data.isNotEmpty) {
           final newCustomerSites =
               data.map((v) => v as Map<String, dynamic>).toList();
-          print('Successfully fetched ${newCustomerSites.length} drivers');
+          print(
+            'Successfully fetched ${newCustomerSites.length} customer sites',
+          );
 
           if (loadMore) {
             customerSiteData ??= [];
@@ -53,7 +55,7 @@ class CustomerSiteController with ChangeNotifier {
           }
           hasMore = data.length == totalPages;
         } else {
-          print('No drivers found in response');
+          print('No customer sites found in response');
           if (!loadMore) {
             customerSiteData = []; // Set empty list instead of null
           }
@@ -68,7 +70,7 @@ class CustomerSiteController with ChangeNotifier {
         hasMore = false;
       }
     } catch (e) {
-      print('Error in getDriverData: $e');
+      print('Error in getCustomerSiteData: $e');
       if (e is DioException) {
         print('Dio Exception Details:');
         print('Status Code: ${e.response?.statusCode}');
@@ -98,6 +100,8 @@ class CustomerSiteController with ChangeNotifier {
     int? customerId,
     String? name,
     String? description,
+    String? latitude,
+    String? longitude,
   ) async {
     try {
       final token = AuthRepo.token;
@@ -107,17 +111,18 @@ class CustomerSiteController with ChangeNotifier {
 
       await restApi.postCustomerSite(
         token: token.startsWith('Bearer') ? token : 'Bearer $token',
-
         customerId: customerId ?? AuthRepo.customerId,
         name: name,
         description: description,
+        latitude: latitude,
+        longitude: longitude,
       );
 
-      // Refresh the driver list
+      // Refresh the customer site list
       await getCustomerSiteData();
       return true;
     } catch (e) {
-      print("Error in registerDriver: $e");
+      print("Error in registerCustomerSites: $e");
       if (e is DioException) {
         print("Dio Exception: ${e.response?.data}");
       }
@@ -129,6 +134,8 @@ class CustomerSiteController with ChangeNotifier {
     int? customerId,
     String? name,
     String? description,
+    String? latitude,
+    String? longitude,
     int? id,
   ) async {
     try {
@@ -142,13 +149,15 @@ class CustomerSiteController with ChangeNotifier {
         customerId: customerId ?? AuthRepo.customerId,
         name: name,
         description: description,
+        latitude: latitude,
+        longitude: longitude,
         id: id,
       );
 
       await getCustomerSiteData();
       return true;
     } catch (e) {
-      print('Error in updateDriver: $e');
+      print('Error in updateCustomerSites: $e');
       if (e is DioException) {
         print('Dio Exception: ${e.response?.data}');
       }
@@ -171,7 +180,7 @@ class CustomerSiteController with ChangeNotifier {
 
       await getCustomerSiteData();
     } catch (e) {
-      print("Error in deleteDriver: $e");
+      print("Error in deleteCustomerSites: $e");
       if (e is DioException) {
         print("Dio Exception: ${e.response?.data}");
       }

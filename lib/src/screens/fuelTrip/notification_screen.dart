@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
@@ -148,6 +149,114 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
+  // NEW METHOD: Show location on map
+  void _showLocationOnMap(BuildContext context, Map<String, dynamic> stop) {
+    final latitude = double.tryParse(stop['latitude']?.toString() ?? '');
+    final longitude = double.tryParse(stop['longitude']?.toString() ?? '');
+    final siteName = stop['site_name'] ?? 'Unknown Site';
+
+    if (latitude == null || longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location coordinates not available'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              height: 500,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.location_on,
+                          color: Colors.teal.shade700,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              siteName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Map
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(latitude, longitude),
+                          zoom: 15.0,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId(stop['stop_id'].toString()),
+                            position: LatLng(latitude, longitude),
+                            infoWindow: InfoWindow(
+                              title: siteName,
+                              snippet:
+                                  'Expected Qty: ${stop['expected_qty']} IG',
+                            ),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueAzure,
+                            ),
+                          ),
+                        },
+                        mapType: MapType.normal,
+                        myLocationButtonEnabled: true,
+                        zoomControlsEnabled: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   void _showTripDetailsDialog(BuildContext context, Map<String, dynamic> trip) {
     showDialog(
       context: context,
@@ -252,6 +361,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Widget _buildStopCard(Map<String, dynamic> stop, int index) {
     final stopVehicles = stop['stop_vehicles'] as List<dynamic>?;
+    final hasLocation = stop['latitude'] != null && stop['longitude'] != null;
 
     return Card(
       elevation: 2,
@@ -330,7 +440,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.location_on, color: Colors.white, size: 32),
+                // Location Icon Button
+                if (hasLocation)
+                  IconButton(
+                    onPressed: () => _showLocationOnMap(context, stop),
+                    icon: const Icon(
+                      Icons.location_on,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    tooltip: 'View on Map',
+                  )
+                else
+                  const Icon(
+                    Icons.location_off,
+                    color: Colors.white54,
+                    size: 32,
+                  ),
               ],
             ),
           ),
@@ -368,6 +494,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   _formatDateTime(stop['expected_completed_time']),
                   Colors.green,
                 ),
+
+                // Location Coordinates Display
+                if (hasLocation) ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _showLocationOnMap(context, stop),
+                    child: _buildStopDetailItem(
+                      Icons.pin_drop,
+                      'Location',
+                      '${double.parse(stop['latitude'].toString()).toStringAsFixed(6)}, ${double.parse(stop['longitude'].toString()).toStringAsFixed(6)}',
+                      Colors.teal,
+                    ),
+                  ),
+                ],
 
                 // Stop Vehicles Section
                 if (stopVehicles != null && stopVehicles.isNotEmpty) ...[

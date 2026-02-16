@@ -258,6 +258,8 @@ abstract class RestClient {
     @Field("customer_id") int? customerId,
     @Field("name") String? name,
     @Field("description") String? description,
+    @Field("latitude") String? latitude,
+    @Field("longitude") String? longitude,
   });
 
   @POST('/CustomerSiteUpdate')
@@ -267,6 +269,8 @@ abstract class RestClient {
     @Field("name") String? name,
     @Field("description") String? description,
     @Field("id") int? id,
+    @Field("latitude") String? latitude,
+    @Field("longitude") String? longitude,
   });
 
   @POST('/CustomerSiteDelete')

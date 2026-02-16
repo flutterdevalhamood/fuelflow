@@ -702,6 +702,8 @@ class _RestClient implements RestClient {
     int? customerId,
     String? name,
     String? description,
+    String? latitude,
+    String? longitude,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -712,6 +714,8 @@ class _RestClient implements RestClient {
       'customer_id': customerId,
       'name': name,
       'description': description,
+      'latitude': latitude,
+      'longitude': longitude,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(
@@ -736,6 +740,8 @@ class _RestClient implements RestClient {
     String? name,
     String? description,
     int? id,
+    String? latitude,
+    String? longitude,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -747,6 +753,8 @@ class _RestClient implements RestClient {
       'name': name,
       'description': description,
       'id': id,
+      'latitude': latitude,
+      'longitude': longitude,
     };
     _data.removeWhere((k, v) => v == null);
     final _options = _setStreamType<dynamic>(

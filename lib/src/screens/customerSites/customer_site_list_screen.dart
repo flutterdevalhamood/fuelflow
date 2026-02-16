@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/customer_site_controller.dart';
+
+import 'location_picker_screen.dart';
 
 class CustomerSiteListScreen extends StatefulWidget {
   const CustomerSiteListScreen({Key? key}) : super(key: key);
@@ -189,12 +192,18 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
     final customerName = customer?['Name'] ?? 'N/A';
     final customerMobile = customer?['Mobile'] ?? 'N/A';
 
+    // Extract location data
+    final latitude = site['latitude'];
+    final longitude = site['longitude'];
+    final hasLocation = latitude != null && longitude != null;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
+        onTap: hasLocation ? () => _showLocationOnMap(context, site) : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -209,8 +218,8 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      Icons.location_on,
-                      color: Colors.blue.shade700,
+                      hasLocation ? Icons.location_on : Icons.location_off,
+                      color: hasLocation ? Colors.blue.shade700 : Colors.grey,
                       size: 24,
                     ),
                   ),
@@ -228,6 +237,15 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
+                        if (hasLocation)
+                          Text(
+                            'Tap to view on map',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -245,6 +263,17 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
                               ],
                             ),
                           ),
+                          if (hasLocation)
+                            const PopupMenuItem(
+                              value: 'view_map',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.map, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('View on Map'),
+                                ],
+                              ),
+                            ),
                           const PopupMenuItem(
                             value: 'delete',
                             child: Row(
@@ -262,6 +291,8 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
                     onSelected: (value) {
                       if (value == 'edit') {
                         _showAddEditDialog(context, site: site);
+                      } else if (value == 'view_map') {
+                        _showLocationOnMap(context, site);
                       } else if (value == 'delete') {
                         _showDeleteConfirmation(context, site);
                       }
@@ -273,6 +304,14 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
               _buildInfoRow(Icons.business, 'Customer', customerName),
               const SizedBox(height: 8),
               _buildInfoRow(Icons.phone, 'Mobile', customerMobile),
+              if (hasLocation) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                  Icons.pin_drop,
+                  'Location',
+                  '${double.parse(latitude.toString()).toStringAsFixed(6)}, ${double.parse(longitude.toString()).toStringAsFixed(6)}',
+                ),
+              ],
             ],
           ),
         ),
@@ -297,9 +336,102 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
           child: Text(
             value,
             style: const TextStyle(fontSize: 14, color: Colors.black87),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
+    );
+  }
+
+  // Replace the existing _showLocationOnMap method in customer_site_list_screen.dart with this updated version:
+
+  void _showLocationOnMap(BuildContext context, Map<String, dynamic> site) {
+    final latitude = double.tryParse(site['latitude']?.toString() ?? '');
+    final longitude = double.tryParse(site['longitude']?.toString() ?? '');
+
+    if (latitude == null || longitude == null) return;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              height: 450,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              site['name'] ?? 'Location',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.blue.shade300,
+                          width: 2,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(latitude, longitude),
+                            zoom: 15.0,
+                          ),
+                          markers: {
+                            Marker(
+                              markerId: MarkerId(site['id'].toString()),
+                              position: LatLng(latitude, longitude),
+                              infoWindow: InfoWindow(
+                                title: site['name'],
+                                snippet: site['description'],
+                              ),
+                            ),
+                          },
+                          mapType: MapType.normal,
+                          myLocationButtonEnabled: true,
+                          zoomControlsEnabled: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 
@@ -311,159 +443,269 @@ class _CustomerSitesScreenState extends State<CustomerSiteListScreen> {
     );
     final formKey = GlobalKey<FormState>();
 
+    // Location variables
+    LatLng? selectedLocation;
+    if (site != null && site['latitude'] != null && site['longitude'] != null) {
+      selectedLocation = LatLng(
+        double.parse(site['latitude'].toString()),
+        double.parse(site['longitude'].toString()),
+      );
+    }
+
     showDialog(
       context: context,
       builder:
-          (dialogContext) => AlertDialog(
-            title: Text(isEdit ? 'Edit Customer Site' : 'Add Customer Site'),
-            content: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Site Name *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter site name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.description),
-                      ),
-                      maxLines: 3,
-                    ),
-                    if (isEdit) ...[
-                      const SizedBox(height: 16),
-                      // Display current customer info (read-only in edit mode)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.business, color: Colors.grey.shade600),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: Text(
+                    isEdit ? 'Edit Customer Site' : 'Add Customer Site',
+                  ),
+                  content: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextFormField(
+                            controller: nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Site Name *',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.location_on),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter site name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: descriptionController,
+                            decoration: const InputDecoration(
+                              labelText: 'Description',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.description),
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 16),
+                          // Location Picker Button
+                          InkWell(
+                            onTap: () async {
+                              final result = await Navigator.push<LatLng>(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => LocationPickerScreen(
+                                        initialLatitude:
+                                            selectedLocation?.latitude,
+                                        initialLongitude:
+                                            selectedLocation?.longitude,
+                                      ),
+                                ),
+                              );
+                              if (result != null) {
+                                setDialogState(() {
+                                  selectedLocation = result;
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade400),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Customer',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                  Icon(
+                                    selectedLocation != null
+                                        ? Icons.location_on
+                                        : Icons.add_location,
+                                    color:
+                                        selectedLocation != null
+                                            ? Colors.blue.shade700
+                                            : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          selectedLocation != null
+                                              ? 'Location Selected'
+                                              : 'Select Location *',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color:
+                                                selectedLocation != null
+                                                    ? Colors.black87
+                                                    : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        if (selectedLocation != null)
+                                          Text(
+                                            '${selectedLocation!.latitude.toStringAsFixed(6)}, ${selectedLocation!.longitude.toStringAsFixed(6)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    site['customer']?['Name'] ?? 'N/A',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (isEdit) ...[
+                            const SizedBox(height: 16),
+                            // Display current customer info (read-only in edit mode)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Customer',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          site['customer']?['Name'] ?? 'N/A',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (formKey.currentState!.validate()) {
+                          // Validate location
+                          if (selectedLocation == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please select a location'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          Navigator.pop(dialogContext);
+
+                          final controller =
+                              context.read<CustomerSiteController>();
+                          bool success;
+
+                          if (isEdit) {
+                            // Extract customer_id properly
+                            int? customerId;
+                            if (site['customer_id'] != null) {
+                              customerId = int.tryParse(
+                                site['customer_id'].toString(),
+                              );
+                            }
+
+                            // Extract site id
+                            int? siteId;
+                            if (site['id'] != null) {
+                              siteId = int.tryParse(site['id'].toString());
+                            }
+
+                            success = await controller.updateCustomerSites(
+                              customerId,
+                              nameController.text.trim(),
+                              descriptionController.text.trim(),
+                              selectedLocation!.latitude.toString(),
+                              selectedLocation!.longitude.toString(),
+                              siteId,
+                            );
+                          } else {
+                            // For add, extract customerId from site data or use current user's customer
+                            int? customerId;
+                            if (controller.customerSiteData != null &&
+                                controller.customerSiteData!.isNotEmpty) {
+                              final firstSite =
+                                  controller.customerSiteData!.first;
+                              if (firstSite['customer_id'] != null) {
+                                customerId = int.tryParse(
+                                  firstSite['customer_id'].toString(),
+                                );
+                              }
+                            }
+
+                            success = await controller.registerCustomerSites(
+                              customerId,
+                              nameController.text.trim(),
+                              descriptionController.text.trim(),
+                              selectedLocation!.latitude.toString(),
+                              selectedLocation!.longitude.toString(),
+                            );
+                          }
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  success
+                                      ? isEdit
+                                          ? 'Site updated successfully'
+                                          : 'Site added successfully'
+                                      : 'Operation failed. Please try again.',
+                                ),
+                                backgroundColor:
+                                    success ? Colors.green : Colors.red,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: Text(isEdit ? 'Update' : 'Add'),
+                    ),
                   ],
                 ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    Navigator.pop(dialogContext);
-
-                    final controller = context.read<CustomerSiteController>();
-                    bool success;
-
-                    if (isEdit) {
-                      // Extract customer_id properly
-                      int? customerId;
-                      if (site['customer_id'] != null) {
-                        customerId = int.tryParse(
-                          site['customer_id'].toString(),
-                        );
-                      }
-
-                      // Extract site id
-                      int? siteId;
-                      if (site['id'] != null) {
-                        siteId = int.tryParse(site['id'].toString());
-                      }
-
-                      success = await controller.updateCustomerSites(
-                        customerId,
-                        nameController.text.trim(),
-                        descriptionController.text.trim(),
-                        siteId,
-                      );
-                    } else {
-                      // For add, extract customerId from site data or use current user's customer
-                      int? customerId;
-                      if (controller.customerSiteData != null &&
-                          controller.customerSiteData!.isNotEmpty) {
-                        final firstSite = controller.customerSiteData!.first;
-                        if (firstSite['customer_id'] != null) {
-                          customerId = int.tryParse(
-                            firstSite['customer_id'].toString(),
-                          );
-                        }
-                      }
-
-                      success = await controller.registerCustomerSites(
-                        customerId,
-                        nameController.text.trim(),
-                        descriptionController.text.trim(),
-                      );
-                    }
-
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            success
-                                ? isEdit
-                                    ? 'Site updated successfully'
-                                    : 'Site added successfully'
-                                : 'Operation failed. Please try again.',
-                          ),
-                          backgroundColor: success ? Colors.green : Colors.red,
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(isEdit ? 'Update' : 'Add'),
-              ),
-            ],
           ),
     );
   }

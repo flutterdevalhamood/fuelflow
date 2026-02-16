@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserModel {
 
- bool? get IsSuccess; UserData? get Data; String? get Token; dynamic? get UserPrivileges; int? get StatusCode; String? get Message;
+ bool? get IsSuccess; UserData? get Data; String? get Token; dynamic get UserPrivileges; int? get StatusCode; String? get Message;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- bool? IsSuccess, UserData? Data, String? Token, dynamic? UserPrivileges, int? StatusCode, String? Message
+ bool? IsSuccess, UserData? Data, String? Token, dynamic UserPrivileges, int? StatusCode, String? Message
 });
 
 
@@ -72,7 +72,7 @@ IsSuccess: freezed == IsSuccess ? _self.IsSuccess : IsSuccess // ignore: cast_nu
 as bool?,Data: freezed == Data ? _self.Data : Data // ignore: cast_nullable_to_non_nullable
 as UserData?,Token: freezed == Token ? _self.Token : Token // ignore: cast_nullable_to_non_nullable
 as String?,UserPrivileges: freezed == UserPrivileges ? _self.UserPrivileges : UserPrivileges // ignore: cast_nullable_to_non_nullable
-as dynamic?,StatusCode: freezed == StatusCode ? _self.StatusCode : StatusCode // ignore: cast_nullable_to_non_nullable
+as dynamic,StatusCode: freezed == StatusCode ? _self.StatusCode : StatusCode // ignore: cast_nullable_to_non_nullable
 as int?,Message: freezed == Message ? _self.Message : Message // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -103,7 +103,7 @@ class _UserModel implements UserModel {
 @override final  bool? IsSuccess;
 @override final  UserData? Data;
 @override final  String? Token;
-@override final  dynamic? UserPrivileges;
+@override final  dynamic UserPrivileges;
 @override final  int? StatusCode;
 @override final  String? Message;
 
@@ -140,7 +140,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- bool? IsSuccess, UserData? Data, String? Token, dynamic? UserPrivileges, int? StatusCode, String? Message
+ bool? IsSuccess, UserData? Data, String? Token, dynamic UserPrivileges, int? StatusCode, String? Message
 });
 
 
@@ -163,7 +163,7 @@ IsSuccess: freezed == IsSuccess ? _self.IsSuccess : IsSuccess // ignore: cast_nu
 as bool?,Data: freezed == Data ? _self.Data : Data // ignore: cast_nullable_to_non_nullable
 as UserData?,Token: freezed == Token ? _self.Token : Token // ignore: cast_nullable_to_non_nullable
 as String?,UserPrivileges: freezed == UserPrivileges ? _self.UserPrivileges : UserPrivileges // ignore: cast_nullable_to_non_nullable
-as dynamic?,StatusCode: freezed == StatusCode ? _self.StatusCode : StatusCode // ignore: cast_nullable_to_non_nullable
+as dynamic,StatusCode: freezed == StatusCode ? _self.StatusCode : StatusCode // ignore: cast_nullable_to_non_nullable
 as int?,Message: freezed == Message ? _self.Message : Message // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
