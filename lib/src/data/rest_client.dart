@@ -696,4 +696,82 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Body() required Map<String, dynamic> body,
   });
+
+  @GET('/getTripBaseList')
+  Future<dynamic> getTripBaseList(@Header("Authorization") String? token);
+
+  @GET('/Trips/paginate/{page}/{limit}')
+  Future<dynamic> getTrips(
+    @Header("Authorization") String? token,
+    @Path("page") int? page,
+    @Path("limit") int? limit,
+  );
+
+  @POST('/Trips')
+  Future<dynamic> postRegisterTrip({
+    @Header("Authorization") String? token,
+    @Field("customer_id") String? customerId,
+    @Field("scheduled_start") String? scheduledStart,
+    @Field("scheduled_end") String? scheduledEnd,
+    @Field("notes") int? notes,
+  });
+
+  @POST('/Trips/{tripId}')
+  @FormUrlEncoded()
+  Future<dynamic> postUpdateTrip({
+    @Path("tripId") int? tripId,
+    @Header("Authorization") String? token,
+    @Field("customer_id") String? customerId,
+    @Field("scheduled_start") String? scheduledStart,
+    @Field("scheduled_end") String? scheduledEnd,
+    @Field("notes") int? notes,
+  });
+
+  @GET('/getCustomerSites/{tripId}')
+  Future<dynamic> getCustomerSites(
+    @Header("Authorization") String? token,
+    @Path("tripId") int? tripId,
+  );
+
+  @POST('/getTripStopVehicles')
+  Future<dynamic> postTripStopVehicles({
+    @Header("Authorization") String? token,
+    @Field("stop_id") String? stopId,
+    @Field("site_id") String? siteId,
+  });
+
+  @POST('/saveTripStopVehicles')
+  Future<dynamic> postSaveTripStopVehicles({
+    @Header("Authorization") String? token,
+    @Field("stop_id") String? stopId,
+    @Field("vehicles") List<String>? vehicles, //check later
+  });
+
+  @GET('/getTripAssignmentOptions/{tripId}')
+  Future<dynamic> getTripAssignmentOptions(
+    @Header("Authorization") String? token,
+    @Path("tripId") int? tripId,
+  );
+
+  @POST('/saveTripAssignment/{tripId}')
+  Future<dynamic> postSaveTripAssignments({
+    @Path("tripId") int? tripId,
+    @Header("Authorization") String? token,
+    @Field("vehicle_id") int? stopId,
+    @Field("driver_id") int? vehicles,
+  });
+
+  @GET('/Trips/{tripId}')
+  Future<dynamic> getTripDetails(
+    @Header("Authorization") String? token,
+    @Path("tripId") int? tripId,
+  );
+
+  @GET('/Driver/sos')
+  Future<dynamic> getDriverSOS({@Header("Authorization") String? token});
+
+  @GET('/Driver/RequestAdminToCallBack')
+  Future<dynamic> getRequestAdminCallback({
+    @Header("Authorization") String? token,
+  });
 }

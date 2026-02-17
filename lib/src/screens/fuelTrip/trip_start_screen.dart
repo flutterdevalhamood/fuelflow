@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:sample/src/data/rest_client.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelTrip/all_vehicle_screen.dart';
@@ -42,8 +43,8 @@ class TripStartedScreen extends StatefulWidget {
     required this.stopOrder,
     required this.currentStopIndex,
     required this.totalStops,
-    required this.driverId, // NEW
-    this.siteName, // NEW
+    required this.driverId,
+    this.siteName,
     this.stopVehicles,
   });
 
@@ -64,7 +65,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   void initState() {
     super.initState();
 
-    // Initialize animation
     _animationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -76,18 +76,15 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     print('vehicleidddddd  ${widget.vehicleId}');
 
-    // Check if tracking is already active
     _checkExistingTracking();
   }
 
   Future<void> _checkExistingTracking() async {
     final controller = context.read<TripTrackingController>();
 
-    // If already tracking this trip, just verify location is still enabled
     if (controller.isTracking && controller.currentTripId == widget.tripId) {
       debugPrint('✅ Trip tracking already active for trip ${widget.tripId}');
 
-      // Just verify location is still enabled
       final hasPermission = await _quickLocationCheck();
 
       if (hasPermission) {
@@ -97,16 +94,13 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         });
         _animationController.repeat(reverse: true);
 
-        // Update trip stop if different
         if (controller.currentTripId == widget.tripId) {
           await _updateTripStop();
         }
       } else {
-        // Location was disabled, need to re-enable
         await _setupTripWithLocation();
       }
     } else {
-      // First time or new trip - full setup
       await _setupTripWithLocation();
     }
   }
@@ -130,7 +124,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       final controller = context.read<TripTrackingController>();
       final driverId = AuthRepo.driverId;
 
-      // Log the new stop event
       await controller.logManualTripEvent(
         eventType: 'start_journey',
         description: 'Started journey to ${widget.customerName}',
@@ -148,7 +141,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     });
 
     try {
-      // Step 1: Check location services
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
@@ -161,7 +153,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         }
       }
 
-      // Step 2: Check and request location permission
       var permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
@@ -174,7 +165,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         return;
       }
 
-      // Step 3: For Android 10+, request background location permission
       if (permission == LocationPermission.whileInUse) {
         if (await _shouldRequestBackgroundPermission()) {
           await _requestBackgroundPermission();
@@ -190,7 +180,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         return;
       }
 
-      // Step 4: Start trip tracking
       await _startTripTracking();
 
       setState(() {
@@ -378,8 +367,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       final controller = context.read<TripTrackingController>();
       final driverId = AuthRepo.driverId;
 
-      // FIX: Pass widget.vehicleId which is the driver's vehicle (truck ID: 2)
-      // NOT the customer's vehicle from stop_vehicles
       await controller.startTripTracking(
         tripId: widget.tripId,
         tripStopId: widget.tripStopId,
@@ -401,11 +388,229 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     }
   }
 
+  // ✅ NEW: Handle SOS button click
+  Future<void> _handleSOS(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.red, size: 32),
+                SizedBox(width: 12),
+                Text('Emergency SOS'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Are you in an emergency situation?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'This will immediately notify the admin team of your emergency.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Send SOS'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final token = AuthRepo.token;
+
+      if (token == null) {
+        throw Exception('Authentication token not available');
+      }
+
+      await restApi.getDriverSOS(token: 'Bearer $token');
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'SOS alert sent successfully. Help is on the way.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ SOS request failed: $e');
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Failed to send SOS: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  // ✅ NEW: Handle Request Callback button click
+  Future<void> _handleRequestCallback(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.phone_callback, color: Colors.orange, size: 30),
+                SizedBox(width: 12),
+                Text('Request Callback'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Request admin to call you back?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'An admin will contact you as soon as possible.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Request Call'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final token = AuthRepo.token;
+
+      if (token == null) {
+        throw Exception('Authentication token not available');
+      }
+
+      await restApi.getRequestAdminCallback(token: 'Bearer $token');
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Callback request sent. Admin will contact you soon.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Callback request failed: $e');
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Failed to request callback: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
-    // DON'T stop tracking when leaving screen - keep it running for entire trip
-    // Only stop when the entire trip is completed
     super.dispose();
   }
 
@@ -450,7 +655,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           child: SafeArea(
             child: Column(
               children: [
-                // Header
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -510,7 +714,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                           ],
                         ),
                       ),
-                      // Location status indicator
                       if (_isCheckingLocation)
                         const SizedBox(
                           width: 24,
@@ -536,7 +739,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                   ),
                 ),
 
-                // Main Content
                 Expanded(
                   child: Center(
                     child: Column(
@@ -553,15 +755,12 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                   ),
                 ),
 
-                // Trip Details Card (only shown when location is ready)
                 if (_isLocationReady) _buildTripDetailsCard(),
 
-                // Action Buttons
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Mark Arrival Button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -584,7 +783,48 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                       ),
                       const SizedBox(height: 12),
 
-                      // Location Help Button (when location not ready)
+                      // ✅ NEW: SOS and Request Callback Buttons Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _handleSOS(context),
+                              icon: const Icon(Icons.warning_amber_rounded),
+                              label: const Text('SOS'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _handleRequestCallback(context),
+                              icon: const Icon(Icons.phone_callback),
+                              label: const Text('Request Callback'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
                       if (!_isLocationReady)
                         SizedBox(
                           width: double.infinity,
@@ -689,7 +929,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Animated Truck
         AnimatedBuilder(
           animation: _truckAnimation,
           builder: (context, child) {
@@ -715,7 +954,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         ),
         const SizedBox(height: 32),
 
-        // Status indicator
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
@@ -930,7 +1168,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     if (confirmed != true || !context.mounted) return;
 
-    // Log arrival event
     try {
       final controller = context.read<TripTrackingController>();
       await controller.logManualTripEvent(
@@ -942,7 +1179,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       debugPrint('❌ Error logging arrival: $e');
     }
 
-    // ✅ CORRECTED: Check if stop_vehicles is empty for bulk delivery
     if (widget.stopVehicles == null || widget.stopVehicles!.isEmpty) {
       debugPrint(
         '⚠️ Bulk delivery detected (no stop_vehicles) - showing start delivery dialog',
@@ -1048,10 +1284,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _navigateToFuelDeliveryScreen() async {
-    // ✅ CORRECTED: Calculate currentStopIndex from stop_order
-    // stop_order is "1", "2", etc., so we need to subtract 1 to get the index
     final stopOrder = int.tryParse(widget.stopOrder) ?? 1;
-    final currentStopIndex = stopOrder - 1; // Convert "1" -> 0, "2" -> 1, etc.
+    final currentStopIndex = stopOrder - 1;
 
     debugPrint('========================================');
     debugPrint('📤 NAVIGATING TO FUEL DELIVERY');
@@ -1074,17 +1308,16 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         'vehicleName': widget.vehicleName,
         'customerName': widget.customerName,
         'stopOrder': widget.stopOrder,
-        'currentStopIndex': currentStopIndex, // ✅ CORRECTED
+        'currentStopIndex': currentStopIndex,
         'totalStops': widget.totalStops,
         'driverId': widget.driverId,
         'stopVehicles': widget.stopVehicles,
         'stopVehicleId': 0,
-        'isBulkDelivery': true, // ✅ ADD THIS - explicitly mark as bulk delivery
+        'isBulkDelivery': true,
       },
     );
 
     if (result == true && mounted) {
-      // Delivery completed, navigate back to accepted assignments
       debugPrint(
         '✅ Fuel delivery completed - returning to accepted assignments',
       );
@@ -1110,41 +1343,20 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 'trip_id': widget.tripId,
                 'available_qty': widget.availableQty,
                 'driver_id': widget.driverId,
-                'vehicle_id': widget.vehicleId, // ADD THIS
+                'vehicle_id': widget.vehicleId,
               },
               stop: {
                 'stop_id': widget.tripStopId,
                 'expected_qty': widget.requiredQty,
                 'stop_order': widget.stopOrder,
               },
-              totalStops: widget.totalStops, // ADD THIS
+              totalStops: widget.totalStops,
             ),
       ),
     );
 
-    // Handle result if needed
     if (result == true && mounted) {
-      // Pop back to accepted assignments
       Navigator.of(context).pop(true);
-    }
-
-    void _navigateToDeliveryScreen() {
-      NavigationService().pushReplaceNavigation(
-        Screenroutes.customerFuelDeliveryScreen,
-        arguments: {
-          'assignmentId': widget.assignmentId,
-          'vehicleId': widget.vehicleId,
-          'tripId': widget.tripId.toString(),
-          'tripStopId': widget.tripStopId ?? 0,
-          'requiredQty': widget.requiredQty,
-          'availableQty': widget.availableQty,
-          'vehicleName': widget.vehicleName,
-          'customerName': widget.customerName,
-          'stopOrder': widget.stopOrder,
-          'currentStopIndex': widget.currentStopIndex,
-          'totalStops': widget.totalStops,
-        },
-      );
     }
   }
 }
