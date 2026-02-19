@@ -727,10 +727,17 @@ abstract class RestClient {
     @Field("notes") int? notes,
   });
 
-  @GET('/getCustomerSites/{tripId}')
+  @GET('/getCustomerSites/{customerId}')
   Future<dynamic> getCustomerSites(
     @Header("Authorization") String? token,
+    @Path("customerId") int? customerId,
+  );
+
+  @POST('/Trips/{tripId}/stops')
+  Future<dynamic> postAddTripStops(
+    @Header("Authorization") String? token,
     @Path("tripId") int? tripId,
+    @Body() Map<String, dynamic> body,
   );
 
   @POST('/getTripStopVehicles')
@@ -741,11 +748,12 @@ abstract class RestClient {
   });
 
   @POST('/saveTripStopVehicles')
-  Future<dynamic> postSaveTripStopVehicles({
+  @FormUrlEncoded()
+  Future<dynamic> postSaveTripStopVehicles(
     @Header("Authorization") String? token,
-    @Field("stop_id") String? stopId,
-    @Field("vehicles") List<String>? vehicles, //check later
-  });
+    @Field("stop_id") int stopId,
+    @Field("vehicles[]") List<int> vehicles,
+  );
 
   @GET('/getTripAssignmentOptions/{tripId}')
   Future<dynamic> getTripAssignmentOptions(
@@ -763,6 +771,12 @@ abstract class RestClient {
 
   @GET('/Trips/{tripId}')
   Future<dynamic> getTripDetails(
+    @Header("Authorization") String? token,
+    @Path("tripId") int? tripId,
+  );
+
+  @GET('/getTripStops/{tripId}')
+  Future<dynamic> getTripStops(
     @Header("Authorization") String? token,
     @Path("tripId") int? tripId,
   );

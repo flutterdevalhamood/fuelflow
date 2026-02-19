@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
 import 'package:sample/src/providers/trip_tracking_controller.dart';
+import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
@@ -81,6 +82,13 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
       'deficit': deficit > 0 ? deficit : 0.0,
       'hasDeficit': deficit > 0,
     };
+  }
+
+  bool _areAllStopsDelivered(List<dynamic> tripStops) {
+    if (tripStops.isEmpty) return false;
+    return tripStops.every(
+      (stop) => _isStopDelivered(stop as Map<String, dynamic>),
+    );
   }
 
   bool _isStopDelivered(Map<String, dynamic> stop) {
@@ -269,8 +277,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       'vehicleId': assignment['vehicle_id'] ?? 0,
                       'tripId': assignment['trip_id'] ?? '',
                       'tripStopId': stop['stop_id'] ?? 0,
-                      'requiredQty':
-                          remainingRequiredQty, // CHANGED: Pass remaining required, not total
+                      'requiredQty': remainingRequiredQty,
+                      // CHANGED: Pass remaining required, not total
                       'availableQty': availableQty,
                       'vehicleName': assignment['vehicle'] ?? 'Unknown Vehicle',
                       'stopOrder': stop['stop_order'] ?? '1',
@@ -613,6 +621,75 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
     return double.tryParse(value.toString()) ?? 0.0;
   }
 
+  Future<void> _handleReturnToBase(
+    BuildContext context,
+    Map<String, dynamic> assignment,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.home, color: Colors.green),
+                SizedBox(width: 12),
+                Text('Return to Base'),
+              ],
+            ),
+            content: const Text(
+              'All stops have been delivered. Do you want to return to base and complete the trip?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                icon: const Icon(Icons.home),
+                label: const Text('Return to Base'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final tripStops = assignment['trip_stops'] as List<dynamic>? ?? [];
+    final completedCount =
+        tripStops
+            .where((s) => _isStopDelivered(s as Map<String, dynamic>))
+            .length;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => TripReturnScreen(
+              tripId: int.tryParse(assignment['trip_id'].toString()) ?? 0,
+              assignmentId: assignment['assignment_id'] ?? 0,
+              vehicleId: assignment['vehicle_id'] ?? 0,
+              driverId: assignment['driver_id'] ?? 0,
+              customerName: assignment['customer_name'] ?? 'Unknown',
+              completedCount: completedCount,
+              unavailableCount: tripStops.length - completedCount,
+              isLastStop: true,
+            ),
+      ),
+    );
+
+    if (mounted) {
+      await _refreshAssignments();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -855,7 +932,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             const SizedBox(height: 12),
 
                             Text(
-                              'You need to refill ${totals['deficit']!.toStringAsFixed(2)} IG from the depot to complete all remaining stops.', // CHANGED: "all remaining stops" instead of "all stops"
+                              'You need to refill ${totals['deficit']!.toStringAsFixed(2)} IG from the depot to complete all remaining stops.',
+                              // CHANGED: "all remaining stops" instead of "all stops"
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade700,
@@ -944,7 +1022,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                                 context,
                                 assignment,
                                 stop,
-                                originalIndex, // CHANGED: Pass original index instead of sorted index
+                                originalIndex,
+                                // CHANGED: Pass original index instead of sorted index
                                 tripStops.length,
                               );
                             },
@@ -952,6 +1031,75 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                       ],
                     ),
                   ),
+                  if (_areAllStopsDelivered(tripStops)) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green.shade700,
+                                  size: 28,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'All Stops Delivered!',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    () => _handleReturnToBase(
+                                      context,
+                                      assignment,
+                                    ),
+                                icon: const Icon(Icons.home),
+                                label: const Text(
+                                  'Return to Base',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                 ],
               ),

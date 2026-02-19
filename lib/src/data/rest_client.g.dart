@@ -2635,7 +2635,7 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> getCustomerSites(String? token, int? tripId) async {
+  Future<dynamic> getCustomerSites(String? token, int? customerId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
@@ -2646,7 +2646,35 @@ class _RestClient implements RestClient {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/getCustomerSites/${tripId}',
+            '/getCustomerSites/${customerId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> postAddTripStops(
+    String? token,
+    int? tripId,
+    Map<String, dynamic> body,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Trips/${tripId}/stops',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -2686,20 +2714,24 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> postSaveTripStopVehicles({
+  Future<dynamic> postSaveTripStopVehicles(
     String? token,
-    String? stopId,
-    List<String>? vehicles,
-  }) async {
+    int stopId,
+    List<int> vehicles,
+  ) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
-    final _data = {'stop_id': stopId, 'vehicles': vehicles};
-    _data.removeWhere((k, v) => v == null);
+    final _data = {'stop_id': stopId, 'vehicles[]': vehicles};
     final _options = _setStreamType<dynamic>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'application/x-www-form-urlencoded',
+          )
           .compose(
             _dio.options,
             '/saveTripStopVehicles',
@@ -2778,6 +2810,29 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/Trips/${tripId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> getTripStops(String? token, int? tripId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/getTripStops/${tripId}',
             queryParameters: queryParameters,
             data: _data,
           )

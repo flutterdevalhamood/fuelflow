@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sample/src/blocs/login_bloc.dart';
+import 'package:sample/src/models/trip_customer_model.dart';
+import 'package:sample/src/providers/trip_assignment_controller.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/Reports_screen.dart';
 import 'package:sample/src/screens/assignedUnit/assigned_detail_screen.dart';
@@ -39,6 +41,8 @@ import 'package:sample/src/screens/refillingUnit/refilling_unit_update_screen.da
 import 'package:sample/src/screens/storageUnit/storage_unit_detail_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_list_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
+import 'package:sample/src/screens/trips/add_trip_stop_screen.dart';
+import 'package:sample/src/screens/trips/trip_list_screen.dart';
 import 'package:sample/src/screens/userRegistration/user_registration_screen.dart';
 import 'package:sample/src/screens/userRegistration/user_view_screen.dart';
 import 'package:sample/src/screens/vehicles/vehicle_list_screen.dart';
@@ -131,6 +135,9 @@ class Screenroutes {
   static const String customerViewVehicleScreen = "customerViewVehicleScreen";
   static const String customerViewRefilledDataScreen =
       "customerViewRefilledDataScreen";
+
+  static const String tripListScreen = "tripListScreen";
+  static const String addTripStopScreen = "addTripStopScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -664,6 +671,26 @@ class Screenroutes {
           ),
           builder: (BuildContext context) {
             return CustomerViewMyRefillingsScreen();
+          },
+        );
+
+      case Screenroutes.tripListScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.tripListScreen),
+          builder: (BuildContext context) {
+            return TripListScreen();
+          },
+        );
+
+      case Screenroutes.addTripStopScreen:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.addTripStopScreen),
+          builder: (BuildContext context) {
+            return AddTripStopsScreen(
+              trip: args['trip'] as Trip,
+              controller: args['controller'] as TripController,
+            );
           },
         );
     }

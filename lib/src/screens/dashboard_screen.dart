@@ -131,6 +131,15 @@ class _DashBoardScreenState extends State<DashBoardScreen>
         'gradient': [Color(0xFFfa709a), Color(0xFFfee140)],
         'description': 'Manage driver information',
       },
+
+      {
+        'title': 'Trips',
+        'icon': Icons.trip_origin,
+        'route': Screenroutes.tripListScreen,
+        'color': Colors.green,
+        'gradient': [Color(0xFF11998e), Color(0xFF38ef7d)],
+        'description': 'View Refilled Data',
+      },
       {
         'title': 'Products',
         'icon': Icons.inventory_2_rounded,
