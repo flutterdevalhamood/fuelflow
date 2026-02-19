@@ -512,6 +512,12 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
                             siteName: stop['site_name'],
                             stopVehicles:
                                 stop['stop_vehicles'] as List<dynamic>?,
+                            stopLatitude: double.tryParse(
+                              stop['latitude']?.toString() ?? '',
+                            ),
+                            stopLongitude: double.tryParse(
+                              stop['longitude']?.toString() ?? '',
+                            ),
                           ),
                     ),
                   );

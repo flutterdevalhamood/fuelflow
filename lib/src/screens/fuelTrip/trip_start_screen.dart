@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/data/rest_client.dart';
@@ -10,6 +13,7 @@ import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelTrip/all_vehicle_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TripStartedScreen extends StatefulWidget {
   final int tripId;
@@ -28,6 +32,8 @@ class TripStartedScreen extends StatefulWidget {
   final int driverId;
   final String? siteName;
   final List<dynamic>? stopVehicles;
+  final double? stopLatitude;
+  final double? stopLongitude;
 
   const TripStartedScreen({
     super.key,
@@ -46,6 +52,8 @@ class TripStartedScreen extends StatefulWidget {
     required this.driverId,
     this.siteName,
     this.stopVehicles,
+    this.stopLatitude,
+    this.stopLongitude,
   });
 
   @override
@@ -60,6 +68,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   bool _isCheckingLocation = false;
   bool _hasShownLocationDialog = false;
   bool _isNavigating = false;
+
+  GoogleMapController? _googleMapController;
+  bool _mapExpanded = false;
 
   @override
   void initState() {
@@ -228,6 +239,23 @@ class _TripStartedScreenState extends State<TripStartedScreen>
             ],
           ),
     );
+  }
+
+  Future<void> _openDirections(double lat, double lng) async {
+    final destination = '$lat,$lng';
+    final label = Uri.encodeComponent(widget.siteName ?? widget.customerName);
+
+    // Try Google Maps first, fallback to browser
+    final googleMapsUrl = Uri.parse('google.navigation:q=$destination&mode=d');
+    final googleMapsFallback = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$destination&destination_place_name=$label&travelmode=driving',
+    );
+
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(googleMapsUrl);
+    } else {
+      await launchUrl(googleMapsFallback, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _showLocationRequiredDialog() async {
@@ -611,7 +639,215 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _googleMapController?.dispose();
+    _animationController.dispose();
     super.dispose();
+  }
+
+  Widget _buildStopLocationMap() {
+    final lat = widget.stopLatitude;
+    final lng = widget.stopLongitude;
+
+    if (lat == null || lng == null) return const SizedBox.shrink();
+
+    final stopLocation = LatLng(lat, lng);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(color: Colors.blue.shade700),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Destination',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _mapExpanded = !_mapExpanded),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _mapExpanded ? 'Collapse' : 'Expand',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _mapExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              height: _mapExpanded ? 300 : 180,
+              child: GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: stopLocation,
+                  zoom: 14.0,
+                ),
+                onMapCreated: (controller) {
+                  _googleMapController = controller;
+                },
+                markers: {
+                  Marker(
+                    markerId: const MarkerId('stop_location'),
+                    position: stopLocation,
+                    infoWindow: InfoWindow(
+                      title: widget.siteName ?? widget.customerName,
+                      snippet: 'Delivery Stop',
+                    ),
+                  ),
+                },
+                mapType: MapType.normal,
+                zoomControlsEnabled: true,
+                myLocationButtonEnabled: false,
+                // ✅ FIX: Claim all gestures so map gets touch priority over ScrollView
+                gestureRecognizers: {
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.my_location,
+                    size: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                  // Center button
+                  GestureDetector(
+                    onTap:
+                        () => _googleMapController?.animateCamera(
+                          CameraUpdate.newLatLngZoom(stopLocation, 14.0),
+                        ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.center_focus_strong,
+                            size: 14,
+                            color: Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Center',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // ✅ NEW: Directions button
+                  GestureDetector(
+                    onTap: () => _openDirections(lat, lng),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade600,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.navigation, size: 14, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Directions',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -740,22 +976,37 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 ),
 
                 Expanded(
-                  child: Center(
+                  child: SingleChildScrollView(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (_isCheckingLocation)
-                          _buildCheckingLocationContent()
-                        else if (!_isLocationReady)
-                          _buildLocationRequiredContent()
-                        else
-                          _buildTripActiveContent(),
+                        // Status/animation section
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (_isCheckingLocation)
+                                  _buildCheckingLocationContent()
+                                else if (!_isLocationReady)
+                                  _buildLocationRequiredContent()
+                                else
+                                  _buildTripActiveContent(),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Trip details card
+                        if (_isLocationReady) _buildTripDetailsCard(),
+                        // ✅ Map
+                        if (_isLocationReady &&
+                            widget.stopLatitude != null &&
+                            widget.stopLongitude != null)
+                          _buildStopLocationMap(),
                       ],
                     ),
                   ),
                 ),
-
-                if (_isLocationReady) _buildTripDetailsCard(),
 
                 Padding(
                   padding: const EdgeInsets.all(16),
