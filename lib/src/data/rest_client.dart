@@ -788,4 +788,20 @@ abstract class RestClient {
   Future<dynamic> getRequestAdminCallback({
     @Header("Authorization") String? token,
   });
+
+  @GET('/paginateNotifications/{page}/{limit}')
+  Future<dynamic> getNotifications(
+    @Header("Authorization") String? token,
+    @Path("page") int? page,
+    @Path("limit") int? limit,
+  );
+
+  @GET('/notificationMarkAsRead/{id}')
+  Future<dynamic> getNotificationMarkAsRead({
+    @Header("Authorization") String? token,
+    @Path("id") required int id,
+  });
+
+  @GET('/unreadCount')
+  Future<dynamic> getUnreadCount({@Header("Authorization") String? token});
 }

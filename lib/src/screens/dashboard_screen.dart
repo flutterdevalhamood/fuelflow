@@ -33,14 +33,13 @@ class _DashBoardScreenState extends State<DashBoardScreen>
     _effectiveUserRole = widget.userRole ?? AuthRepo.role?.toLowerCase();
     _loadCustomerData();
 
-    // Initialize animation controller
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 1500),
+      duration: Duration(milliseconds: 900), // faster = more urgent feel
       vsync: this,
     );
 
-    // Scale animation for the entire card
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+    // Scale animation - more dramatic
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
@@ -974,7 +973,6 @@ class _DashBoardScreenState extends State<DashBoardScreen>
       ),
     );
 
-    // Wrap with animation if there's a badge count
     if (shouldAnimate) {
       return AnimatedBuilder(
         animation: _animationController,
@@ -985,24 +983,69 @@ class _DashBoardScreenState extends State<DashBoardScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
+                  // Strong pulsing red glow
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.55 * _pulseAnimation.value),
+                    blurRadius: 28 + (18 * _pulseAnimation.value),
+                    spreadRadius: 4 * _pulseAnimation.value,
+                    offset: Offset(0, 0),
+                  ),
+                  // Orange outer glow layer
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(
+                      0.35 * _pulseAnimation.value,
+                    ),
+                    blurRadius: 40 + (20 * _pulseAnimation.value),
+                    spreadRadius: 6 * _pulseAnimation.value,
+                    offset: Offset(0, 0),
+                  ),
                   // Base shadow
                   BoxShadow(
-                    color: (item['gradient'][0] as Color).withOpacity(0.2),
+                    color: (item['gradient'][0] as Color).withOpacity(0.25),
                     blurRadius: 15,
                     offset: Offset(0, 8),
                   ),
-                  // Animated pulsing glow
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(
-                      0.4 * _pulseAnimation.value,
+                ],
+              ),
+              child: Stack(
+                children: [
+                  cardContent,
+                  // Animated glowing border overlay
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, _) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.red.withOpacity(
+                                  0.3 + 0.7 * _pulseAnimation.value,
+                                ),
+                                width: 2.5,
+                              ),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(
+                                    0.12 * _pulseAnimation.value,
+                                  ),
+                                  Colors.transparent,
+                                  Colors.white.withOpacity(
+                                    0.08 * _pulseAnimation.value,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    blurRadius: 20 + (10 * _pulseAnimation.value),
-                    spreadRadius: 2 * _pulseAnimation.value,
-                    offset: Offset(0, 0),
                   ),
                 ],
               ),
-              child: cardContent,
             ),
           );
         },

@@ -576,7 +576,7 @@ class _AddTripStopsScreenState extends State<AddTripStopsScreen> {
     final qtyError =
         _submitted &&
         (stop.qtyCtrl.text.trim().isEmpty ||
-            int.tryParse(stop.qtyCtrl.text.trim()) == null);
+            double.tryParse(stop.qtyCtrl.text.trim()) == null);
     final arrivalError = _submitted && stop.arrivalTime == null;
     final completedError =
         _submitted &&

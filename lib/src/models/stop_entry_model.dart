@@ -44,17 +44,25 @@ class StopEntry {
     return '$y-$mo-$d $h:$mi:00';
   }
 
-  Map<String, dynamic> toJson() => {
-    'site_id': site!.id,
-    'expected_quantity': int.tryParse(qtyCtrl.text.trim()) ?? 0,
-    'expected_arrival_time': _fmt(arrivalTime!),
-    'expected_completed_time': _fmt(completedTime!),
-  };
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'site_id': site!.id,
+      'expected_quantity': double.tryParse(qtyCtrl.text.trim()) ?? 0,
+      'expected_arrival_time': _fmt(arrivalTime!),
+      'expected_completed_time': _fmt(completedTime!),
+    };
+
+    if (existingStopId != null) {
+      map['id'] = existingStopId;
+    }
+
+    return map;
+  }
 
   bool get isValid =>
       site != null &&
       qtyCtrl.text.trim().isNotEmpty &&
-      int.tryParse(qtyCtrl.text.trim()) != null &&
+      double.tryParse(qtyCtrl.text.trim()) != null &&
       arrivalTime != null &&
       completedTime != null &&
       completedTime!.isAfter(arrivalTime!);

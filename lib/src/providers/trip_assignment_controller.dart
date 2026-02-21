@@ -35,6 +35,12 @@ class TripController with ChangeNotifier {
   bool isSavingVehicles = false;
   String? saveVehiclesError;
 
+  List<dynamic> availableDrivers = [];
+  List<dynamic> availableVehicles = [];
+  bool isLoadingAssignmentOptions = false;
+  bool isSavingAssignment = false;
+  String? saveAssignmentError;
+
   // Replace with your actual RestClient call
   Future<void> fetchTrips({bool loadMore = false}) async {
     if (isLoading) return;
@@ -315,6 +321,72 @@ class TripController with ChangeNotifier {
       return false;
     } finally {
       isSavingVehicles = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchTripAssignmentOptions(int tripId) async {
+    isLoadingAssignmentOptions = true;
+    availableDrivers = [];
+    availableVehicles = [];
+    notifyListeners();
+
+    try {
+      if (token == null) throw Exception("No Token Found");
+      final response = await restApi.getTripAssignmentOptions(
+        'Bearer $token',
+        tripId,
+      );
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        final data = response['Data'] as Map<String, dynamic>;
+        availableDrivers = data['availableDrivers'] as List<dynamic>;
+        availableVehicles = data['availableVehicles'] as List<dynamic>;
+      }
+    } catch (e) {
+      if (e is DioException) print('Dio error fetching assignment options: $e');
+    } finally {
+      isLoadingAssignmentOptions = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> saveTripAssignment({
+    required int tripId,
+    required int vehicleId,
+    required int driverId,
+  }) async {
+    isSavingAssignment = true;
+    saveAssignmentError = null;
+    notifyListeners();
+
+    try {
+      if (token == null) throw Exception("No Token Found");
+      final response = await restApi.postSaveTripAssignments(
+        tripId: tripId,
+        token: 'Bearer $token',
+        stopId: vehicleId,
+        vehicles: driverId,
+      );
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        return true;
+      } else {
+        saveAssignmentError =
+            (response is Map ? response['Message'] as String? : null) ??
+            'Failed to save assignment';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      if (e is DioException) {
+        saveAssignmentError =
+            e.response?.data?['Message'] as String? ?? 'Network error.';
+      } else {
+        saveAssignmentError = e.toString();
+      }
+      notifyListeners();
+      return false;
+    } finally {
+      isSavingAssignment = false;
       notifyListeners();
     }
   }

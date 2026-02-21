@@ -350,4 +350,109 @@ class FuelTripController with ChangeNotifier {
     isSubmittingResponse = false;
     notifyListeners();
   }
+
+  // Add these fields
+  List<Map<String, dynamic>>? notificationsData;
+  int unreadCount = 0;
+  int notificationPage = 1;
+  final int notificationLimit = 10;
+  bool hasMoreNotifications = true;
+
+  Future<void> getNotifications({bool loadMore = false}) async {
+    if (!loadMore) {
+      notificationsData = null;
+      notificationPage = 1;
+      hasMoreNotifications = true;
+    }
+
+    errorMessage = null;
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      final currentToken = token;
+      if (currentToken == null || currentToken.isEmpty) {
+        throw Exception("No token found");
+      }
+
+      final response = await restApi.getNotifications(
+        'Bearer $currentToken',
+        notificationPage,
+        notificationLimit,
+      );
+
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        final data = response['Data'] as List<dynamic>?;
+        if (data != null) {
+          final newData = data.map((v) => v as Map<String, dynamic>).toList();
+          if (loadMore) {
+            notificationsData ??= [];
+            notificationsData!.addAll(newData);
+          } else {
+            notificationsData = newData;
+          }
+          hasMoreNotifications = data.length == notificationLimit;
+        } else {
+          hasMoreNotifications = false;
+          if (!loadMore) notificationsData = [];
+        }
+      } else {
+        errorMessage = response['Message'] ?? 'Failed to load notifications';
+      }
+    } catch (e) {
+      errorMessage = 'Failed to load notifications';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchUnreadCount() async {
+    try {
+      final currentToken = token;
+      if (currentToken == null || currentToken.isEmpty) return;
+
+      final response = await restApi.getUnreadCount(
+        token: 'Bearer $currentToken',
+      );
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        unreadCount = response['Data'] as int? ?? 0;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching unread count: $e');
+    }
+  }
+
+  Future<bool> markNotificationAsRead(int id) async {
+    try {
+      final currentToken = token;
+      if (currentToken == null || currentToken.isEmpty) return false;
+
+      final response = await restApi.getNotificationMarkAsRead(
+        token: 'Bearer $currentToken',
+        id: id, // PASS ACTUAL ID HERE
+      );
+
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        final index = notificationsData?.indexWhere((n) => n['id'] == id);
+        if (index != null && index >= 0) {
+          notificationsData![index]['is_read'] = true;
+        }
+        if (unreadCount > 0) unreadCount--;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
+    return false;
+  }
+
+  void loadMoreNotifications() {
+    if (hasMoreNotifications && !isLoading) {
+      notificationPage++;
+      getNotifications(loadMore: true);
+    }
+  }
 }
