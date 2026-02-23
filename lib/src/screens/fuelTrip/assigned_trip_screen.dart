@@ -2,29 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
-import 'package:sample/src/repo/auth_repo.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
-import 'package:sample/src/screens/fuelTrip/assigned_trip_screen.dart';
 
-class NotificationScreen extends StatefulWidget {
+class AssignedTripsScreen extends StatefulWidget {
   final int driverId;
 
-  const NotificationScreen({Key? key, required this.driverId})
+  const AssignedTripsScreen({Key? key, required this.driverId})
     : super(key: key);
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  State<AssignedTripsScreen> createState() => _AssignedTripsScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
   @override
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FuelTripController>().getAssignedTrips();
-      context.read<FuelTripController>().getNotifications();
-      context.read<FuelTripController>().fetchUnreadCount();
     });
   }
 
@@ -826,254 +822,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Assigned Trips'),
-          elevation: 0,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Consumer<FuelTripController>(
-              builder: (context, controller, _) {
-                return TabBar(
-                  tabs: [
-                    const Tab(text: 'Assignments'),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Notifications'),
-                          if (controller.unreadCount > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                controller.unreadCount > 99
-                                    ? '99+'
-                                    : '${controller.unreadCount}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-        body: TabBarView(
-          children: [_buildAssignmentsTab(), _buildNotificationsTab()],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationsTab() {
-    return Consumer<FuelTripController>(
-      builder: (context, controller, _) {
-        if (controller.isLoading && controller.notificationsData == null) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (controller.notificationsData == null ||
-            controller.notificationsData!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.notifications_off_outlined,
-                  size: 80,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Notifications',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'You have no notifications yet',
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => controller.getNotifications(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () => controller.getNotifications(),
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (scroll) {
-              if (scroll.metrics.pixels >=
-                  scroll.metrics.maxScrollExtent - 100) {
-                controller.loadMoreNotifications();
-              }
-              return false;
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount:
-                  controller.notificationsData!.length +
-                  (controller.hasMoreNotifications ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == controller.notificationsData!.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                return _buildNotificationCard(
-                  controller.notificationsData![index],
-                  controller,
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNotificationCard(
-    Map<String, dynamic> notification,
-    FuelTripController controller,
-  ) {
-    final isRead = notification['is_read'] == true;
-    final id = notification['id'] as int;
-
-    return Card(
-      elevation: isRead ? 1 : 3,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: isRead ? Colors.white : Colors.blue.shade50,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          // Mark as read if unread
-          if (!isRead) {
-            await controller.markNotificationAsRead(id);
-          }
-          // Navigate to AssignedTripsScreen
-          if (context.mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (_) => AssignedTripsScreen(driverId: AuthRepo.driverId!),
-              ),
-            );
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isRead ? Colors.grey.shade100 : Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.notifications_rounded,
-                  color: isRead ? Colors.grey : Colors.blue,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification['title'] ?? '',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight:
-                                  isRead ? FontWeight.w500 : FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (!isRead)
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.blue,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification['message'] ?? '',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDateTime(notification['created_at']),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        if (!isRead)
-                          Text(
-                            'Tap to mark as read',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.blue.shade400,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Assigned Trips'), elevation: 0),
+      body: _buildAssignmentsTab(), // paste _buildAssignmentsTab body here
     );
   }
 

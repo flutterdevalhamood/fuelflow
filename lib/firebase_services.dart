@@ -14,7 +14,7 @@ class FirebaseService {
 
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   String? _fcmToken;
   bool _isInitialized = false;
@@ -38,13 +38,13 @@ class FirebaseService {
       log('📋 Step 2: Requesting notification permissions...');
       NotificationSettings settings = await _firebaseMessaging
           .requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-        criticalAlert: false,
-        announcement: false,
-      );
+            alert: true,
+            badge: true,
+            sound: true,
+            provisional: false,
+            criticalAlert: false,
+            announcement: false,
+          );
 
       log('📋 Permission result: ${settings.authorizationStatus}');
       log('   - Authorization Status: ${settings.authorizationStatus.name}');
@@ -106,7 +106,7 @@ class FirebaseService {
 
       // Check if app was opened from a terminated state via notification
       RemoteMessage? initialMessage =
-      await _firebaseMessaging.getInitialMessage();
+          await _firebaseMessaging.getInitialMessage();
       if (initialMessage != null) {
         log('═══════════════════════════════════════');
         log('📱 APP OPENED FROM TERMINATED STATE VIA NOTIFICATION');
@@ -157,20 +157,20 @@ class FirebaseService {
     log('🔧 Initializing local notifications plugin...');
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@drawable/ic_notification');
+        AndroidInitializationSettings('@drawable/ic_notification');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
-    DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings initializationSettings =
-    InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsDarwin,
-    );
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsDarwin,
+        );
 
     final initialized = await _localNotifications.initialize(
       initializationSettings,
@@ -186,7 +186,7 @@ class FirebaseService {
 
         if (response.payload != null) {
           log('➡️ Navigating to notification screen...');
-          NavigationService().pushNavigation(Screenroutes.notificationScreen);
+          NavigationService().pushNavigation(Screenroutes.notificationsScreen);
         } else {
           log('⚠️ No payload to handle');
         }
@@ -208,9 +208,11 @@ class FirebaseService {
       playSound: true,
     );
 
-    final androidImplementation = _localNotifications
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidImplementation =
+        _localNotifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
 
     if (androidImplementation != null) {
       await androidImplementation.createNotificationChannel(channel);
@@ -364,7 +366,9 @@ class FirebaseService {
         log('═══════════════════════════════════════');
         log('Full Token: $_fcmToken');
         log('Token Length: ${_fcmToken!.length}');
-        log('First 50 chars: ${_fcmToken!.substring(0, _fcmToken!.length > 50 ? 50 : _fcmToken!.length)}...');
+        log(
+          'First 50 chars: ${_fcmToken!.substring(0, _fcmToken!.length > 50 ? 50 : _fcmToken!.length)}...',
+        );
         log('Timestamp: ${DateTime.now()}');
         log('═══════════════════════════════════════');
         log('📋 COPY THIS TOKEN TO TEST IN FIREBASE CONSOLE:');
@@ -405,7 +409,7 @@ class FirebaseService {
     try {
       log('➡️ Navigating to notification screen...');
       NavigationService().pushNavigation(
-        Screenroutes.notificationScreen,
+        Screenroutes.notificationsScreen,
         arguments: {
           'notificationData': message.data,
           'title': message.notification?.title,

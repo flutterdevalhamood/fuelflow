@@ -182,7 +182,7 @@ class _DashBoardScreenState extends State<DashBoardScreen>
       {
         'title': 'Assigned Trips',
         'icon': Icons.local_shipping_rounded,
-        'route': Screenroutes.notificationScreen,
+        'route': Screenroutes.assignedTripScreen,
         'color': Colors.deepOrange,
         'gradient': [Color(0xFFFF6B6B), Color(0xFFFFE66D)],
         'description': 'Go to Your Assignment Trips',
@@ -582,47 +582,57 @@ class _DashBoardScreenState extends State<DashBoardScreen>
           actions: [
             Container(
               margin: EdgeInsets.only(right: 8),
-              child: Stack(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      NavigationService().pushNavigation(
-                        Screenroutes.notificationScreen,
-                        arguments: AuthRepo.driverId,
-                      );
-                    },
-                  ),
-                  if (_effectiveUserRole == "driver" && _pendingTripsCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
+              child: // Replace the existing bell icon Stack with this:
+                  Consumer<FuelTripController>(
+                builder: (context, controller, _) {
+                  return Container(
+                    margin: EdgeInsets.only(right: 8),
+                    child: Stack(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.notifications_outlined),
+                          onPressed: () {
+                            NavigationService().pushNavigation(
+                              Screenroutes.notificationsScreen,
+                            );
+                          },
                         ),
-                        constraints: BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        child: Text(
-                          _pendingTripsCount > 9 ? '9+' : '$_pendingTripsCount',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                        if (controller.unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              child: Text(
+                                controller.unreadCount > 9
+                                    ? '9+'
+                                    : '${controller.unreadCount}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                      ],
                     ),
-                ],
+                  );
+                },
               ),
             ),
           ],
         ),
+
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -838,7 +848,7 @@ class _DashBoardScreenState extends State<DashBoardScreen>
                 item['route'],
                 arguments: AuthRepo.driverId,
               );
-            } else if (item['route'] == Screenroutes.notificationScreen) {
+            } else if (item['route'] == Screenroutes.acceptedAssignmentScreen) {
               final result = await NavigationService().pushNavigation(
                 item['route'],
                 arguments: AuthRepo.driverId,

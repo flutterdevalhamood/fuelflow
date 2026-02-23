@@ -23,10 +23,11 @@ import 'package:sample/src/screens/fuelRefill/fuel_refill_data_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_detail_screen.dart';
 import 'package:sample/src/screens/fuelRefill/fuel_refill_edit_screen.dart';
 import 'package:sample/src/screens/fuelTrip/accepted_assignment_screen.dart';
+import 'package:sample/src/screens/fuelTrip/assigned_trip_screen.dart';
 import 'package:sample/src/screens/fuelTrip/completed_assignment_screen.dart';
 import 'package:sample/src/screens/fuelTrip/customer_fuel_delivery_screen.dart';
 import 'package:sample/src/screens/fuelTrip/fuel_refill_before_trip_screen.dart';
-import 'package:sample/src/screens/fuelTrip/notification_screen.dart';
+import 'package:sample/src/screens/fuelTrip/notifications_screen.dart';
 import 'package:sample/src/screens/fuelTrip/stop_vehicle_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
@@ -113,7 +114,9 @@ class Screenroutes {
   //reports
   static const String reportsScreen = "reportsScreen";
 
-  static const String notificationScreen = "notificationScreen";
+  static const String notificationsScreen = "notificationsScreen";
+
+  static const String assignedTripScreen = "assignedTripScreen";
 
   static const String acceptedAssignmentScreen = "acceptedAssignmentScreen";
 
@@ -497,12 +500,20 @@ class Screenroutes {
           },
         );
 
-      case Screenroutes.notificationScreen:
+      case Screenroutes.notificationsScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(name: Screenroutes.notificationsScreen),
+          builder: (BuildContext context) {
+            return NotificationsScreen();
+          },
+        );
+
+      case Screenroutes.assignedTripScreen:
         final data = settings.arguments as int?;
         return MaterialPageRoute(
-          settings: const RouteSettings(name: Screenroutes.notificationScreen),
+          settings: const RouteSettings(name: Screenroutes.assignedTripScreen),
           builder: (BuildContext context) {
-            return NotificationScreen(driverId: data ?? 1);
+            return AssignedTripsScreen(driverId: data ?? 1);
           },
         );
 
