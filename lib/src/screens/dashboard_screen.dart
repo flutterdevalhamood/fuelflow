@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
@@ -27,6 +30,10 @@ class _DashBoardScreenState extends State<DashBoardScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _pulseAnimation;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  Timer? _soundTimer;
+  bool _soundPlaying = false;
+
   @override
   void initState() {
     super.initState();
@@ -34,12 +41,12 @@ class _DashBoardScreenState extends State<DashBoardScreen>
     _loadCustomerData();
 
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 900), // faster = more urgent feel
+      duration: Duration(milliseconds: 400), // faster = more urgent feel
       vsync: this,
     );
 
     // Scale animation - more dramatic
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
@@ -89,12 +96,27 @@ class _DashBoardScreenState extends State<DashBoardScreen>
           setState(() {
             _pendingTripsCount = pendingTrips.length;
           });
+          // _startAlertSound();
         }
       }
     } catch (e) {
       print('Error loading pending trips count: $e');
     }
   }
+
+  // void _startAlertSound() async {
+  //   if (_soundPlaying || _pendingTripsCount == 0) return;
+  //   _soundPlaying = true;
+  //
+  //   await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+  //   await _audioPlayer.play(AssetSource('sounds/alert.mp3'));
+  //
+  //   // Stop after 30 seconds
+  //   _soundTimer = Timer(Duration(seconds: 30), () async {
+  //     await _audioPlayer.stop();
+  //     _soundPlaying = false;
+  //   });
+  // }
 
   void _loadCustomerData() {
     _customerName = AuthRepo.customerName;
@@ -843,6 +865,11 @@ class _DashBoardScreenState extends State<DashBoardScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: () async {
+            if (item['showBadge'] == true) {
+              await _audioPlayer.stop();
+              _soundPlaying = false;
+              _soundTimer?.cancel();
+            }
             if (item['route'] == Screenroutes.acceptedAssignmentScreen) {
               NavigationService().pushNavigation(
                 item['route'],

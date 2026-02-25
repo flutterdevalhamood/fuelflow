@@ -2594,47 +2594,6 @@ class _RestClient implements RestClient {
   }
 
   @override
-  Future<dynamic> postUpdateTrip({
-    int? tripId,
-    String? token,
-    String? customerId,
-    String? scheduledStart,
-    String? scheduledEnd,
-    int? notes,
-  }) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
-    queryParameters.removeWhere((k, v) => v == null);
-    final _headers = <String, dynamic>{r'Authorization': token};
-    _headers.removeWhere((k, v) => v == null);
-    final _data = {
-      'customer_id': customerId,
-      'scheduled_start': scheduledStart,
-      'scheduled_end': scheduledEnd,
-      'notes': notes,
-    };
-    _data.removeWhere((k, v) => v == null);
-    final _options = _setStreamType<dynamic>(
-      Options(
-            method: 'POST',
-            headers: _headers,
-            extra: _extra,
-            contentType: 'application/x-www-form-urlencoded',
-          )
-          .compose(
-            _dio.options,
-            '/Trips/${tripId}',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
-    final _result = await _dio.fetch(_options);
-    final _value = _result.data;
-    return _value;
-  }
-
-  @override
   Future<dynamic> getCustomerSites(String? token, int? customerId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -2833,6 +2792,34 @@ class _RestClient implements RestClient {
           .compose(
             _dio.options,
             '/getTripStops/${tripId}',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> putUpdateTrip({
+    int? tripId,
+    String? token,
+    required Map<String, dynamic> body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{r'Authorization': token};
+    _headers.removeWhere((k, v) => v == null);
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'PUT', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/Trips/${tripId}',
             queryParameters: queryParameters,
             data: _data,
           )

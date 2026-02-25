@@ -716,17 +716,6 @@ abstract class RestClient {
     @Field("notes") int? notes,
   });
 
-  @POST('/Trips/{tripId}')
-  @FormUrlEncoded()
-  Future<dynamic> postUpdateTrip({
-    @Path("tripId") int? tripId,
-    @Header("Authorization") String? token,
-    @Field("customer_id") String? customerId,
-    @Field("scheduled_start") String? scheduledStart,
-    @Field("scheduled_end") String? scheduledEnd,
-    @Field("notes") int? notes,
-  });
-
   @GET('/getCustomerSites/{customerId}')
   Future<dynamic> getCustomerSites(
     @Header("Authorization") String? token,
@@ -780,6 +769,13 @@ abstract class RestClient {
     @Header("Authorization") String? token,
     @Path("tripId") int? tripId,
   );
+
+  @PUT('/Trips/{tripId}')
+  Future<dynamic> putUpdateTrip({
+    @Path("tripId") int? tripId,
+    @Header("Authorization") String? token,
+    @Body() required Map<String, dynamic> body,
+  });
 
   @GET('/Driver/sos')
   Future<dynamic> getDriverSOS({@Header("Authorization") String? token});

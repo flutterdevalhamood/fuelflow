@@ -43,6 +43,7 @@ import 'package:sample/src/screens/storageUnit/storage_unit_detail_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_list_screen.dart';
 import 'package:sample/src/screens/storageUnit/storage_unit_registration_screen.dart';
 import 'package:sample/src/screens/trips/add_trip_stop_screen.dart';
+import 'package:sample/src/screens/trips/trip_detail_screen.dart';
 import 'package:sample/src/screens/trips/trip_list_screen.dart';
 import 'package:sample/src/screens/userRegistration/user_registration_screen.dart';
 import 'package:sample/src/screens/userRegistration/user_view_screen.dart';
@@ -141,6 +142,7 @@ class Screenroutes {
 
   static const String tripListScreen = "tripListScreen";
   static const String addTripStopScreen = "addTripStopScreen";
+  static const String viewTripDetailScreen = "viewTripDetailScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -702,6 +704,17 @@ class Screenroutes {
               trip: args['trip'] as Trip,
               controller: args['controller'] as TripController,
             );
+          },
+        );
+
+      case Screenroutes.viewTripDetailScreen:
+        final tripId = settings.arguments as int;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.viewTripDetailScreen,
+          ),
+          builder: (BuildContext context) {
+            return TripDetailScreen(tripId: tripId);
           },
         );
     }

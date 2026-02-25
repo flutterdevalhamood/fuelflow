@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:sample/src/data/rest_client.dart';
 import 'package:sample/src/models/customer_site_model.dart';
 import 'package:sample/src/models/trip_customer_model.dart';
+import 'package:sample/src/models/trip_detail_model.dart';
 import 'package:sample/src/models/trip_stop_model.dart';
 import 'package:sample/src/repo/auth_repo.dart';
 
@@ -40,6 +41,13 @@ class TripController with ChangeNotifier {
   bool isLoadingAssignmentOptions = false;
   bool isSavingAssignment = false;
   String? saveAssignmentError;
+
+  bool isUpdatingTrip = false;
+  String? updateTripError;
+
+  TripDetail? tripDetail;
+  bool isTripDetailLoading = false;
+  String? tripDetailError;
 
   // Replace with your actual RestClient call
   Future<void> fetchTrips({bool loadMore = false}) async {
@@ -387,6 +395,85 @@ class TripController with ChangeNotifier {
       return false;
     } finally {
       isSavingAssignment = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateTrip({
+    required int tripId,
+    required String customerId,
+    required String scheduledStart,
+    required String scheduledEnd,
+    String? notes,
+  }) async {
+    isUpdatingTrip = true;
+    updateTripError = null;
+    notifyListeners();
+
+    try {
+      if (token == null) throw Exception("No Token Found");
+
+      final response = await restApi.putUpdateTrip(
+        tripId: tripId,
+        token: 'Bearer $token',
+        body: {
+          'customer_id': customerId,
+          'scheduled_start': scheduledStart,
+          'scheduled_end': scheduledEnd,
+          if (notes != null && notes.isNotEmpty) 'notes': notes,
+        },
+      );
+
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        await fetchTrips();
+        return true;
+      } else {
+        updateTripError =
+            (response is Map ? response['Message'] as String? : null) ??
+            'Failed to update trip';
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      if (e is DioException) {
+        updateTripError =
+            e.response?.data?['Message'] as String? ??
+            'Network error. Please try again.';
+      } else {
+        updateTripError = e.toString();
+      }
+      notifyListeners();
+      return false;
+    } finally {
+      isUpdatingTrip = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchTripDetail(int tripId) async {
+    isTripDetailLoading = true;
+    tripDetailError = null;
+    tripDetail = null;
+    notifyListeners();
+
+    try {
+      if (token == null) throw Exception("No Token Found");
+
+      final response = await restApi.getTripDetails('Bearer $token', tripId);
+
+      if (response is Map<String, dynamic> && response['IsSuccess'] == true) {
+        tripDetail = TripDetail.fromJson(
+          response['Data'] as Map<String, dynamic>,
+        );
+      } else {
+        tripDetailError =
+            (response is Map ? response['Message'] as String? : null) ??
+            'Failed to load trip details';
+      }
+    } catch (e) {
+      tripDetailError = 'Failed to load trip details. Please try again.';
+    } finally {
+      isTripDetailLoading = false;
       notifyListeners();
     }
   }

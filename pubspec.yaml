@@ -69,6 +69,7 @@ dependencies:
   share_plus: ^7.2.1
   google_maps_flutter: ^2.5.0
   geocoding: ^2.1.1
+  audioplayers: ^5.2.1
 
 
 dev_dependencies:
@@ -99,6 +100,7 @@ flutter:
    - assets/
    - assets/icon/
    - assets/icon/app_icon.png
+   - assets/sounds/alert.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:

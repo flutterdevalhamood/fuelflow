@@ -79,6 +79,647 @@ class _TripCardState extends State<TripCard>
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}  $h:$m';
   }
 
+  // ─── Edit Trip Sheet ──────────────────────────────────────────────────────
+
+  void _showEditSheet(BuildContext context) async {
+    final ctrl = widget.controller;
+    final trip = widget.trip;
+
+    // Pre-fetch customers if not yet loaded
+    if (ctrl.customers.isEmpty) {
+      await ctrl.fetchTripBaseList();
+    }
+    if (!context.mounted) return;
+
+    // Local state mirrors
+    int? selectedCustomerId = trip.customer.id;
+    DateTime scheduledStart = trip.scheduledStart;
+    DateTime scheduledEnd = trip.scheduledEnd;
+    String notes = '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            Future<void> pickDate({
+              required bool isStart,
+              required DateTime initial,
+            }) async {
+              final date = await showDatePicker(
+                context: ctx,
+                initialDate: initial,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+                builder:
+                    (c, child) => Theme(
+                      data: Theme.of(c).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xFF6D5EFF),
+                          onPrimary: Colors.white,
+                        ),
+                      ),
+                      child: child!,
+                    ),
+              );
+              if (date == null) return;
+              if (!ctx.mounted) return;
+
+              final time = await showTimePicker(
+                context: ctx,
+                initialTime: TimeOfDay.fromDateTime(initial),
+                builder:
+                    (c, child) => Theme(
+                      data: Theme.of(c).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xFF6D5EFF),
+                        ),
+                      ),
+                      child: child!,
+                    ),
+              );
+              if (time == null) return;
+
+              final combined = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
+              setSheetState(() {
+                if (isStart) {
+                  scheduledStart = combined;
+                } else {
+                  scheduledEnd = combined;
+                }
+              });
+            }
+
+            String fmtDisplay(DateTime dt) {
+              final h = dt.hour.toString().padLeft(2, '0');
+              final m = dt.minute.toString().padLeft(2, '0');
+              return '${dt.day}/${dt.month}/${dt.year}  $h:$m';
+            }
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: ListenableBuilder(
+                  listenable: ctrl,
+                  builder: (_, __) {
+                    return SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Handle bar
+                            Center(
+                              child: Container(
+                                width: 36,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE0E3EF),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Header
+                            Row(
+                              children: [
+                                Container(
+                                  width: 46,
+                                  height: 46,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF6D5EFF),
+                                        Color(0xFF5347CC),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF6D5EFF,
+                                        ).withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.edit_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Edit Trip',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1A1F36),
+                                      ),
+                                    ),
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(
+                                          0xFF6D5EFF,
+                                        ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Trip #${trip.id}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF6D5EFF),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Customer dropdown
+                            _fieldLabel(
+                              'Customer',
+                              Icons.business_outlined,
+                              const Color(0xFF6D5EFF),
+                            ),
+                            const SizedBox(height: 8),
+                            ctrl.isLoadingCustomers
+                                ? _loadingField()
+                                : _dropdownField(
+                                  value: selectedCustomerId,
+                                  hint: 'Select customer',
+                                  items:
+                                      ctrl.customers
+                                          .map(
+                                            (c) => DropdownMenuItem(
+                                              value: c.id,
+                                              child: Text(
+                                                c.name,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged:
+                                      (val) => setSheetState(
+                                        () => selectedCustomerId = val,
+                                      ),
+                                ),
+                            const SizedBox(height: 16),
+
+                            // Scheduled Start
+                            _fieldLabel(
+                              'Schedule Start',
+                              Icons.play_circle_outline_rounded,
+                              const Color(0xFF3D7EFF),
+                            ),
+                            const SizedBox(height: 8),
+                            _dateField(
+                              value: fmtDisplay(scheduledStart),
+                              color: const Color(0xFF3D7EFF),
+                              onTap:
+                                  () => pickDate(
+                                    isStart: true,
+                                    initial: scheduledStart,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Scheduled End
+                            _fieldLabel(
+                              'Schedule End',
+                              Icons.stop_circle_outlined,
+                              const Color(0xFF00B8D9),
+                            ),
+                            const SizedBox(height: 8),
+                            _dateField(
+                              value: fmtDisplay(scheduledEnd),
+                              color: const Color(0xFF00B8D9),
+                              onTap:
+                                  () => pickDate(
+                                    isStart: false,
+                                    initial: scheduledEnd,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Notes
+                            _fieldLabel(
+                              'Notes (optional)',
+                              Icons.notes_rounded,
+                              const Color(0xFF8F9BB3),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F6FA),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFEEF0F7),
+                                ),
+                              ),
+                              child: TextField(
+                                maxLines: 3,
+                                onChanged: (v) => notes = v,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF1A1F36),
+                                ),
+                                decoration: const InputDecoration(
+                                  hintText: 'Add notes...',
+                                  hintStyle: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFFB0B8D0),
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.all(14),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Action buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap:
+                                        ctrl.isUpdatingTrip
+                                            ? null
+                                            : () async {
+                                              if (selectedCustomerId == null) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: const Text(
+                                                      'Please select a customer',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        const Color(0xFFFF9F43),
+                                                    behavior:
+                                                        SnackBarBehavior
+                                                            .floating,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                );
+                                                return;
+                                              }
+
+                                              // Format datetime as API expects
+                                              String fmtApi(DateTime dt) {
+                                                final y = dt.year;
+                                                final mo = dt.month
+                                                    .toString()
+                                                    .padLeft(2, '0');
+                                                final d = dt.day
+                                                    .toString()
+                                                    .padLeft(2, '0');
+                                                final h = dt.hour
+                                                    .toString()
+                                                    .padLeft(2, '0');
+                                                final mi = dt.minute
+                                                    .toString()
+                                                    .padLeft(2, '0');
+                                                return '$y-$mo-$d $h:$mi:00';
+                                              }
+
+                                              final messenger =
+                                                  ScaffoldMessenger.of(context);
+
+                                              final success = await ctrl
+                                                  .updateTrip(
+                                                    tripId: trip.id,
+                                                    customerId:
+                                                        selectedCustomerId
+                                                            .toString(),
+                                                    scheduledStart: fmtApi(
+                                                      scheduledStart,
+                                                    ),
+                                                    scheduledEnd: fmtApi(
+                                                      scheduledEnd,
+                                                    ),
+                                                    notes:
+                                                        notes.isEmpty
+                                                            ? null
+                                                            : notes,
+                                                  );
+
+                                              if (!ctx.mounted) return;
+                                              Navigator.pop(ctx);
+
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    success
+                                                        ? 'Trip updated successfully!'
+                                                        : (ctrl.updateTripError ??
+                                                            'Failed to update trip'),
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      success
+                                                          ? const Color(
+                                                            0xFF00C48C,
+                                                          )
+                                                          : const Color(
+                                                            0xFFFF5C5C,
+                                                          ),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors:
+                                              ctrl.isUpdatingTrip
+                                                  ? [
+                                                    const Color(
+                                                      0xFF6D5EFF,
+                                                    ).withOpacity(0.5),
+                                                    const Color(
+                                                      0xFF5347CC,
+                                                    ).withOpacity(0.5),
+                                                  ]
+                                                  : [
+                                                    const Color(0xFF6D5EFF),
+                                                    const Color(0xFF5347CC),
+                                                  ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow:
+                                            ctrl.isUpdatingTrip
+                                                ? []
+                                                : [
+                                                  BoxShadow(
+                                                    color: const Color(
+                                                      0xFF6D5EFF,
+                                                    ).withOpacity(0.35),
+                                                    blurRadius: 12,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ],
+                                      ),
+                                      child: Center(
+                                        child:
+                                            ctrl.isUpdatingTrip
+                                                ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2.5,
+                                                        color: Colors.white,
+                                                      ),
+                                                )
+                                                : const Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.save_rounded,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    Text(
+                                                      'Save Changes',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(ctx),
+                                  child: Container(
+                                    height: 50,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F6FA),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFE8EAF2),
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'Cancel',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14,
+                                          color: Color(0xFF8F9BB3),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _fieldLabel(String text, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, color: color, size: 12),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: color,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _loadingField() {
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F6FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEF0F7)),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Color(0xFF6D5EFF),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dropdownField<T>({
+    required T? value,
+    required String hint,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F6FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEF0F7)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          hint: Text(
+            hint,
+            style: const TextStyle(fontSize: 13, color: Color(0xFFB0B8D0)),
+          ),
+          items: items,
+          onChanged: onChanged,
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFF8F9BB3),
+          ),
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF1A1F36),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dateField({
+    required String value,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F6FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEEF0F7)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, color: color, size: 16),
+            const SizedBox(width: 10),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1A1F36),
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.edit_outlined, color: Color(0xFFB0B8D0), size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Assign Sheet (unchanged from original) ───────────────────────────────
+
   void _showAssignSheet(BuildContext context) async {
     final ctrl = widget.controller;
     await ctrl.fetchTripAssignmentOptions(widget.trip.id);
@@ -114,7 +755,6 @@ class _TripCardState extends State<TripCard>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Handle bar
                             Center(
                               child: Container(
                                 width: 36,
@@ -126,8 +766,6 @@ class _TripCardState extends State<TripCard>
                               ),
                             ),
                             const SizedBox(height: 20),
-
-                            // Header
                             Row(
                               children: [
                                 Container(
@@ -197,7 +835,6 @@ class _TripCardState extends State<TripCard>
                               ],
                             ),
                             const SizedBox(height: 20),
-
                             if (ctrl.isLoadingAssignmentOptions) ...[
                               Container(
                                 width: double.infinity,
@@ -222,7 +859,6 @@ class _TripCardState extends State<TripCard>
                                 ),
                               ),
                             ] else ...[
-                              // Info strip
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
@@ -261,8 +897,48 @@ class _TripCardState extends State<TripCard>
                                 ),
                               ),
                               const SizedBox(height: 20),
-
-                              // Vehicle section
+                              if (selectedVehicleId != null ||
+                                  selectedDriverId != null)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFF00C48C,
+                                    ).withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF00C48C,
+                                      ).withOpacity(0.2),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_outline_rounded,
+                                        color: Color(0xFF00C48C),
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          [
+                                            if (selectedVehicleId != null)
+                                              'Vehicle: ${ctrl.availableVehicles.firstWhere((v) => v['id'] == selectedVehicleId)['plate_no']}',
+                                            if (selectedDriverId != null)
+                                              'Driver: ${ctrl.availableDrivers.firstWhere((d) => d['id'] == selectedDriverId)['name']}',
+                                          ].join('  •  '),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF00C48C),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               _sectionLabel(
                                 'Select Vehicle',
                                 Icons.local_shipping_outlined,
@@ -311,8 +987,6 @@ class _TripCardState extends State<TripCard>
                                   );
                                 }),
                               const SizedBox(height: 20),
-
-                              // Driver section
                               _sectionLabel(
                                 'Select Driver',
                                 Icons.person_outlined,
@@ -359,53 +1033,7 @@ class _TripCardState extends State<TripCard>
                                     subtitle: 'Driver ID: ${d['id']}',
                                   );
                                 }),
-                              const SizedBox(height: 24),
-
-                              // Selection summary
-                              if (selectedVehicleId != null ||
-                                  selectedDriverId != null)
-                                Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF00C48C,
-                                    ).withOpacity(0.06),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(
-                                        0xFF00C48C,
-                                      ).withOpacity(0.2),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.check_circle_outline_rounded,
-                                        color: Color(0xFF00C48C),
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          [
-                                            if (selectedVehicleId != null)
-                                              'Vehicle: ${ctrl.availableVehicles.firstWhere((v) => v['id'] == selectedVehicleId)['plate_no']}',
-                                            if (selectedDriverId != null)
-                                              'Driver: ${ctrl.availableDrivers.firstWhere((d) => d['id'] == selectedDriverId)['name']}',
-                                          ].join('  •  '),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF00C48C),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                              // Buttons
+                              const SizedBox(height: 16),
                               Row(
                                 children: [
                                   Expanded(
@@ -609,7 +1237,7 @@ class _TripCardState extends State<TripCard>
     );
   }
 
-  // Helper widgets — add these inside _TripCardState
+  // ─── Shared helper widgets ────────────────────────────────────────────────
 
   Widget _sectionLabel(String text, IconData icon, Color color) {
     return Row(
@@ -752,6 +1380,8 @@ class _TripCardState extends State<TripCard>
     );
   }
 
+  // ─── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final trip = widget.trip;
@@ -778,7 +1408,7 @@ class _TripCardState extends State<TripCard>
             ),
             child: Column(
               children: [
-                // ── Card Top ─────────────────────────────────────────────────
+                // Card Top
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                   decoration: BoxDecoration(
@@ -854,16 +1484,16 @@ class _TripCardState extends State<TripCard>
                           ],
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.chevron_right_rounded,
-                        color: const Color(0xFFD0D5E8),
+                        color: Color(0xFFD0D5E8),
                         size: 22,
                       ),
                     ],
                   ),
                 ),
 
-                // ── Schedule Info ─────────────────────────────────────────────
+                // Schedule Info
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                   child: Column(
@@ -885,21 +1515,26 @@ class _TripCardState extends State<TripCard>
                   ),
                 ),
 
-                // ── Action Row ────────────────────────────────────────────────
+                // Action Row
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                   child: Row(
                     children: [
                       ActionBtn(
                         icon: Icons.visibility_outlined,
-
-                        onTap: widget.onView,
+                        onTap: () {
+                          NavigationService().pushNavigation(
+                            Screenroutes.viewTripDetailScreen,
+                            arguments: trip.id,
+                          );
+                        },
                         bg: const Color(0xFF1A1F36),
                       ),
                       const SizedBox(width: 8),
+                      // ✅ Edit button now wired to _showEditSheet
                       ActionBtn(
                         icon: Icons.edit_outlined,
-                        onTap: () {},
+                        onTap: () => _showEditSheet(context),
                         bg: const Color(0xFF6D5EFF),
                       ),
                       const SizedBox(width: 8),
@@ -916,7 +1551,6 @@ class _TripCardState extends State<TripCard>
                           );
                         },
                       ),
-
                       const SizedBox(width: 8),
                       ActionBtn(
                         icon: Icons.person_add_outlined,
