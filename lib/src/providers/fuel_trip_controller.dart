@@ -289,7 +289,7 @@ class FuelTripController with ChangeNotifier {
 
       final response = await restApi.postVehicleNotAvailable(
         token: 'Bearer $currentToken',
-        vehicleId: vehicleId, // ✅ LIST
+        vehicleId: vehicleId.toList(), // ✅ LIST
         description: description,
         tripStopId: tripStopId,
       );

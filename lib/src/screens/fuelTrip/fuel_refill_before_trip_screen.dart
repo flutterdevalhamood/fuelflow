@@ -112,7 +112,12 @@ class _FuelRefillBeforeTripScreenState
     FocusNode? focusNode,
   ) async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 60,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
       if (image != null) {
         setState(() {
           onImagePicked(File(image.path));

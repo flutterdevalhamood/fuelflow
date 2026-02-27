@@ -18,14 +18,34 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   @override
-  @override
   void initState() {
     super.initState();
+    // Always fetch fresh data when this screen is opened —
+    // regardless of how it was opened (normal nav, background tap, terminated tap).
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FuelTripController>().getAssignedTrips();
-      context.read<FuelTripController>().getNotifications();
-      context.read<FuelTripController>().fetchUnreadCount();
+      _loadAllData();
     });
+  }
+
+  /// Central data-load method — calls every API the screen needs.
+  Future<void> _loadAllData() async {
+    if (!mounted) return;
+    final controller = context.read<FuelTripController>();
+    try {
+      // Run all three in parallel for speed
+      await Future.wait([
+        controller.getAssignedTrips(),
+        controller.getNotifications(),
+        controller.fetchUnreadCount(),
+      ]);
+    } catch (e) {
+      debugPrint('NotificationScreen _loadAllData error: $e');
+    }
+  }
+
+  // ── Pull-to-refresh on either tab ────────────────────────────────────────
+  Future<void> _onRefresh() async {
+    await _loadAllData();
   }
 
   void _showRejectDialog(BuildContext context, Map<String, dynamic> trip) {
@@ -154,7 +174,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     );
   }
 
-  // NEW METHOD: Show location on map
   void _showLocationOnMap(BuildContext context, Map<String, dynamic> stop) {
     final latitude = double.tryParse(stop['latitude']?.toString() ?? '');
     final longitude = double.tryParse(stop['longitude']?.toString() ?? '');
@@ -182,7 +201,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -226,7 +244,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Map
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
@@ -275,7 +292,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -322,7 +338,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ],
                     ),
                   ),
-                  // Content
                   Flexible(child: _buildTripStopsContent(trip)),
                 ],
               ),
@@ -375,7 +390,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Stop Header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -420,32 +434,27 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              stop['status']?.toString().toUpperCase() ?? 'N/A',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          stop['status']?.toString().toUpperCase() ?? 'N/A',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                // Location Icon Button
                 if (hasLocation)
                   IconButton(
                     onPressed: () => _showLocationOnMap(context, stop),
@@ -465,25 +474,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ],
             ),
           ),
-
-          // Stop Details
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStopDetailItem(
-                        Icons.local_gas_station,
-                        'Expected Qty',
-                        '${stop['expected_qty'] ?? 'N/A'} IG',
-                        Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
+                _buildStopDetailItem(
+                  Icons.local_gas_station,
+                  'Expected Qty',
+                  '${stop['expected_qty'] ?? 'N/A'} IG',
+                  Colors.orange,
                 ),
                 const SizedBox(height: 12),
                 _buildStopDetailItem(
@@ -499,8 +499,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   _formatDateTime(stop['expected_completed_time']),
                   Colors.green,
                 ),
-
-                // Location Coordinates Display
                 if (hasLocation) ...[
                   const SizedBox(height: 12),
                   InkWell(
@@ -513,8 +511,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ),
                   ),
                 ],
-
-                // Stop Vehicles Section
                 if (stopVehicles != null && stopVehicles.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   const Divider(),
@@ -627,18 +623,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Plate No: ${vehicle['plate_no'] ?? 'N/A'}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-              ],
+            child: Text(
+              'Plate No: ${vehicle['plate_no'] ?? 'N/A'}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
           Container(
@@ -886,40 +873,44 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildNotificationsTab() {
     return Consumer<FuelTripController>(
       builder: (context, controller, _) {
+        // ── Show full-screen loader only on very first load (data is null) ──
         if (controller.isLoading && controller.notificationsData == null) {
           return const Center(child: CircularProgressIndicator());
         }
 
         if (controller.notificationsData == null ||
             controller.notificationsData!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
+              // ListView needed for RefreshIndicator to work on empty state
               children: [
-                Icon(
-                  Icons.notifications_off_outlined,
-                  size: 80,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Notifications',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.notifications_off_outlined,
+                        size: 80,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No Notifications',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pull down to refresh',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'You have no notifications yet',
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => controller.getNotifications(),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
                 ),
               ],
             ),
@@ -927,7 +918,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
 
         return RefreshIndicator(
-          onRefresh: () => controller.getNotifications(),
+          onRefresh: _onRefresh,
           child: NotificationListener<ScrollNotification>(
             onNotification: (scroll) {
               if (scroll.metrics.pixels >=
@@ -977,11 +968,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
-          // Mark as read if unread
           if (!isRead) {
             await controller.markNotificationAsRead(id);
           }
-          // Navigate to AssignedTripsScreen
           if (context.mounted) {
             Navigator.push(
               context,
@@ -1137,38 +1126,34 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                size: 12,
+                                color: Colors.white,
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(12),
+                              const SizedBox(width: 4),
+                              Text(
+                                trip['status'].toString().toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.access_time,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    trip['status'].toString().toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1213,8 +1198,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     trip['created_at'],
                     Colors.grey,
                   ),
-
-                  // Trip Stops Summary
                   if (stopsCount > 0) ...[
                     const SizedBox(height: 16),
                     const Divider(),
@@ -1346,17 +1329,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildAssignmentsTab() {
     return Consumer<FuelTripController>(
       builder: (context, controller, child) {
+        // ── Full-screen loader only on very first load ────────────────────
         if (controller.isLoading && controller.assignedTripsData == null) {
-          return Center(
+          return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(
-                  'Loading assigned trips...',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                ),
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading assigned trips...'),
               ],
             ),
           );
@@ -1364,41 +1345,38 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
         if (controller.assignedTripsData == null ||
             controller.assignedTripsData!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
               children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 100,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'No Assigned Trips',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'You have no pending trip assignments',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    controller.getAssignedTrips();
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inbox_outlined,
+                        size: 100,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'No Assigned Trips',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Pull down to refresh',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1412,28 +1390,39 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 .toList();
 
         if (pendingTrips.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
               children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  size: 100,
-                  color: Colors.green.shade300,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'All Caught Up!',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade700,
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 100,
+                        color: Colors.green.shade300,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'All Caught Up!',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No pending trips to review',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'No pending trips to review',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -1441,7 +1430,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
 
         return RefreshIndicator(
-          onRefresh: () => controller.getAssignedTrips(),
+          onRefresh: _onRefresh,
           child: Column(
             children: [
               Container(
@@ -1454,66 +1443,61 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.assignment,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Pending Assignments',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${pendingTrips.length} ${pendingTrips.length == 1 ? 'trip' : 'trips'} awaiting your response',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${pendingTrips.length}',
-                            style: const TextStyle(
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.assignment,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Pending Assignments',
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${pendingTrips.length} ${pendingTrips.length == 1 ? 'trip' : 'trips'} awaiting your response',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${pendingTrips.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -1523,8 +1507,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: pendingTrips.length,
                   itemBuilder: (context, index) {
-                    final trip = pendingTrips[index];
-                    return _buildTripCard(context, trip, controller, index);
+                    return _buildTripCard(
+                      context,
+                      pendingTrips[index],
+                      controller,
+                      index,
+                    );
                   },
                 ),
               ),

@@ -2314,7 +2314,7 @@ class _RestClient implements RestClient {
     final _headers = <String, dynamic>{r'Authorization': token};
     _headers.removeWhere((k, v) => v == null);
     final _data = {
-      'vehicle_id': vehicleId,
+      'vehicle_id[]': vehicleId,
       'description': description,
       'trip_stop_id': tripStopId,
     };
