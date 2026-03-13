@@ -69,6 +69,10 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   bool _hasShownLocationDialog = false;
   bool _isNavigating = false;
 
+  // ✅ NEW: Processing state for loading overlay
+  bool _isProcessing = false;
+  String _processingMessage = 'Processing...';
+
   GoogleMapController? _googleMapController;
   bool _mapExpanded = false;
 
@@ -88,6 +92,25 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     print('vehicleidddddd  ${widget.vehicleId}');
 
     _checkExistingTracking();
+  }
+
+  // ✅ NEW: Show/hide loading overlay helpers
+  void _showProcessingLoader(String message) {
+    if (mounted) {
+      setState(() {
+        _isProcessing = true;
+        _processingMessage = message;
+      });
+    }
+  }
+
+  void _hideProcessingLoader() {
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+        _processingMessage = 'Processing...';
+      });
+    }
   }
 
   Future<void> _checkExistingTracking() async {
@@ -416,7 +439,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     }
   }
 
-  // ✅ NEW: Handle SOS button click
   Future<void> _handleSOS(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -525,7 +547,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     }
   }
 
-  // ✅ NEW: Handle Request Callback button click
   Future<void> _handleRequestCallback(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -745,7 +766,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 mapType: MapType.normal,
                 zoomControlsEnabled: true,
                 myLocationButtonEnabled: false,
-                // ✅ FIX: Claim all gestures so map gets touch priority over ScrollView
                 gestureRecognizers: {
                   Factory<OneSequenceGestureRecognizer>(
                     () => EagerGestureRecognizer(),
@@ -774,7 +794,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                       ),
                     ),
                   ),
-                  // Center button
                   GestureDetector(
                     onTap:
                         () => _googleMapController?.animateCamera(
@@ -812,7 +831,6 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // ✅ NEW: Directions button
                   GestureDetector(
                     onTap: () => _openDirections(lat, lng),
                     child: Container(
@@ -850,10 +868,65 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     );
   }
 
+  // ✅ NEW: Full-screen processing overlay widget
+  Widget _buildProcessingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.55),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            margin: const EdgeInsets.symmetric(horizontal: 48),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _processingMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Please wait...',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
+        if (_isProcessing) return false; // ✅ Block back press while processing
         final shouldPop = await showDialog<bool>(
           context: context,
           builder:
@@ -880,225 +953,264 @@ class _TripStartedScreenState extends State<TripStartedScreen>
         return shouldPop ?? false;
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade400, Colors.blue.shade700],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () async {
-                          final shouldPop = await showDialog<bool>(
-                            context: context,
-                            builder:
-                                (context) => AlertDialog(
-                                  title: const Text('Cancel Trip?'),
-                                  content: const Text(
-                                    'Are you sure you want to cancel this trip?',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed:
-                                          () => Navigator.pop(context, false),
-                                      child: const Text('Continue Trip'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed:
-                                          () => Navigator.pop(context, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                      ),
-                                      child: const Text('Cancel Trip'),
-                                    ),
-                                  ],
-                                ),
-                          );
-                          if (shouldPop == true && context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Trip In Progress',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Stop ${widget.currentStopIndex + 1} of ${widget.totalStops}',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (_isCheckingLocation)
-                        const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      else if (!_isLocationReady)
-                        const Icon(
-                          Icons.location_off,
-                          color: Colors.orange,
-                          size: 24,
-                        )
-                      else
-                        const Icon(
-                          Icons.location_on,
-                          color: Colors.greenAccent,
-                          size: 24,
-                        ),
-                    ],
-                  ),
+        body: Stack(
+          children: [
+            // ✅ Main screen content
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade400, Colors.blue.shade700],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        // Status/animation section
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
+              ),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                            ),
+                            onPressed:
+                                _isProcessing
+                                    ? null // ✅ Disable back button while processing
+                                    : () async {
+                                      final shouldPop = await showDialog<bool>(
+                                        context: context,
+                                        builder:
+                                            (context) => AlertDialog(
+                                              title: const Text('Cancel Trip?'),
+                                              content: const Text(
+                                                'Are you sure you want to cancel this trip?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed:
+                                                      () => Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: const Text(
+                                                    'Continue Trip',
+                                                  ),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed:
+                                                      () => Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.red,
+                                                      ),
+                                                  child: const Text(
+                                                    'Cancel Trip',
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                      );
+                                      if (shouldPop == true &&
+                                          context.mounted) {
+                                        Navigator.pop(context);
+                                      }
+                                    },
+                          ),
+                          Expanded(
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (_isCheckingLocation)
-                                  _buildCheckingLocationContent()
-                                else if (!_isLocationReady)
-                                  _buildLocationRequiredContent()
-                                else
-                                  _buildTripActiveContent(),
+                                const Text(
+                                  'Trip In Progress',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Stop ${widget.currentStopIndex + 1} of ${widget.totalStops}',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                        ),
-                        // Trip details card
-                        if (_isLocationReady) _buildTripDetailsCard(),
-                        // ✅ Map
-                        if (_isLocationReady &&
-                            widget.stopLatitude != null &&
-                            widget.stopLongitude != null)
-                          _buildStopLocationMap(),
-                      ],
-                    ),
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              _isLocationReady
-                                  ? () => _handleArrival(context)
-                                  : null,
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Arrived at Customer Location'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                _isLocationReady ? Colors.green : Colors.grey,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ✅ NEW: SOS and Request Callback Buttons Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _handleSOS(context),
-                              icon: const Icon(Icons.warning_amber_rounded),
-                              label: const Text('SOS'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                          if (_isCheckingLocation)
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
+                            )
+                          else if (!_isLocationReady)
+                            const Icon(
+                              Icons.location_off,
+                              color: Colors.orange,
+                              size: 24,
+                            )
+                          else
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.greenAccent,
+                              size: 24,
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _handleRequestCallback(context),
-                              icon: const Icon(Icons.phone_callback),
-                              label: const Text('Request Callback'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                    ),
 
-                      if (!_isLocationReady)
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _setupTripWithLocation,
-                            icon: const Icon(Icons.location_on),
-                            label: const Text('Enable Location to Start Trip'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Padding(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (_isCheckingLocation)
+                                      _buildCheckingLocationContent()
+                                    else if (!_isLocationReady)
+                                      _buildLocationRequiredContent()
+                                    else
+                                      _buildTripActiveContent(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (_isLocationReady) _buildTripDetailsCard(),
+                            if (_isLocationReady &&
+                                widget.stopLatitude != null &&
+                                widget.stopLongitude != null)
+                              _buildStopLocationMap(),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              // ✅ Disable button while processing
+                              onPressed:
+                                  (_isLocationReady && !_isProcessing)
+                                      ? () => _handleArrival(context)
+                                      : null,
+                              icon: const Icon(Icons.check_circle),
+                              label: const Text('Arrived at Customer Location'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    (_isLocationReady && !_isProcessing)
+                                        ? Colors.green
+                                        : Colors.grey,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _isProcessing
+                                          ? null
+                                          : () => _handleSOS(context),
+                                  icon: const Icon(Icons.warning_amber_rounded),
+                                  label: const Text('SOS'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed:
+                                      _isProcessing
+                                          ? null
+                                          : () =>
+                                              _handleRequestCallback(context),
+                                  icon: const Icon(Icons.phone_callback),
+                                  label: const Text('Request Callback'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          if (!_isLocationReady)
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _setupTripWithLocation,
+                                icon: const Icon(Icons.location_on),
+                                label: const Text(
+                                  'Enable Location to Start Trip',
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: const BorderSide(color: Colors.white),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+
+            // ✅ Processing overlay — rendered on top of everything
+            if (_isProcessing) _buildProcessingOverlay(),
+          ],
         ),
       ),
     );
@@ -1322,7 +1434,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<void> _handleArrival(BuildContext context) async {
-    if (_isNavigating) return;
+    if (_isNavigating || _isProcessing) return;
 
     if (!_isLocationReady) {
       await _setupTripWithLocation();
@@ -1419,6 +1531,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     if (confirmed != true || !context.mounted) return;
 
+    // ✅ Show loader while logging the arrival event
+    _showProcessingLoader('Logging arrival...');
+
     try {
       final controller = context.read<TripTrackingController>();
       await controller.logManualTripEvent(
@@ -1428,7 +1543,11 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       debugPrint('✅ Logged: arrived_at_stop');
     } catch (e) {
       debugPrint('❌ Error logging arrival: $e');
+    } finally {
+      _hideProcessingLoader();
     }
+
+    if (!mounted) return;
 
     if (widget.stopVehicles == null || widget.stopVehicles!.isEmpty) {
       debugPrint(
@@ -1528,6 +1647,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
     if (startDelivery == true && mounted) {
       debugPrint('✅ Starting fuel delivery');
+      // ✅ Show loader while preparing navigation to delivery screen
+      _showProcessingLoader('Preparing delivery...');
       await _navigateToFuelDeliveryScreen();
     } else {
       debugPrint('⚠️ Delivery cancelled by user');
@@ -1547,67 +1668,84 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     debugPrint('Is Bulk Delivery: true');
     debugPrint('========================================');
 
-    final result = await NavigationService().pushNavigation(
-      Screenroutes.customerFuelDeliveryScreen,
-      arguments: {
-        'assignmentId': widget.assignmentId,
-        'vehicleId': widget.vehicleId,
-        'tripId': widget.tripId.toString(),
-        'tripStopId': widget.tripStopId ?? 0,
-        'requiredQty': widget.requiredQty,
-        'availableQty': widget.availableQty,
-        'vehicleName': widget.vehicleName,
-        'customerName': widget.customerName,
-        'stopOrder': widget.stopOrder,
-        'currentStopIndex': currentStopIndex,
-        'totalStops': widget.totalStops,
-        'driverId': widget.driverId,
-        'stopVehicles': widget.stopVehicles,
-        'stopVehicleId': 0,
-        'isBulkDelivery': true,
-      },
-    );
-
-    if (result == true && mounted) {
-      debugPrint(
-        '✅ Fuel delivery completed - returning to accepted assignments',
+    try {
+      final result = await NavigationService().pushNavigation(
+        Screenroutes.customerFuelDeliveryScreen,
+        arguments: {
+          'assignmentId': widget.assignmentId,
+          'vehicleId': widget.vehicleId,
+          'tripId': widget.tripId.toString(),
+          'tripStopId': widget.tripStopId ?? 0,
+          'requiredQty': widget.requiredQty,
+          'availableQty': widget.availableQty,
+          'vehicleName': widget.vehicleName,
+          'customerName': widget.customerName,
+          'stopOrder': widget.stopOrder,
+          'currentStopIndex': currentStopIndex,
+          'totalStops': widget.totalStops,
+          'driverId': widget.driverId,
+          'stopVehicles': widget.stopVehicles,
+          'stopVehicleId': 0,
+          'isBulkDelivery': true,
+        },
       );
-      Navigator.of(context).pop(true);
+
+      // ✅ Hide loader after navigation returns
+      _hideProcessingLoader();
+
+      if (result == true && mounted) {
+        debugPrint(
+          '✅ Fuel delivery completed - returning to accepted assignments',
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      _hideProcessingLoader();
+      debugPrint('❌ Navigation error: $e');
     }
   }
 
   Future<void> _navigateToAllVehiclesScreen() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => AllVehiclesScreen(
-              stopVehicles:
-                  widget.stopVehicles
-                      ?.map((v) => Map<String, dynamic>.from(v as Map))
-                      .toList() ??
-                  [],
-              customerName: widget.customerName,
-              siteName: widget.siteName ?? widget.customerName,
-              assignment: {
-                'assignment_id': widget.assignmentId,
-                'trip_id': widget.tripId,
-                'available_qty': widget.availableQty,
-                'driver_id': widget.driverId,
-                'vehicle_id': widget.vehicleId,
-              },
-              stop: {
-                'stop_id': widget.tripStopId,
-                'expected_qty': widget.requiredQty,
-                'stop_order': widget.stopOrder,
-              },
-              totalStops: widget.totalStops,
-            ),
-      ),
-    );
+    _showProcessingLoader('Loading vehicles...');
 
-    if (result == true && mounted) {
-      Navigator.of(context).pop(true);
+    try {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => AllVehiclesScreen(
+                stopVehicles:
+                    widget.stopVehicles
+                        ?.map((v) => Map<String, dynamic>.from(v as Map))
+                        .toList() ??
+                    [],
+                customerName: widget.customerName,
+                siteName: widget.siteName ?? widget.customerName,
+                assignment: {
+                  'assignment_id': widget.assignmentId,
+                  'trip_id': widget.tripId,
+                  'available_qty': widget.availableQty,
+                  'driver_id': widget.driverId,
+                  'vehicle_id': widget.vehicleId,
+                },
+                stop: {
+                  'stop_id': widget.tripStopId,
+                  'expected_qty': widget.requiredQty,
+                  'stop_order': widget.stopOrder,
+                },
+                totalStops: widget.totalStops,
+              ),
+        ),
+      );
+
+      _hideProcessingLoader();
+
+      if (result == true && mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      _hideProcessingLoader();
+      debugPrint('❌ Navigation error: $e');
     }
   }
 }
