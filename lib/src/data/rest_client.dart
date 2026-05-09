@@ -195,6 +195,13 @@ abstract class RestClient {
     @Header("Authorization") String? token,
   );
 
+  @GET('/paginateCustomerVehicles/{page}/{limit}')
+  Future<dynamic> paginateCustomerVehicles(
+    @Path("page") int page,
+    @Path("limit") int limit,
+    @Header("Authorization") String? token,
+  );
+
   @POST('/Driver')
   Future<dynamic> registerDriver({
     @Header("Authorization") String? token,

@@ -134,6 +134,15 @@ class _DashBoardScreenState extends State<DashBoardScreen>
   List<Map<String, dynamic>> getGridItems() {
     final allGridItems = [
       {
+        'title': 'In House Delivery',
+        'icon': Icons.home_work_rounded,
+        'route': Screenroutes.inHouseDeliveryScreen, // update route as needed
+        'color': Colors.deepPurple,
+        'gradient': [const Color(0xFF8E2DE2), const Color(0xFF4A00E0)],
+        'description': 'Manage in-house delivery orders',
+      },
+
+      {
         'title': 'Customers',
         'icon': Icons.people_rounded,
         'route': Screenroutes.customerList,
@@ -300,7 +309,8 @@ class _DashBoardScreenState extends State<DashBoardScreen>
                 item['title'] == 'Drivers' ||
                 item['title'] == 'Fuel Refill' ||
                 item['title'] == 'Fuel Refill For Trip' ||
-                item['title'] == 'Refilling Unit',
+                item['title'] == 'Refilling Unit' ||
+                item['title'] == 'In House Delivery',
           )
           .toList();
     } else if (_effectiveUserRole == 'driver') {

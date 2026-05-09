@@ -23,7 +23,7 @@ class TripTrackingController with ChangeNotifier {
 
   int? get currentTripId => _currentTripId;
 
-  static const double distanceThreshold = 5.0;
+  static const double distanceThreshold = 100.0;
   static const Duration locationLogInterval = Duration(seconds: 30);
 
   bool get isTracking => _isTracking;

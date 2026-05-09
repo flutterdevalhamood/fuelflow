@@ -12,6 +12,7 @@ import 'package:sample/src/providers/driver_controller.dart';
 import 'package:sample/src/providers/fuel_refill_before_trip_controller.dart';
 import 'package:sample/src/providers/fuel_refill_controller.dart';
 import 'package:sample/src/providers/fuel_trip_controller.dart';
+import 'package:sample/src/providers/inHouse_controller.dart';
 import 'package:sample/src/providers/login_controller.dart';
 import 'package:sample/src/providers/reports_controller.dart';
 import 'package:sample/src/providers/storage_unit_controller.dart';
@@ -61,6 +62,9 @@ void main() async {
         ),
         ChangeNotifierProvider(create: (context) => CustomerSiteController()),
         ChangeNotifierProvider(create: (context) => CustomerViewController()),
+        ChangeNotifierProvider(
+          create: (context) => InHouseDeliveryController(),
+        ),
       ],
       child: const BaseScreen(),
     ),

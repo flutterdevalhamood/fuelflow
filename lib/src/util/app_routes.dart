@@ -32,6 +32,8 @@ import 'package:sample/src/screens/fuelTrip/stop_vehicle_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/screens/fuelTrip/trip_start_screen.dart';
 import 'package:sample/src/screens/fuelTrip/vehicle_unavailable_screen.dart';
+import 'package:sample/src/screens/inHouseDelivery/inHouse_delivery_screen.dart';
+import 'package:sample/src/screens/inHouseDelivery/inHouse_fuel_refill_screen.dart';
 import 'package:sample/src/screens/products/product_edit_screen.dart';
 import 'package:sample/src/screens/products/product_list_screen.dart';
 import 'package:sample/src/screens/products/product_registration_screen.dart';
@@ -143,6 +145,9 @@ class Screenroutes {
   static const String tripListScreen = "tripListScreen";
   static const String addTripStopScreen = "addTripStopScreen";
   static const String viewTripDetailScreen = "viewTripDetailScreen";
+
+  static const String inHouseDeliveryScreen = "inHouseDeliveryScreen";
+  static const String inHouseFuelRefillScreen = "inHouseFuelRefillScreen";
 
   static Route<dynamic>? routes(RouteSettings settings) {
     StringConstants.currentRoute = settings.name ?? "";
@@ -471,6 +476,16 @@ class Screenroutes {
           },
         );
 
+      case Screenroutes.inHouseDeliveryScreen:
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.inHouseDeliveryScreen,
+          ),
+          builder: (BuildContext context) {
+            return InHouseDeliveryScreen();
+          },
+        );
+
       case Screenroutes.fuelRefillBeforeTripScreen:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
@@ -492,6 +507,22 @@ class Screenroutes {
                   args?['isVehicleToVehicleRefill'] as bool? ?? false,
             );
           },
+        );
+
+      case Screenroutes.inHouseFuelRefillScreen:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          settings: const RouteSettings(
+            name: Screenroutes.inHouseFuelRefillScreen,
+          ),
+          builder:
+              (BuildContext context) => InHouseFuelRefillScreen(
+                vehicleId: args?['vehicleId'] as int? ?? 0,
+                vehicleName:
+                    args?['vehicleName'] as String? ?? 'Unknown Vehicle',
+                availableQty: args?['availableQty'] as double? ?? 0.0,
+                customerName: args?['customerName'] as String? ?? '',
+              ),
         );
 
       case Screenroutes.reportsScreen:
