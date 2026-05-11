@@ -50,6 +50,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   final int _initialDisplayCount = 5;
   bool _showAllVehicles = false;
 
+  bool _isScreenReady = false;
+
   bool get _isLastStop {
     final currentStopOrder =
         int.tryParse(widget.stop['stop_order']?.toString() ?? '0') ?? 0;
@@ -77,13 +79,22 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     AuthRepo.lastTripStopId = null;
     AuthRepo.lastAvailableQty = null;
     AuthRepo.lastEndMeterPhotoPath = null;
+    AuthRepo.refuelStartedGloballyLogged = false;
+    AuthRepo.arrivedAtStopLogged = false;
     debugPrint('✅ Cleared AuthRepo data on screen entry');
+
+    AuthRepo.refuelStartedGloballyLogged = false;
+    debugPrint(
+      '✅ Cleared AuthRepo data and reset global event flags on screen entry',
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _trackingController = Provider.of<TripTrackingController>(
         context,
         listen: false,
       );
+
+      setState(() => _isScreenReady = true);
     });
   }
 
@@ -210,6 +221,12 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
         debugPrint('✅ Logged: moving_towards_base_due_to_fuel_deficiency');
       }
 
+      // ADD THIS: Log refuel_completed when returning to base
+      await _trackingController.logCriticalTripEvent(
+        eventType: 'refuel_completed',
+      );
+      debugPrint('✅ Logged: refuel_completed (return to base)');
+
       AuthRepo.lastEndMeterReading = null;
       AuthRepo.lastTripStopId = null;
       AuthRepo.lastAvailableQty = null;
@@ -298,35 +315,21 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   void _filterVehicles() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredVehicles =
-          stopVehicles.where((vehicle) {
-            final plateNo = vehicle['plate_no']?.toString().toLowerCase() ?? '';
-            final status =
-                int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
-
-            final matchesSearch = query.isEmpty || plateNo.contains(query);
-
-            bool matchesStatus = true;
-            if (_selectedFilter == 'pending') {
-              matchesStatus = status == 0;
-            } else if (_selectedFilter == 'completed') {
-              matchesStatus = status == 1;
-            } else if (_selectedFilter == 'unavailable') {
-              matchesStatus = status == -1;
-            }
-
-            return matchesSearch && matchesStatus;
-          }).toList();
+      _applyFiltersWithoutNavigating();
     });
 
+    if (!_isScreenReady) return;
+
+    // ✅ Only auto-navigate when truly settled and no navigation is in progress
     if (_pendingCount == 0 &&
         stopVehicles.isNotEmpty &&
         !_isLastStop &&
         !_isProcessing) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+      // ✅ Use a small delay so the current frame fully renders before navigating
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted && _pendingCount == 0 && !_isProcessing) {
           debugPrint(
-            '✅ All vehicles completed - auto-navigating to accepted assignments',
+            '✅ All vehicles completed - navigating to accepted assignments',
           );
           NavigationService().pushAndRemoveUntilNavigation(
             Screenroutes.acceptedAssignmentScreen,
@@ -335,6 +338,47 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       });
     }
   }
+
+  // void _filterVehicles() {
+  //   final query = _searchController.text.toLowerCase();
+  //   setState(() {
+  //     _filteredVehicles =
+  //         stopVehicles.where((vehicle) {
+  //           final plateNo = vehicle['plate_no']?.toString().toLowerCase() ?? '';
+  //           final status =
+  //               int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
+  //
+  //           final matchesSearch = query.isEmpty || plateNo.contains(query);
+  //
+  //           bool matchesStatus = true;
+  //           if (_selectedFilter == 'pending') {
+  //             matchesStatus = status == 0;
+  //           } else if (_selectedFilter == 'completed') {
+  //             matchesStatus = status == 1;
+  //           } else if (_selectedFilter == 'unavailable') {
+  //             matchesStatus = status == -1;
+  //           }
+  //
+  //           return matchesSearch && matchesStatus;
+  //         }).toList();
+  //   });
+  //
+  //   if (_pendingCount == 0 &&
+  //       stopVehicles.isNotEmpty &&
+  //       !_isLastStop &&
+  //       !_isProcessing) {
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       if (mounted) {
+  //         debugPrint(
+  //           '✅ All vehicles completed - auto-navigating to accepted assignments',
+  //         );
+  //         NavigationService().pushAndRemoveUntilNavigation(
+  //           Screenroutes.acceptedAssignmentScreen,
+  //         );
+  //       }
+  //     });
+  //   }
+  // }
 
   // ─── Counts ──────────────────────────────────────────────────────────────
 
@@ -363,21 +407,10 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
   Future<void> _handleVehicleRefuel(Map<String, dynamic> vehicle) async {
     final plateNo = vehicle['plate_no']?.toString() ?? 'N/A';
-
     final stopVehicleId =
         int.tryParse(vehicle['vehicle_id']?.toString() ?? '0') ?? 0;
     final stopVehiclePlateNumber =
         int.tryParse(vehicle['plate_no']?.toString() ?? '0') ?? 0;
-    debugPrint('========================================');
-    debugPrint('📤 NAVIGATING TO CUSTOMER FUEL DELIVERY');
-    debugPrint('========================================');
-    debugPrint('Plate No: $plateNo');
-    debugPrint('Stop Vehicles count: ${stopVehicles.length}');
-    debugPrint('Stop Vehicle ID (vehicle_id field): $stopVehicleId');
-    debugPrint('Driver Vehicle ID: ${widget.assignment['vehicle_id']}');
-    debugPrint('Vehicle Object: $vehicle');
-    debugPrint('Vehicles list: $stopVehicles');
-    debugPrint('========================================');
 
     final originalAvailableQty = _toDouble(widget.assignment['available_qty']);
     final currentAvailableQty = originalAvailableQty - _totalQuantityUsed;
@@ -385,19 +418,13 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
     if (currentAvailableQty <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Insufficient fuel available in vehicle. Please return to base to refuel.',
-          ),
+          content: Text('Insufficient fuel available in vehicle.'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 3),
         ),
       );
       return;
     }
-
-    debugPrint('Original Available Qty: $originalAvailableQty');
-    debugPrint('Total Quantity Used: $_totalQuantityUsed');
-    debugPrint('Current Available Qty: $currentAvailableQty');
 
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
@@ -423,35 +450,70 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       },
     );
 
-    if (result == true && mounted) {
+    // ✅ Guard: don't update state if widget is gone
+    if (!mounted) return;
+
+    if (result == true) {
+      // ✅ Calculate quantity delivered BEFORE any setState
+      double quantityDelivered = 0;
       if (AuthRepo.lastAvailableQty != null) {
-        final quantityDelivered =
-            currentAvailableQty - AuthRepo.lastAvailableQty!;
-        setState(() {
-          _totalQuantityUsed += quantityDelivered;
-        });
+        quantityDelivered = currentAvailableQty - AuthRepo.lastAvailableQty!;
         debugPrint('✅ Quantity delivered: $quantityDelivered');
-        debugPrint('✅ Total quantity used so far: $_totalQuantityUsed');
       }
+
+      // ✅ Find updated index BEFORE setState
+      final index = stopVehicles.indexWhere(
+        (v) => v['vehicle_id'].toString() == vehicle['vehicle_id'].toString(),
+      );
+
+      // ✅ Single setState — batch ALL updates together to prevent glitch
       setState(() {
-        final index = stopVehicles.indexWhere(
-          (v) => v['vehicle_id'].toString() == vehicle['vehicle_id'].toString(),
-        );
-        if (index != -1) {
-          stopVehicles[index]['status'] = '1';
-          _filterVehicles();
+        if (quantityDelivered > 0) {
+          _totalQuantityUsed += quantityDelivered;
         }
+        if (index != -1) {
+          stopVehicles[index] = Map<String, dynamic>.from(stopVehicles[index])
+            ..['status'] = '1';
+        }
+        // ✅ Rebuild filtered list inline instead of calling _filterVehicles()
+        // to avoid the postFrameCallback auto-navigation triggering mid-rebuild
+        _applyFiltersWithoutNavigating();
       });
 
       widget.onVehicleUpdated?.call(stopVehicles);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Refueling Completed $plateNo'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // ✅ Show snackbar AFTER setState settles
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Refueling Completed for $plateNo'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      });
     }
+  }
+
+  void _applyFiltersWithoutNavigating() {
+    final query = _searchController.text.toLowerCase();
+    _filteredVehicles =
+        stopVehicles.where((vehicle) {
+          final plateNo = vehicle['plate_no']?.toString().toLowerCase() ?? '';
+          final status =
+              int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
+          final matchesSearch = query.isEmpty || plateNo.contains(query);
+          bool matchesStatus = true;
+          if (_selectedFilter == 'pending') {
+            matchesStatus = status == 0;
+          } else if (_selectedFilter == 'completed') {
+            matchesStatus = status == 1;
+          } else if (_selectedFilter == 'unavailable') {
+            matchesStatus = status == -1;
+          }
+          return matchesSearch && matchesStatus;
+        }).toList();
   }
 
   Future<void> _handleVehicleUnavailable(Map<String, dynamic> vehicle) async {

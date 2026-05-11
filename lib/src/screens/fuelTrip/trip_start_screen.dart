@@ -76,6 +76,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   GoogleMapController? _googleMapController;
   bool _mapExpanded = false;
 
+  bool _hasRequestedBackgroundPermission = false;
+
   @override
   void initState() {
     super.initState();
@@ -156,14 +158,20 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   Future<void> _updateTripStop() async {
     try {
       final controller = context.read<TripTrackingController>();
-      final driverId = AuthRepo.driverId;
 
-      await controller.logManualTripEvent(
-        eventType: 'start_journey',
-        description: 'Started journey to ${widget.customerName}',
-      );
-
-      debugPrint('✅ Updated to new trip stop ${widget.tripStopId}');
+      // Only log start_journey once per trip
+      if (!AuthRepo.startJourneyLogged) {
+        await controller.logManualTripEvent(
+          eventType: 'start_journey',
+          description: 'Started journey to ${widget.customerName}',
+        );
+        AuthRepo.startJourneyLogged = true;
+        debugPrint('✅ Logged: start_journey');
+      } else {
+        debugPrint(
+          '⏭️ Skipped start_journey in _updateTripStop — already logged',
+        );
+      }
     } catch (e) {
       debugPrint('❌ Error updating trip stop: $e');
     }
@@ -201,6 +209,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
       if (permission == LocationPermission.whileInUse) {
         if (await _shouldRequestBackgroundPermission()) {
+          _hasRequestedBackgroundPermission = true;
           await _requestBackgroundPermission();
         }
       }
@@ -232,6 +241,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   }
 
   Future<bool> _shouldRequestBackgroundPermission() async {
+    if (_hasRequestedBackgroundPermission) return false;
+    if (!kReleaseMode) return false;
     return true;
   }
 
@@ -245,7 +256,8 @@ class _TripStartedScreenState extends State<TripStartedScreen>
           (context) => AlertDialog(
             title: const Text('Background Location'),
             content: const Text(
-              'To track your trip accurately, please allow location access "All the time" in the next screen.',
+              'To track your trip accurately, please allow location access '
+              '"All the time" in the next screen.',
             ),
             actions: [
               TextButton(
@@ -255,7 +267,9 @@ class _TripStartedScreenState extends State<TripStartedScreen>
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(context);
-                  await Geolocator.requestPermission();
+                  // ✅ Open app settings instead of requesting permission again
+                  // This avoids the simulator crash from double permission requests
+                  await openAppSettings();
                 },
                 child: const Text('Continue'),
               ),
@@ -418,17 +432,31 @@ class _TripStartedScreenState extends State<TripStartedScreen>
       final controller = context.read<TripTrackingController>();
       final driverId = AuthRepo.driverId;
 
-      await controller.startTripTracking(
-        tripId: widget.tripId,
-        tripStopId: widget.tripStopId,
-        eventType: 'start_journey',
-        driverId: driverId,
-        vehicleId: widget.vehicleId,
-      );
-
-      print('✅ Trip tracking started for trip ${widget.tripId}');
+      // Only log start_journey once per trip
+      if (!AuthRepo.startJourneyLogged) {
+        await controller.startTripTracking(
+          tripId: widget.tripId,
+          tripStopId: widget.tripStopId,
+          eventType: 'start_journey',
+          driverId: driverId,
+          vehicleId: widget.vehicleId,
+        );
+        AuthRepo.startJourneyLogged = true;
+        debugPrint('✅ Trip tracking started + logged: start_journey');
+      } else {
+        // Resume tracking without logging start_journey again
+        await controller.startTripTracking(
+          tripId: widget.tripId,
+          tripStopId: widget.tripStopId,
+          eventType:
+              'resuming_journey', // neutral/harmless event or skip entirely
+          driverId: driverId,
+          vehicleId: widget.vehicleId,
+        );
+        debugPrint('⏭️ Skipped start_journey — already logged for this trip');
+      }
     } catch (e) {
-      print('❌ Error starting trip tracking: $e');
+      debugPrint('❌ Error starting trip tracking: $e');
       rethrow;
     }
   }
@@ -742,6 +770,19 @@ class _TripStartedScreenState extends State<TripStartedScreen>
                 ],
               ),
             ),
+
+            // Container(
+            //   height: 180,
+            //   color: Colors.grey.shade200,
+            //   child: const Center(
+            //     child: Text(
+            //       'Map temporarily disabled',
+            //       style: TextStyle(color: Colors.grey),
+            //     ),
+            //   ),
+            // ),
+
+            //TODO
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               height: _mapExpanded ? 300 : 180,
@@ -1535,12 +1576,18 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     _showProcessingLoader('Logging arrival...');
 
     try {
-      final controller = context.read<TripTrackingController>();
-      await controller.logManualTripEvent(
-        eventType: 'arrived_at_stop',
-        description: 'Driver confirmed arrival at ${widget.customerName}',
-      );
-      debugPrint('✅ Logged: arrived_at_stop');
+      // Only log arrived_at_stop once per stop
+      if (!AuthRepo.arrivedAtStopLogged) {
+        final controller = context.read<TripTrackingController>();
+        await controller.logManualTripEvent(
+          eventType: 'arrived_at_stop',
+          description: 'Driver confirmed arrival at ${widget.customerName}',
+        );
+        AuthRepo.arrivedAtStopLogged = true;
+        debugPrint('✅ Logged: arrived_at_stop');
+      } else {
+        debugPrint('⏭️ Skipped arrived_at_stop — already logged for this stop');
+      }
     } catch (e) {
       debugPrint('❌ Error logging arrival: $e');
     } finally {

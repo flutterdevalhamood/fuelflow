@@ -25,7 +25,11 @@ class AuthRepo {
   static const _prefCustomerRepresentativeKey = "customerRepresentative";
   static const _prefCustomerSecondaryMobileKey = "customerSecondaryMobile";
 
+  static bool startJourneyLogged = false; // ADD THIS
+  static bool arrivedAtStopLogged = false; // ADD THIS
+
   static String? lastEndMeterPhotoPath;
+  static bool refuelStartedGloballyLogged = false;
 
   static set token(String? token) {
     if (token == null) {
@@ -262,7 +266,9 @@ class AuthRepo {
     lastTripStopId = null;
     lastAvailableQty = null;
     lastEndMeterPhotoPath = null;
-
+    startJourneyLogged = false; // ADD THIS
+    arrivedAtStopLogged = false;
+    // refuelStartedGloballyLogged = false;
     NavigationService().pushNavigation(Screenroutes.login);
   }
 
@@ -282,5 +288,8 @@ class AuthRepo {
     lastTripStopId = null;
     lastAvailableQty = null;
     lastEndMeterPhotoPath = null;
+    startJourneyLogged = false; // ADD THIS
+    arrivedAtStopLogged = false;
+    // refuelStartedGloballyLogged = false;
   }
 }

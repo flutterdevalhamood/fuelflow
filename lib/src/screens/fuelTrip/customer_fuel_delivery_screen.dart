@@ -81,6 +81,8 @@ class _CustomerFuelDeliveryScreenState
 
   bool _dialogProcessing = false;
 
+  // static bool refuelStartedGloballyLogged = false;
+
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
@@ -184,15 +186,20 @@ class _CustomerFuelDeliveryScreenState
   Future<void> _initializeTracking() async {
     if (!mounted || _arrivedAtStopLogged) return;
 
-    try {
-      await _trackingController.startTripTracking(
-        tripId: int.parse(widget.tripId),
-        tripStopId: widget.tripStopId,
-        eventType: 'arrived_at_stop',
-      );
-
+    // Only log arrived_at_stop for the FIRST vehicle
+    if (!AuthRepo.refuelStartedGloballyLogged) {
+      try {
+        await _trackingController.startTripTracking(
+          tripId: int.parse(widget.tripId),
+          tripStopId: widget.tripStopId,
+          eventType: 'arrived_at_stop',
+        );
+        _arrivedAtStopLogged = true;
+      } catch (e) {}
+    } else {
+      // For subsequent vehicles, just mark as logged without firing the event
       _arrivedAtStopLogged = true;
-    } catch (e) {}
+    }
   }
 
   void _onStartMeterChanged() {
@@ -219,12 +226,12 @@ class _CustomerFuelDeliveryScreenState
   }
 
   void _onEndMeterChanged() {
-    if (_endMeterController.text.isNotEmpty &&
-        !_customerLoadingCompletedLogged &&
-        _endMeterPhoto != null &&
-        _customerLoadingStartedLogged) {
-      _logCustomerLoadingCompleted();
-    }
+    // if (_endMeterController.text.isNotEmpty &&
+    //     !_customerLoadingCompletedLogged &&
+    //     _endMeterPhoto != null &&
+    //     _customerLoadingStartedLogged) {
+    //   _logCustomerLoadingCompleted();
+    // }
     setState(() {});
   }
 
@@ -276,7 +283,6 @@ class _CustomerFuelDeliveryScreenState
       return;
     }
 
-    // UPDATED: Only check for photo if NOT pre-filled
     if (!_isStartMeterPreFilled && _startMeterPhoto == null) {
       _showSnackBar('Please capture start meter photo');
       return;
@@ -299,7 +305,6 @@ class _CustomerFuelDeliveryScreenState
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
-                // UPDATED: Conditional text based on pre-fill status
                 Text(
                   _isStartMeterPreFilled
                       ? 'Start meter reading from previous vehicle'
@@ -339,9 +344,28 @@ class _CustomerFuelDeliveryScreenState
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await _trackingController.logCriticalTripEvent(
-        eventType: 'refuel_started',
-      );
+      bool success = true;
+
+      // Only log refuel_started for the FIRST vehicle
+      if (!AuthRepo.refuelStartedGloballyLogged) {
+        success = await _trackingController.logCriticalTripEvent(
+          eventType: 'refuel_started',
+        );
+
+        if (success) {
+          AuthRepo.refuelStartedGloballyLogged = true; // Mark globally
+          debugPrint('✅ Logged: refuel_started (first vehicle)');
+        }
+      } else {
+        // Subsequent vehicles: log customer_loading_started instead
+        success = await _trackingController.logManualTripEvent(
+          eventType: 'customer_loading_started',
+        );
+        if (success) {
+          _customerLoadingStartedLogged = true;
+          debugPrint('✅ Logged: customer_loading_started (subsequent vehicle)');
+        }
+      }
 
       if (success) {
         setState(() {
@@ -353,7 +377,6 @@ class _CustomerFuelDeliveryScreenState
           'Delivery started successfully',
           backgroundColor: Colors.green,
         );
-        debugPrint('✅ Logged: refuel_started');
       } else {
         _showSnackBar(
           'Failed to log delivery start',
@@ -361,7 +384,7 @@ class _CustomerFuelDeliveryScreenState
         );
       }
     } catch (e) {
-      debugPrint('❌ Error logging refuel_started: $e');
+      debugPrint('❌ Error in _handleStartDelivery: $e');
       _showSnackBar('Error starting delivery', backgroundColor: Colors.red);
     } finally {
       setState(() => _isSubmitting = false);
@@ -463,9 +486,30 @@ class _CustomerFuelDeliveryScreenState
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await _trackingController.logCriticalTripEvent(
-        eventType: 'refuel_completed',
-      );
+      bool success = true;
+
+      // Only log refuel_completed for the FIRST vehicle (when refuel_started was fired)
+      // For subsequent vehicles, log customer_loading_completed instead
+      if (!_customerLoadingStartedLogged) {
+        // This is the first vehicle path — refuel_started was logged, so log refuel_completed
+        success = await _trackingController.logCriticalTripEvent(
+          eventType: 'refuel_completed',
+        );
+        if (success) {
+          debugPrint('✅ Logged: refuel_completed (first vehicle)');
+        }
+      } else {
+        // Subsequent vehicles: log customer_loading_completed
+        success = await _trackingController.logManualTripEvent(
+          eventType: 'customer_loading_completed',
+        );
+        if (success) {
+          _customerLoadingCompletedLogged = true;
+          debugPrint(
+            '✅ Logged: customer_loading_completed (subsequent vehicle)',
+          );
+        }
+      }
 
       if (success) {
         setState(() {
@@ -478,7 +522,6 @@ class _CustomerFuelDeliveryScreenState
           'Delivery ended successfully',
           backgroundColor: Colors.green,
         );
-        debugPrint('✅ Logged: refuel_completed');
       } else {
         _showSnackBar(
           'Failed to log delivery end',
@@ -486,7 +529,7 @@ class _CustomerFuelDeliveryScreenState
         );
       }
     } catch (e) {
-      debugPrint('❌ Error logging refuel_completed: $e');
+      debugPrint('❌ Error logging end delivery: $e');
       _showSnackBar('Error ending delivery', backgroundColor: Colors.red);
     } finally {
       setState(() => _isSubmitting = false);
@@ -580,7 +623,7 @@ class _CustomerFuelDeliveryScreenState
   Future<void> _pickImage(Function(File) onPicked, FocusNode? focusNode) async {
     try {
       final image = await _picker.pickImage(
-        source: ImageSource.camera,
+        source: ImageSource.gallery,
         imageQuality: 60,
         maxWidth: 1024,
         maxHeight: 1024,
@@ -695,7 +738,9 @@ class _CustomerFuelDeliveryScreenState
         customerStartMeterReadingValue:
             int.tryParse(_startMeterController.text) ?? 0,
         customerStartMeterFiles:
-            _isStartMeterPreFilled ? [] : [_startMeterPhoto!],
+            (_isStartMeterPreFilled && _startMeterPhoto != null)
+                ? [_startMeterPhoto!]
+                : (_startMeterPhoto != null ? [_startMeterPhoto!] : []),
         customerEndMeterReadingValue:
             int.tryParse(_endMeterController.text) ?? 0,
         customerEndMeterFiles: [_endMeterPhoto!],
@@ -731,10 +776,24 @@ class _CustomerFuelDeliveryScreenState
       AuthRepo.lastAvailableQty = updatedAvailableQty;
       debugPrint('✅ Updated available quantity: $updatedAvailableQty');
 
-      await _trackingController.logManualTripEvent(
-        eventType: 'departed_from_stop',
-      );
-      debugPrint('✅ Logged: departed_from_stop');
+      final hasPendingVehicles =
+          widget.stopVehicles?.any((vehicle) {
+            final status =
+                int.tryParse(vehicle['status']?.toString() ?? '0') ?? 0;
+            return status == 0 &&
+                vehicle['vehicle_id']?.toString() !=
+                    widget.stopVehicleId?.toString();
+          }) ??
+          false;
+
+      if (!hasPendingVehicles) {
+        await _trackingController.logManualTripEvent(
+          eventType: 'departed_from_stop',
+        );
+        debugPrint('✅ Logged: departed_from_stop (last vehicle)');
+      } else {
+        debugPrint('⏭️ Skipped departed_from_stop — pending vehicles remain');
+      }
 
       // ✅ CORRECTED: Determine if it's the last stop based on stop_order vs total trip_stops
       // Pass both flags to the dialog
