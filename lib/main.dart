@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sample/firebase_options.dart';
-import 'package:sample/firebase_services.dart';
+import 'package:sample/firebase_services.dart' as fs;
 import 'package:sample/src/BaseScreen.dart';
 import 'package:sample/src/providers/Product_controller.dart';
 import 'package:sample/src/providers/customer_controller.dart';
@@ -35,7 +35,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await FirebaseService().initialize();
+  await fs.FirebaseService().initialize();
   runApp(
     MultiProvider(
       providers: [

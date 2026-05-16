@@ -135,7 +135,7 @@ class FirebaseService {
       log('🔊 Playing notification alert sound...');
       await _audioPlayer.stop();
       await _audioPlayer.setReleaseMode(ReleaseMode.release); // play once only
-      await _audioPlayer.play(AssetSource('sounds/alert.mp3'));
+      await _audioPlayer.play(AssetSource('sounds/alert_sound.mp3'));
       log('✅ Alert sound playing');
     } catch (e) {
       log('❌ Error playing alert sound: $e');

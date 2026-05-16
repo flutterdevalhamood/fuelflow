@@ -769,6 +769,12 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
 
         if (response == 'accepted') {
           await Future.delayed(const Duration(milliseconds: 500));
+
+          // Pre-fetch data BEFORE navigating so it's ready when screen mounts
+          await context.read<FuelTripController>().getAcceptedAssignments();
+
+          if (!mounted) return;
+
           navigator.pushReplacement(
             MaterialPageRoute(
               builder:
@@ -940,28 +946,28 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
                   _buildInfoRow(
                     Icons.business,
                     'Customer',
-                    trip['customer_name'],
+                    trip['customer_name'] ?? 'N/A',
                     Colors.blue,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoRow(
                     Icons.directions_car,
                     'Vehicle',
-                    trip['vehicle'],
+                    trip['vehicle'] ?? 'N/A',
                     Colors.green,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoRow(
                     Icons.person,
                     'Driver',
-                    trip['driver'],
+                    trip['driver'] ?? 'N/A',
                     Colors.purple,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoRow(
                     Icons.calendar_today,
                     'Created At',
-                    trip['created_at'],
+                    trip['created_at'] ?? 'N/A',
                     Colors.grey,
                   ),
 

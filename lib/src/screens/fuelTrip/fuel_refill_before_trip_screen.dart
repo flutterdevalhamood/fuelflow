@@ -113,7 +113,7 @@ class _FuelRefillBeforeTripScreenState
   ) async {
     try {
       final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
+        source: ImageSource.gallery,
         imageQuality: 60,
         maxWidth: 1024,
         maxHeight: 1024,

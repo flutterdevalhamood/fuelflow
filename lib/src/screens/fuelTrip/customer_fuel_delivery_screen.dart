@@ -12,6 +12,8 @@ import 'package:sample/src/screens/fuelTrip/trip_return_screen.dart';
 import 'package:sample/src/util/app_navigation.dart';
 import 'package:sample/src/util/app_routes.dart';
 
+import '../../util/image_compression.dart';
+
 class CustomerFuelDeliveryScreen extends StatefulWidget {
   final int assignmentId;
   final int vehicleId;
@@ -55,9 +57,12 @@ class CustomerFuelDeliveryScreen extends StatefulWidget {
       _CustomerFuelDeliveryScreenState();
 }
 
-class _CustomerFuelDeliveryScreenState
-    extends State<CustomerFuelDeliveryScreen> {
+class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  bool get wantKeepAlive => true;
 
   final _startMeterController = TextEditingController();
   final _endMeterController = TextEditingController();
@@ -123,10 +128,17 @@ class _CustomerFuelDeliveryScreenState
     return deliveryQty != _meterReadingDifference.toDouble();
   }
 
+  Future<File> _compressImage(File file) async {
+    final compressed = await ImageCompressionHelper.compressMultipleImages([
+      file,
+    ]);
+    return compressed.isNotEmpty ? compressed.first : file;
+  }
+
   @override
   void initState() {
     super.initState();
-
+    WidgetsBinding.instance.addObserver(this);
     _trackingController = context.read<TripTrackingController>();
     _fuelTripController = context.read<FuelTripController>();
     _refillController = context.read<FuelRefillBeforeTripController>();
@@ -160,6 +172,13 @@ class _CustomerFuelDeliveryScreenState
       _initializeTracking();
       _loadRefillingHistory();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) setState(() {}); // gentle refresh, avoids glitch
+    }
   }
 
   Future<void> _loadRefillingHistory() async {
@@ -539,13 +558,12 @@ class _CustomerFuelDeliveryScreenState
   Future<void> _pickAdditionalImages() async {
     try {
       final images = await _picker.pickMultiImage(
-        imageQuality: 60, // Reduced from 85
+        imageQuality: 60,
         maxWidth: 1024,
         maxHeight: 1024,
       );
 
       if (images.isNotEmpty && mounted) {
-        // Limit number of additional images
         if (_additionalImages.length + images.length > 5) {
           _showSnackBar(
             'Maximum 5 additional images allowed',
@@ -554,30 +572,27 @@ class _CustomerFuelDeliveryScreenState
           return;
         }
 
-        // Check total file size
+        // ✅ Compress all picked images in parallel immediately
+        final files = images.map((img) => File(img.path)).toList();
+
+        // Check sizes first
         int totalSize = 0;
-        final newFiles = <File>[];
-
-        for (var img in images) {
-          final file = File(img.path);
-          final size = await file.length();
-          totalSize += size;
-          newFiles.add(file);
+        for (var f in files) {
+          totalSize += await f.length();
         }
-
         if (totalSize > 10 * 1024 * 1024) {
-          // 10MB total limit
           _showSnackBar(
-            'Total image size too large. Please select fewer or smaller images.',
+            'Total image size too large.',
             backgroundColor: Colors.orange,
           );
           return;
         }
 
-        setState(() {
-          _additionalImages.addAll(newFiles);
-        });
+        // ✅ Compress in parallel
+        final compressedFiles = await Future.wait(files.map(_compressImage));
+        if (!mounted) return;
 
+        setState(() => _additionalImages.addAll(compressedFiles));
         _showSnackBar(
           '${images.length} image(s) added',
           backgroundColor: Colors.green,
@@ -597,6 +612,7 @@ class _CustomerFuelDeliveryScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _startMeterController.removeListener(_onStartMeterChanged);
     _endMeterController.removeListener(_onEndMeterChanged);
     _noteController.removeListener(_onNoteChanged);
@@ -637,15 +653,14 @@ class _CustomerFuelDeliveryScreenState
         debugPrint('📸 Selected image size: $fileSize bytes');
 
         if (fileSize > 5 * 1024 * 1024) {
-          // 5MB limit
-          _showSnackBar(
-            'Image too large. Please select a smaller image.',
-            backgroundColor: Colors.orange,
-          );
+          _showSnackBar('Image too large.', backgroundColor: Colors.orange);
           return;
         }
 
-        setState(() => onPicked(file));
+        final compressedFile = await _compressImage(file);
+        if (!mounted) return;
+
+        setState(() => onPicked(compressedFile));
 
         if (focusNode != null) {
           Future.delayed(const Duration(milliseconds: 300), () {
@@ -689,40 +704,9 @@ class _CustomerFuelDeliveryScreenState
     setState(() => _isSubmitting = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
+      // await Future.delayed(const Duration(milliseconds: 300));
 
       final stopVehicleIdToSubmit = widget.stopVehicleId ?? 0;
-
-      debugPrint('========================================');
-      debugPrint('📤 FUEL DELIVERY REQUEST');
-      debugPrint('========================================');
-      debugPrint('Driver vehicle ID: ${widget.vehicleId}');
-      debugPrint('Stop Vehicle ID: $stopVehicleIdToSubmit');
-      debugPrint('Vehicle ID: ${widget.vehicleId}');
-      debugPrint('Trip ID: ${widget.tripId}');
-      debugPrint('Trip Stop ID: ${widget.tripStopId}');
-      debugPrint('Type: outflow');
-      debugPrint('Quantity: ${double.parse(_deliveryQuantityController.text)}');
-      debugPrint('Before Quantity: ${widget.availableQty}');
-      debugPrint(
-        'After Quantity: ${widget.availableQty - double.parse(_deliveryQuantityController.text)}',
-      );
-      debugPrint(
-        'Customer Start Meter: ${int.tryParse(_startMeterController.text) ?? 0}',
-      );
-      debugPrint(
-        'Customer End Meter: ${int.tryParse(_endMeterController.text) ?? 0}',
-      );
-      debugPrint('Note: ${_noteController.text}');
-      debugPrint('Start Meter Pre-filled: $_isStartMeterPreFilled');
-      debugPrint(
-        'Start Meter Photo Path: ${_startMeterPhoto?.path ?? "N/A (pre-filled)"}',
-      );
-      debugPrint('End Meter Photo Path: ${_endMeterPhoto!.path}');
-      debugPrint('Additional Images Count: ${_additionalImages.length}');
-      debugPrint('Is Bulk Delivery: ${widget.isBulkDelivery ?? false}');
-      debugPrint('widget.stopVehicleId received: ${widget.stopVehicleId}');
-      debugPrint('========================================');
 
       final success = await _refillController.postFuelVehicleWithMeterReading(
         vehicleId: widget.vehicleId,
@@ -752,12 +736,6 @@ class _CustomerFuelDeliveryScreenState
         additionalFiles: _additionalImages,
       );
 
-      debugPrint('========================================');
-      debugPrint('📥 FUEL DELIVERY RESPONSE');
-      debugPrint('========================================');
-      debugPrint('Success: $success');
-      debugPrint('========================================');
-
       if (!success || !mounted) {
         _showSnackBar('Delivery failed', backgroundColor: Colors.red);
         setState(() => _isSubmitting = false);
@@ -767,9 +745,6 @@ class _CustomerFuelDeliveryScreenState
       AuthRepo.lastEndMeterReading = _endMeterController.text;
       AuthRepo.lastTripStopId = widget.tripStopId;
       AuthRepo.lastEndMeterPhotoPath = _endMeterPhoto!.path;
-      debugPrint(
-        '✅ Saved end meter reading for next vehicle: ${_endMeterController.text}',
-      );
 
       final updatedAvailableQty =
           widget.availableQty - double.parse(_deliveryQuantityController.text);
@@ -1122,6 +1097,7 @@ class _CustomerFuelDeliveryScreenState
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return WillPopScope(
       onWillPop: () async {
         if (_isSubmitting) return false;

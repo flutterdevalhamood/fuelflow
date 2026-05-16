@@ -34,7 +34,8 @@ class AllVehiclesScreen extends StatefulWidget {
   State<AllVehiclesScreen> createState() => _AllVehiclesScreenState();
 }
 
-class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
+class _AllVehiclesScreenState extends State<AllVehiclesScreen>
+    with WidgetsBindingObserver {
   late List<Map<String, dynamic>> stopVehicles;
   List<Map<String, dynamic>> _filteredVehicles = [];
   final TextEditingController _searchController = TextEditingController();
@@ -42,6 +43,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
   late TripTrackingController _trackingController;
   bool _isProcessing = false;
+
+  final ScrollController _scrollController = ScrollController();
 
   // Multi-select state
   bool _isMultiSelectMode = false;
@@ -70,6 +73,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     stopVehicles = List.from(widget.stopVehicles);
     _filteredVehicles = List.from(stopVehicles);
     _searchController.addListener(_filterVehicles);
@@ -99,8 +103,18 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() {}); // single clean refresh, prevents glitch flash
+    }
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+
+    WidgetsBinding.instance.removeObserver(this); // ADD THIS
+    _scrollController.dispose();
 
     AuthRepo.lastEndMeterReading = null;
     AuthRepo.lastTripStopId = null;
@@ -318,25 +332,25 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       _applyFiltersWithoutNavigating();
     });
 
-    if (!_isScreenReady) return;
-
-    // ✅ Only auto-navigate when truly settled and no navigation is in progress
-    if (_pendingCount == 0 &&
-        stopVehicles.isNotEmpty &&
-        !_isLastStop &&
-        !_isProcessing) {
-      // ✅ Use a small delay so the current frame fully renders before navigating
-      Future.delayed(const Duration(milliseconds: 350), () {
-        if (mounted && _pendingCount == 0 && !_isProcessing) {
-          debugPrint(
-            '✅ All vehicles completed - navigating to accepted assignments',
-          );
-          NavigationService().pushAndRemoveUntilNavigation(
-            Screenroutes.acceptedAssignmentScreen,
-          );
-        }
-      });
-    }
+    // if (!_isScreenReady) return;
+    //
+    // // ✅ Only auto-navigate when truly settled and no navigation is in progress
+    // if (_pendingCount == 0 &&
+    //     stopVehicles.isNotEmpty &&
+    //     !_isLastStop &&
+    //     !_isProcessing) {
+    //   // ✅ Use a small delay so the current frame fully renders before navigating
+    //   Future.delayed(const Duration(milliseconds: 350), () {
+    //     if (mounted && _pendingCount == 0 && !_isProcessing) {
+    //       debugPrint(
+    //         '✅ All vehicles completed - navigating to accepted assignments',
+    //       );
+    //       NavigationService().pushAndRemoveUntilNavigation(
+    //         Screenroutes.acceptedAssignmentScreen,
+    //       );
+    //     }
+    //   });
+    // }
   }
 
   // void _filterVehicles() {
@@ -426,6 +440,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       return;
     }
 
+    _searchController.removeListener(_filterVehicles);
+
     final result = await NavigationService().pushNavigation(
       Screenroutes.customerFuelDeliveryScreen,
       arguments: {
@@ -450,6 +466,10 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       },
     );
 
+    if (mounted) {
+      _searchController.addListener(_filterVehicles);
+    }
+
     // ✅ Guard: don't update state if widget is gone
     if (!mounted) return;
 
@@ -465,6 +485,8 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
       final index = stopVehicles.indexWhere(
         (v) => v['vehicle_id'].toString() == vehicle['vehicle_id'].toString(),
       );
+
+      _isProcessing = true;
 
       // ✅ Single setState — batch ALL updates together to prevent glitch
       setState(() {
@@ -484,12 +506,23 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
 
       // ✅ Show snackbar AFTER setState settles
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Refueling Completed for $plateNo'),
-              backgroundColor: Colors.green,
-            ),
+        if (!mounted) return;
+
+        setState(() => _isProcessing = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refueling Completed for $plateNo'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        if (_pendingCount == 0 && stopVehicles.isNotEmpty && !_isLastStop) {
+          debugPrint(
+            '✅ All vehicles completed - navigating to accepted assignments',
+          );
+          NavigationService().pushAndRemoveUntilNavigation(
+            Screenroutes.acceptedAssignmentScreen,
           );
         }
       });
@@ -833,6 +866,7 @@ class _AllVehiclesScreenState extends State<AllVehiclesScreen> {
                         ),
                       )
                       : ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount:
                             _showAllVehicles

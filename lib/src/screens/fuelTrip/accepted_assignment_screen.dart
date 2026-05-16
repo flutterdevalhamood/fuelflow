@@ -26,7 +26,8 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(const Duration(milliseconds: 100));
       _refreshAssignments();
     });
   }
@@ -53,8 +54,9 @@ class _AcceptedAssignmentScreenState extends State<AcceptedAssignmentScreen>
   }
 
   Future<void> _refreshAssignments() async {
-    final controller = context.read<FuelTripController>();
-    await controller.getAcceptedAssignments();
+    if (mounted) {
+      await context.read<FuelTripController>().getAcceptedAssignments();
+    }
   }
 
   Map<String, dynamic> _calculateTotalRequirements(

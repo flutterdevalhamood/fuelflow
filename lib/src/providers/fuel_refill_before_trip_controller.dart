@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:sample/src/util/image_compression.dart';
 
 import '../data/rest_client.dart';
 import '../repo/auth_repo.dart';
@@ -116,6 +115,7 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
     required List<File> vehicleEndMeterFiles,
     List<File>? additionalFiles,
     String? note,
+    void Function(int sent, int total)? onUploadProgress,
   }) async {
     isSubmittingRefill = true;
     errorMessage = null;
@@ -128,50 +128,35 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
         throw Exception("No authentication token found");
       }
 
-      // Compress all images before upload
-      final compressedCustomerStart =
-          await ImageCompressionHelper.compressMultipleImages(
-            customerStartMeterFiles,
-          );
-      final compressedCustomerEnd =
-          await ImageCompressionHelper.compressMultipleImages(
-            customerEndMeterFiles,
-          );
-      final compressedVehicleStart =
-          await ImageCompressionHelper.compressMultipleImages(
-            vehicleStartMeterFiles,
-          );
-      final compressedVehicleEnd =
-          await ImageCompressionHelper.compressMultipleImages(
-            vehicleEndMeterFiles,
-          );
-      final compressedAdditional =
-          additionalFiles != null
-              ? await ImageCompressionHelper.compressMultipleImages(
-                additionalFiles,
-              )
-              : <File>[];
-
-      // Prepare multipart files with compressed images
+      // AFTER (fast - reads all bytes into memory first, in parallel):
       Future<List<MultipartFile>> prepareFiles(List<File> files) async {
         if (files.isEmpty) return [];
         return await Future.wait(
           files.map((file) async {
-            final multipartFile = await MultipartFile.fromFile(
-              file.path,
+            // Read bytes upfront so Dio doesn't do disk I/O mid-upload
+            final bytes = await file.readAsBytes();
+            return MultipartFile.fromBytes(
+              bytes,
               filename: file.path.split('/').last,
             );
-
-            return multipartFile;
           }),
         );
       }
 
-      final customerStartFiles = await prepareFiles(compressedCustomerStart);
-      final customerEndFiles = await prepareFiles(compressedCustomerEnd);
-      final vehicleStartFiles = await prepareFiles(compressedVehicleStart);
-      final vehicleEndFiles = await prepareFiles(compressedVehicleEnd);
-      final additionalMultipartFiles = await prepareFiles(compressedAdditional);
+      // All file groups read in parallel before the request even starts
+      final fileResults = await Future.wait([
+        prepareFiles(customerStartMeterFiles),
+        prepareFiles(customerEndMeterFiles),
+        prepareFiles(vehicleStartMeterFiles),
+        prepareFiles(vehicleEndMeterFiles),
+        prepareFiles(additionalFiles ?? []),
+      ]);
+
+      final customerStartFiles = fileResults[0];
+      final customerEndFiles = fileResults[1];
+      final vehicleStartFiles = fileResults[2];
+      final vehicleEndFiles = fileResults[3];
+      final additionalMultipartFiles = fileResults[4];
 
       // Create Dio with proper timeout configuration
       final dio = Dio(
@@ -180,11 +165,6 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
           receiveTimeout: const Duration(seconds: 120),
           sendTimeout: const Duration(seconds: 120),
         ),
-      );
-
-      // Add logging interceptor
-      dio.interceptors.add(
-        LogInterceptor(requestBody: false, responseBody: true, error: true),
       );
 
       final stopVehicleIdString = (stopVehicleId ?? 0).toString();
