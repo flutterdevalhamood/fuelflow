@@ -39,7 +39,7 @@ class TripReturnScreen extends StatefulWidget {
 }
 
 class _TripReturnScreenState extends State<TripReturnScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _animationController;
   late Animation<double> _truckAnimation;
   bool _isLocationReady = false;
@@ -52,7 +52,7 @@ class _TripReturnScreenState extends State<TripReturnScreen>
   @override
   void initState() {
     super.initState();
-
+    WidgetsBinding.instance.addObserver(this);
     _animationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -63,6 +63,20 @@ class _TripReturnScreenState extends State<TripReturnScreen>
     );
 
     _checkExistingTracking();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isLocationReady) return;
+
+    if (state == AppLifecycleState.resumed) {
+      if (!_animationController.isAnimating) {
+        _animationController.repeat(reverse: true);
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _animationController.stop();
+    }
   }
 
   Future<void> _checkExistingTracking() async {
@@ -618,6 +632,7 @@ class _TripReturnScreenState extends State<TripReturnScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     super.dispose();
   }

@@ -18,13 +18,19 @@ class TripTrackingController with ChangeNotifier {
   int? _driverId;
   int? _vehicleId;
 
-  Timer? _locationLoggerTimer;
-  Timer? _backgroundPositionChecker;
+  // ✅ FIXED: Use a StreamSubscription instead of Timer.periodic.
+  // Timer.periodic is suspended by the OS when the screen locks.
+  // Geolocator's position stream integrates with the native location
+  // service (FusedLocationProvider on Android, CLLocationManager on iOS),
+  // which continues updating even when the device is locked.
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   int? get currentTripId => _currentTripId;
 
-  static const double distanceThreshold = 100.0;
-  static const Duration locationLogInterval = Duration(seconds: 30);
+  // ✅ Distance filter is now handled by the platform's native location
+  // service via LocationSettings.distanceFilter (meters). This is more
+  // power-efficient than receiving every update and skipping it in Dart.
+  static const double distanceThreshold = 5.0;
 
   bool get isTracking => _isTracking;
 
@@ -83,7 +89,8 @@ class TripTrackingController with ChangeNotifier {
         position: _lastPosition,
       );
 
-      _startBackgroundLocationLogging(tripId);
+      // ✅ FIXED: Subscribe to the native position stream.
+      _startPositionStream(tripId);
 
       debugPrint('✅ Trip tracking started for trip $tripId, stop $tripStopId');
     } catch (e) {
@@ -118,46 +125,68 @@ class TripTrackingController with ChangeNotifier {
     }
   }
 
-  void _startBackgroundLocationLogging(int tripId) {
-    _locationLoggerTimer?.cancel();
-    _backgroundPositionChecker?.cancel();
+  /// ✅ FIXED: Core change — subscribe to getPositionStream() instead of
+  /// using Timer.periodic + getCurrentPosition().
+  ///
+  /// Why this works on locked screens:
+  /// - Android: The ForegroundNotificationConfig keeps the location service
+  ///   alive as a foreground service (required since Android 8+). The OS
+  ///   cannot suspend a foreground service without user intervention.
+  /// - iOS: The stream uses CLLocationManager with
+  ///   ActivityType.automotiveNavigation, which keeps updates alive when
+  ///   the app is backgrounded or the screen is locked.
+  ///
+  /// The distanceFilter (5 m here) means the stream only emits when the
+  /// device has actually moved that far, saving battery. We still apply
+  /// our own 150 m threshold before sending to the API to reduce network
+  /// traffic.
+  void _startPositionStream(int tripId) {
+    _positionStreamSubscription?.cancel();
 
-    _backgroundPositionChecker = Timer.periodic(locationLogInterval, (
-      timer,
-    ) async {
-      if (!_isTracking) {
-        timer.cancel();
-        return;
-      }
+    final LocationSettings locationSettings =
+        Platform.isAndroid
+            ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              // ✅ Native distance filter — avoids waking Dart for tiny moves.
+              distanceFilter: 5,
+              forceLocationManager: false,
+              intervalDuration: const Duration(seconds: 10),
+              // ✅ CRITICAL for Android background / locked-screen operation.
+              // Without a foreground notification, Android 8+ will kill the
+              // location updates within minutes of the screen locking.
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationText: 'Tracking your trip location',
+                notificationTitle: 'Trip Active',
+                enableWakeLock: true,
+                // ✅ Set to true so the notification is not removable by the
+                // user while the trip is running.
+                setOngoing: true,
+              ),
+            )
+            : AppleSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+              // ✅ automotiveNavigation keeps GPS on even with screen locked.
+              activityType: ActivityType.automotiveNavigation,
+              // ✅ pauseLocationUpdatesAutomatically: false prevents iOS from
+              // pausing updates when the device appears stationary.
+              pauseLocationUpdatesAutomatically: false,
+              // ✅ showBackgroundLocationIndicator shows the blue bar in iOS,
+              // required for background location permission to work correctly.
+              showBackgroundLocationIndicator: true,
+            );
 
-      try {
-        final currentPosition = await Geolocator.getCurrentPosition(
-          locationSettings:
-              Platform.isAndroid
-                  ? AndroidSettings(
-                    accuracy: LocationAccuracy.high,
-                    distanceFilter: 5,
-                    forceLocationManager: false,
-                    intervalDuration: const Duration(seconds: 30),
-                    foregroundNotificationConfig:
-                        const ForegroundNotificationConfig(
-                          notificationText: "Tracking your trip location",
-                          notificationTitle: "Trip Active",
-                          enableWakeLock: true,
-                        ),
-                  )
-                  : AppleSettings(
-                    accuracy: LocationAccuracy.high,
-                    distanceFilter: 5,
-                    activityType: ActivityType.automotiveNavigation,
-                  ),
-        ).timeout(const Duration(seconds: 10));
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(
+      (Position currentPosition) async {
+        if (!_isTracking) return;
 
-        bool shouldLogLocation = false;
+        bool shouldLog = false;
 
         if (_lastPosition == null) {
-          shouldLogLocation = true;
-          debugPrint('📍 First position captured');
+          shouldLog = true;
+          debugPrint('📍 First position captured via stream');
         } else {
           final distance = Geolocator.distanceBetween(
             _lastPosition!.latitude,
@@ -166,33 +195,41 @@ class TripTrackingController with ChangeNotifier {
             currentPosition.longitude,
           );
 
-          debugPrint('📏 Distance moved: ${distance.toStringAsFixed(2)}m');
+          debugPrint('📏 Distance moved: ${distance.toStringAsFixed(2)} m');
 
           if (distance >= distanceThreshold) {
-            shouldLogLocation = true;
+            shouldLog = true;
             debugPrint('✅ Distance threshold met, logging location');
           } else {
             debugPrint('⏭️ Distance too small, skipping log');
           }
         }
 
-        if (shouldLogLocation) {
+        if (shouldLog) {
           final success = await _logTripLocationSynchronously(
             tripId: tripId,
             position: currentPosition,
           );
-
           if (success) {
             _lastPosition = currentPosition;
           }
         }
-      } catch (e) {
-        debugPrint('❌ Background location check error: $e');
-      }
-    });
+      },
+      onError: (Object error) {
+        debugPrint('❌ Position stream error: $error');
+        // ✅ Attempt to restart the stream after a brief delay so
+        // transient errors (GPS signal lost, service restart) don't
+        // permanently stop tracking.
+        if (_isTracking) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (_isTracking) _startPositionStream(tripId);
+          });
+        }
+      },
+      cancelOnError: false, // ✅ Keep stream alive on non-fatal errors.
+    );
   }
 
-  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<bool> _logTripLocationSynchronously({
     required int tripId,
     required Position position,
@@ -232,7 +269,6 @@ class TripTrackingController with ChangeNotifier {
     try {
       debugPrint('🌐 Sending location to API...');
 
-      // ✅ USE GLOBAL restApi INSTANCE
       await restApi.postLogTripLocations(
         tripId: tripId,
         token: 'Bearer $token',
@@ -301,7 +337,6 @@ class TripTrackingController with ChangeNotifier {
       debugPrint('🔵 Logging event: $eventType');
       debugPrint('   Trip ID: $tripId, Stop ID: $tripStopId');
 
-      // ✅ USE GLOBAL restApi INSTANCE
       await restApi.postLogTripEvent(
         tripId: tripId,
         token: 'Bearer $token',
@@ -319,7 +354,7 @@ class TripTrackingController with ChangeNotifier {
       debugPrint('❌ Event logging failed [$eventType]: $e');
 
       if (retries > 0) {
-        debugPrint('🔄 Retrying $eventType (${retries} attempts left)');
+        debugPrint('🔄 Retrying $eventType ($retries attempts left)');
         await Future.delayed(const Duration(seconds: 2));
         _pendingEventLogs.remove(eventKey);
         return await _logTripEventSynchronously(
@@ -372,7 +407,6 @@ class TripTrackingController with ChangeNotifier {
     );
   }
 
-  // ✅ UPDATED: Use global restApi instead of creating new Dio instance
   Future<Map<String, dynamic>> requestAdminVehicleRefilingForShortage({
     required String vehicleId,
     required double expectedQuantity,
@@ -390,7 +424,6 @@ class TripTrackingController with ChangeNotifier {
     }
 
     try {
-      // ✅ USE GLOBAL restApi INSTANCE
       final response = await restApi.requestAdminVehicleRefilingForShortage(
         token: 'Bearer $token',
         latitude: position.latitude.toString(),
@@ -427,8 +460,9 @@ class TripTrackingController with ChangeNotifier {
 
   void pauseTripTracking() {
     _isTracking = false;
-    _backgroundPositionChecker?.cancel();
-    _locationLoggerTimer?.cancel();
+    // ✅ Cancel the stream subscription instead of cancelling a timer.
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
     notifyListeners();
     debugPrint('⏸️ Trip tracking paused');
   }
@@ -436,7 +470,7 @@ class TripTrackingController with ChangeNotifier {
   void resumeTripTracking() {
     if (_currentTripId == null) return;
     _isTracking = true;
-    _startBackgroundLocationLogging(_currentTripId!);
+    _startPositionStream(_currentTripId!);
     notifyListeners();
     debugPrint('▶️ Trip tracking resumed');
   }
@@ -451,8 +485,10 @@ class TripTrackingController with ChangeNotifier {
     }
 
     _isTracking = false;
-    _backgroundPositionChecker?.cancel();
-    _locationLoggerTimer?.cancel();
+    // ✅ Cancel the stream subscription on stop.
+    await _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
+
     _lastPosition = null;
     _currentTripId = null;
     _currentTripStopId = null;

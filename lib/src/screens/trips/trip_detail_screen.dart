@@ -353,7 +353,7 @@ class _AssignmentCard extends StatelessWidget {
                   child: _MiniInfoChip(
                     icon: Icons.water_drop_rounded,
                     label: 'Capacity',
-                    value: '${assignment.vehicle.capacity} L',
+                    value: '${assignment.vehicle.capacity} IG',
                   ),
                 ),
             ],
@@ -468,7 +468,7 @@ class _StopCard extends StatelessWidget {
                       child: _InfoTile(
                         icon: Icons.local_gas_station_rounded,
                         label: 'Expected Qty',
-                        value: '${stop.expectedQuantity} L',
+                        value: '${stop.expectedQuantity} IG',
                         iconColor: const Color(0xFF3D7EFF),
                       ),
                     ),
@@ -477,7 +477,7 @@ class _StopCard extends StatelessWidget {
                       child: _InfoTile(
                         icon: Icons.check_circle_rounded,
                         label: 'Delivered Qty',
-                        value: '${stop.deliveredQty} L',
+                        value: '${stop.deliveredQty} IG',
                         iconColor: const Color(0xFF00C48C),
                       ),
                     ),
@@ -677,7 +677,7 @@ class _StockEventCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '${event.quantity} L',
+                  '${event.quantity} IG',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -698,7 +698,7 @@ class _StockEventCard extends StatelessWidget {
                       child: _InfoTile(
                         icon: Icons.start_rounded,
                         label: 'Before',
-                        value: '${event.beforeQuantity} L',
+                        value: '${event.beforeQuantity} IG',
                         iconColor: const Color(0xFF8F9BB3),
                       ),
                     ),
@@ -713,7 +713,7 @@ class _StockEventCard extends StatelessWidget {
                       child: _InfoTile(
                         icon: Icons.flag_rounded,
                         label: 'After',
-                        value: '${event.afterQuantity} L',
+                        value: '${event.afterQuantity} IG',
                         iconColor: color,
                       ),
                     ),
@@ -945,7 +945,7 @@ class _EventTimelineItem extends StatelessWidget {
 
   String _formatTime(String raw) {
     try {
-      final dt = DateTime.parse(raw);
+      final dt = DateTime.parse(raw).toUtc().add(const Duration(hours: 4));
       return DateFormat('hh:mm a').format(dt);
     } catch (_) {
       return raw;
@@ -955,8 +955,8 @@ class _EventTimelineItem extends StatelessWidget {
   String? _timeSinceLast() {
     if (previousEvent == null) return null;
     try {
-      final current = DateTime.parse(event.createdAt);
-      final previous = DateTime.parse(previousEvent!.createdAt);
+      final current = DateTime.parse(event.createdAt).toUtc();
+      final previous = DateTime.parse(previousEvent!.createdAt).toUtc();
       final diff = current.difference(previous).inSeconds;
       return '$diff seconds since last event';
     } catch (_) {
