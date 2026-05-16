@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -61,7 +60,7 @@ class TripStartedScreen extends StatefulWidget {
 }
 
 class _TripStartedScreenState extends State<TripStartedScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _animationController;
   late Animation<double> _truckAnimation;
   bool _isLocationReady = false;
@@ -81,7 +80,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
   @override
   void initState() {
     super.initState();
-
+    WidgetsBinding.instance.addObserver(this);
     _animationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -94,6 +93,20 @@ class _TripStartedScreenState extends State<TripStartedScreen>
     print('vehicleidddddd  ${widget.vehicleId}');
 
     _checkExistingTracking();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isLocationReady) return;
+
+    if (state == AppLifecycleState.resumed) {
+      if (!_animationController.isAnimating) {
+        _animationController.repeat(reverse: true);
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _animationController.stop();
+    }
   }
 
   // ✅ NEW: Show/hide loading overlay helpers
@@ -687,6 +700,7 @@ class _TripStartedScreenState extends State<TripStartedScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     _googleMapController?.dispose();
     _animationController.dispose();
@@ -771,49 +785,49 @@ class _TripStartedScreenState extends State<TripStartedScreen>
               ),
             ),
 
-            // Container(
-            //   height: 180,
-            //   color: Colors.grey.shade200,
-            //   child: const Center(
-            //     child: Text(
-            //       'Map temporarily disabled',
-            //       style: TextStyle(color: Colors.grey),
-            //     ),
-            //   ),
-            // ),
-
-            //TODO
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              height: _mapExpanded ? 300 : 180,
-              child: GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: stopLocation,
-                  zoom: 14.0,
+            Container(
+              height: 180,
+              color: Colors.grey.shade200,
+              child: const Center(
+                child: Text(
+                  'Map temporarily disabled',
+                  style: TextStyle(color: Colors.grey),
                 ),
-                onMapCreated: (controller) {
-                  _googleMapController = controller;
-                },
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('stop_location'),
-                    position: stopLocation,
-                    infoWindow: InfoWindow(
-                      title: widget.siteName ?? widget.customerName,
-                      snippet: 'Delivery Stop',
-                    ),
-                  ),
-                },
-                mapType: MapType.normal,
-                zoomControlsEnabled: true,
-                myLocationButtonEnabled: false,
-                gestureRecognizers: {
-                  Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer(),
-                  ),
-                },
               ),
             ),
+
+            //TODO
+            // AnimatedContainer(
+            //   duration: const Duration(milliseconds: 300),
+            //   height: _mapExpanded ? 300 : 180,
+            //   child: GoogleMap(
+            //     initialCameraPosition: CameraPosition(
+            //       target: stopLocation,
+            //       zoom: 14.0,
+            //     ),
+            //     onMapCreated: (controller) {
+            //       _googleMapController = controller;
+            //     },
+            //     markers: {
+            //       Marker(
+            //         markerId: const MarkerId('stop_location'),
+            //         position: stopLocation,
+            //         infoWindow: InfoWindow(
+            //           title: widget.siteName ?? widget.customerName,
+            //           snippet: 'Delivery Stop',
+            //         ),
+            //       ),
+            //     },
+            //     mapType: MapType.normal,
+            //     zoomControlsEnabled: true,
+            //     myLocationButtonEnabled: false,
+            //     gestureRecognizers: {
+            //       Factory<OneSequenceGestureRecognizer>(
+            //         () => EagerGestureRecognizer(),
+            //       ),
+            //     },
+            //   ),
+            // ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               color: Colors.white,
