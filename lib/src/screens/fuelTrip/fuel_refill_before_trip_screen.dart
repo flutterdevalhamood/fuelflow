@@ -50,6 +50,9 @@ class _FuelRefillBeforeTripScreenState
   File? _startMeterPhoto;
   File? _endMeterPhoto;
 
+  List<int>? _cachedStartMeterBytes;
+  List<int>? _cachedEndMeterBytes;
+
   final ImagePicker _picker = ImagePicker();
   bool _isSubmitting = false;
   bool _showCompletionDialog = false;
@@ -109,8 +112,9 @@ class _FuelRefillBeforeTripScreenState
 
   Future<void> _pickImage(
     Function(File) onImagePicked,
-    FocusNode? focusNode,
-  ) async {
+    FocusNode? focusNode, {
+    required bool isStartMeter, // ✅ Add this
+  }) async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -118,17 +122,24 @@ class _FuelRefillBeforeTripScreenState
         maxWidth: 1024,
         maxHeight: 1024,
       );
-      if (image != null) {
+      if (image != null && mounted) {
+        final file = File(image.path);
+
+        // ✅ Pre-read bytes immediately so submit has zero disk I/O
+        final bytes = await file.readAsBytes();
+
         setState(() {
-          onImagePicked(File(image.path));
+          onImagePicked(file);
+          if (isStartMeter) {
+            _cachedStartMeterBytes = bytes;
+          } else {
+            _cachedEndMeterBytes = bytes;
+          }
         });
 
-        // Auto-focus the next text field after image is selected
         if (focusNode != null) {
           Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              FocusScope.of(context).requestFocus(focusNode);
-            }
+            if (mounted) FocusScope.of(context).requestFocus(focusNode);
           });
         }
       }
@@ -190,27 +201,6 @@ class _FuelRefillBeforeTripScreenState
       // Log refuel started
       await trackingController.logManualTripEvent(eventType: 'refuel_started');
 
-      // ========== LOG API REQUEST DATA ==========
-      debugPrint('📤 ===== FUEL REFILL API REQUEST =====');
-      debugPrint('vehicleId: ${widget.vehicleId}');
-      debugPrint('tripId: ${widget.tripId}');
-      debugPrint('tripStopId: ${widget.tripStopId}');
-      debugPrint('type: inflow');
-      debugPrint('quantity: $refillQty');
-      debugPrint('beforeQuantity: ${widget.availableQty}');
-      debugPrint('afterQuantity: ${widget.availableQty + refillQty}');
-      debugPrint('customerStartMeterReadingValue: 0');
-      debugPrint('customerEndMeterReadingValue: 0');
-      debugPrint('vehicleTankStartReadingValue: $startValue');
-      debugPrint('vehicleTankEndReadingValue: $endValue');
-      debugPrint('startMeterPhoto path: ${_startMeterPhoto!.path}');
-      debugPrint('endMeterPhoto path: ${_endMeterPhoto!.path}');
-      debugPrint(
-        'note: ${_noteController.text.trim().isEmpty ? 'null' : _noteController.text.trim()}',
-      );
-      debugPrint('📤 ====================================');
-
-      // Submit fuel refill
       final success = await refillController.postFuelVehicleWithMeterReading(
         vehicleId: widget.vehicleId,
         tripId: widget.tripId,
@@ -225,8 +215,14 @@ class _FuelRefillBeforeTripScreenState
         customerEndMeterFiles: const [],
         vehicleTankStartReadingValue: startValue,
         vehicleStartMeterFiles: [_startMeterPhoto!],
+        // ✅ Pass pre-read bytes — zero disk I/O at submit time
+        vehicleStartMeterBytes:
+            _cachedStartMeterBytes != null ? [_cachedStartMeterBytes!] : null,
         vehicleTankEndReadingValue: endValue,
         vehicleEndMeterFiles: [_endMeterPhoto!],
+        // ✅ Pass pre-read bytes
+        vehicleEndMeterBytes:
+            _cachedEndMeterBytes != null ? [_cachedEndMeterBytes!] : null,
         note:
             _noteController.text.trim().isEmpty
                 ? null
@@ -810,6 +806,7 @@ class _FuelRefillBeforeTripScreenState
                   () => _pickImage(
                     (file) => _startMeterPhoto = file,
                     _startMeterFocusNode,
+                    isStartMeter: true, // ✅
                   ),
                 ),
 
@@ -858,10 +855,10 @@ class _FuelRefillBeforeTripScreenState
                 _buildPhotoSection(
                   'End Photo',
                   _endMeterPhoto,
-
                   () => _pickImage(
                     (file) => _endMeterPhoto = file,
                     _endMeterFocusNode,
+                    isStartMeter: false, // ✅
                   ),
                 ),
 

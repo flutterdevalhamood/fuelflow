@@ -693,9 +693,11 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
     String response,
     String? reason,
   ) async {
+    // ✅ Capture all context-dependent objects BEFORE any await
     final controller = context.read<FuelTripController>();
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final driverId = widget.driverId;
 
     showDialog(
       context: context,
@@ -731,12 +733,14 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
     try {
       final success = await controller.postDriverResponse(
         assignmentId: trip['assignment_id'] as int,
-        driverId: widget.driverId,
+        driverId: driverId,
         response: response,
         reason: reason,
       );
 
-      navigator.pop();
+      // ✅ Guard after every await
+      if (!mounted) return;
+      navigator.pop(); // dismiss loading dialog
 
       if (success) {
         scaffoldMessenger.showSnackBar(
@@ -768,18 +772,15 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
         );
 
         if (response == 'accepted') {
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          // Pre-fetch data BEFORE navigating so it's ready when screen mounts
-          await context.read<FuelTripController>().getAcceptedAssignments();
+          // ✅ Fetch data, then guard again before navigating
+          await controller.getAcceptedAssignments();
 
           if (!mounted) return;
 
           navigator.pushReplacement(
             MaterialPageRoute(
               builder:
-                  (context) =>
-                      AcceptedAssignmentScreen(driverId: widget.driverId),
+                  (context) => AcceptedAssignmentScreen(driverId: driverId),
             ),
           );
         }
@@ -806,6 +807,7 @@ class _AssignedTripsScreenState extends State<AssignedTripsScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       navigator.pop();
       scaffoldMessenger.showSnackBar(
         SnackBar(

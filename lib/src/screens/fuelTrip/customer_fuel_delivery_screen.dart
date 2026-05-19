@@ -75,6 +75,10 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
   File? _startMeterPhoto;
   File? _endMeterPhoto;
 
+  Map<String, List<int>>? _cachedStartMeterBytes;
+  Map<String, List<int>>? _cachedEndMeterBytes;
+  List<List<int>> _cachedAdditionalBytes = [];
+
   // NEW: List for additional images
   List<File> _additionalImages = [];
 
@@ -592,7 +596,15 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
         final compressedFiles = await Future.wait(files.map(_compressImage));
         if (!mounted) return;
 
-        setState(() => _additionalImages.addAll(compressedFiles));
+        final additionalBytes = await Future.wait(
+          compressedFiles.map((f) => f.readAsBytes()),
+        );
+
+        setState(() {
+          _additionalImages.addAll(compressedFiles);
+          _cachedAdditionalBytes.addAll(additionalBytes); // ✅ cache bytes
+        });
+
         _showSnackBar(
           '${images.length} image(s) added',
           backgroundColor: Colors.green,
@@ -603,10 +615,12 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
     }
   }
 
-  // NEW: Remove an additional image
   void _removeAdditionalImage(int index) {
     setState(() {
       _additionalImages.removeAt(index);
+      if (index < _cachedAdditionalBytes.length) {
+        _cachedAdditionalBytes.removeAt(index); // ✅ keep in sync
+      }
     });
   }
 
@@ -647,11 +661,7 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
 
       if (image != null && mounted) {
         final file = File(image.path);
-
-        // Check file size before accepting
         final fileSize = await file.length();
-        debugPrint('📸 Selected image size: $fileSize bytes');
-
         if (fileSize > 5 * 1024 * 1024) {
           _showSnackBar('Image too large.', backgroundColor: Colors.orange);
           return;
@@ -660,21 +670,26 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
         final compressedFile = await _compressImage(file);
         if (!mounted) return;
 
-        setState(() => onPicked(compressedFile));
+        // ✅ Pre-read bytes immediately after compression
+        final bytes = await compressedFile.readAsBytes();
+
+        setState(() {
+          onPicked(compressedFile);
+          // Cache bytes based on which photo it is
+          if (onPicked.toString().contains('_startMeterPhoto') ||
+              _startMeterPhoto == null) {
+            _cachedStartMeterBytes = {compressedFile.path: bytes};
+          } else {
+            _cachedEndMeterBytes = {compressedFile.path: bytes};
+          }
+        });
 
         if (focusNode != null) {
           Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              FocusScope.of(context).requestFocus(focusNode);
-            }
+            if (mounted) FocusScope.of(context).requestFocus(focusNode);
           });
         }
-
-        if (onPicked.toString().contains('_startMeterPhoto')) {
-          _onStartMeterChanged();
-        } else if (onPicked.toString().contains('_endMeterPhoto')) {
-          _onEndMeterChanged();
-        }
+        _onStartMeterChanged();
       }
     } catch (e) {
       _showSnackBar('Image pick failed');
@@ -725,15 +740,23 @@ class _CustomerFuelDeliveryScreenState extends State<CustomerFuelDeliveryScreen>
             (_isStartMeterPreFilled && _startMeterPhoto != null)
                 ? [_startMeterPhoto!]
                 : (_startMeterPhoto != null ? [_startMeterPhoto!] : []),
+        // ✅ Pass pre-read bytes — zero disk I/O at submit time
+        customerStartMeterBytes:
+            _cachedStartMeterBytes?.values.map((b) => b).toList(),
         customerEndMeterReadingValue:
             int.tryParse(_endMeterController.text) ?? 0,
         customerEndMeterFiles: [_endMeterPhoto!],
+        customerEndMeterBytes:
+            _cachedEndMeterBytes?.values.map((b) => b).toList(),
         note: _noteController.text,
         vehicleTankStartReadingValue: 0,
         vehicleStartMeterFiles: const [],
         vehicleTankEndReadingValue: 0,
         vehicleEndMeterFiles: const [],
         additionalFiles: _additionalImages,
+        // ✅ Pass pre-cached additional image bytes
+        additionalFilesBytes:
+            _cachedAdditionalBytes.isNotEmpty ? _cachedAdditionalBytes : null,
       );
 
       if (!success || !mounted) {

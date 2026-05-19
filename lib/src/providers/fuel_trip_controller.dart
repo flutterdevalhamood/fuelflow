@@ -244,11 +244,6 @@ class FuelTripController with ChangeNotifier {
           (trip) => trip['assignment_id'] == assignmentId,
         );
 
-        // If accepted, fetch the accepted assignment details
-        if (response == 'accepted') {
-          await getAcceptedAssignments();
-        }
-
         isSubmittingResponse = false;
         notifyListeners();
         return true;

@@ -107,13 +107,21 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
     required double afterQuantity,
     required int customerStartMeterReadingValue,
     required List<File> customerStartMeterFiles,
+    // ✅ Add optional pre-read bytes params
+    List<List<int>>? customerStartMeterBytes,
     required int customerEndMeterReadingValue,
     required List<File> customerEndMeterFiles,
+    List<List<int>>? customerEndMeterBytes,
+
+    List<List<int>>? vehicleStartMeterBytes,
+    List<List<int>>? vehicleEndMeterBytes,
+
     required int vehicleTankStartReadingValue,
     required List<File> vehicleStartMeterFiles,
     required int vehicleTankEndReadingValue,
     required List<File> vehicleEndMeterFiles,
     List<File>? additionalFiles,
+    List<List<int>>? additionalFilesBytes,
     String? note,
     void Function(int sent, int total)? onUploadProgress,
   }) async {
@@ -124,32 +132,35 @@ class FuelRefillBeforeTripController extends ChangeNotifier {
 
     try {
       final token = AuthRepo.token;
-      if (token == null) {
-        throw Exception("No authentication token found");
-      }
+      if (token == null) throw Exception("No authentication token found");
 
-      // AFTER (fast - reads all bytes into memory first, in parallel):
-      Future<List<MultipartFile>> prepareFiles(List<File> files) async {
+      // ✅ Use pre-read bytes if available, otherwise read from file
+      Future<List<MultipartFile>> prepareFiles(
+        List<File> files, [
+        List<List<int>>? preReadBytes,
+      ]) async {
         if (files.isEmpty) return [];
         return await Future.wait(
-          files.map((file) async {
-            // Read bytes upfront so Dio doesn't do disk I/O mid-upload
-            final bytes = await file.readAsBytes();
+          List.generate(files.length, (i) async {
+            final bytes =
+                (preReadBytes != null && i < preReadBytes.length)
+                    ? preReadBytes[i] // ✅ No disk I/O — already in memory
+                    : await files[i].readAsBytes(); // fallback
             return MultipartFile.fromBytes(
               bytes,
-              filename: file.path.split('/').last,
+              filename: files[i].path.split('/').last,
             );
           }),
         );
       }
 
-      // All file groups read in parallel before the request even starts
+      // ✅ All parallel — but bytes already cached so this is near-instant
       final fileResults = await Future.wait([
-        prepareFiles(customerStartMeterFiles),
-        prepareFiles(customerEndMeterFiles),
-        prepareFiles(vehicleStartMeterFiles),
-        prepareFiles(vehicleEndMeterFiles),
-        prepareFiles(additionalFiles ?? []),
+        prepareFiles(customerStartMeterFiles, customerStartMeterBytes),
+        prepareFiles(customerEndMeterFiles, customerEndMeterBytes),
+        prepareFiles(vehicleStartMeterFiles, vehicleStartMeterBytes),
+        prepareFiles(vehicleEndMeterFiles, vehicleEndMeterBytes),
+        prepareFiles(additionalFiles ?? [], additionalFilesBytes),
       ]);
 
       final customerStartFiles = fileResults[0];
